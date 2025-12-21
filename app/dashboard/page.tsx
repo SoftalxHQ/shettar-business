@@ -4,8 +4,8 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CalendarCheck, DoorOpen, UserPlus, QrCode, Printer } from "lucide-react"
-import { MOCK_BOOKINGS } from "@/lib/mock-data"
+import { CalendarCheck, DoorOpen, UserPlus, QrCode, ArrowRight } from "lucide-react"
+import { MOCK_BOOKINGS, MOCK_ROOM_AVAILABILITY } from "@/lib/mock-data"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
@@ -13,9 +13,9 @@ import { useEffect } from "react"
 
 const today = new Date().toISOString().split("T")[0]
 
-const todayCheckIns = MOCK_BOOKINGS.filter((b) => b.checkInDate <= today && b.status === "confirmed").slice(0, 4)
+const todayCheckIns = MOCK_BOOKINGS.filter((b) => b.checkInDate <= today && b.status === "confirmed")
 
-const todayCheckOuts = MOCK_BOOKINGS.filter((b) => b.checkOutDate === today && b.status === "checked-in").slice(0, 4)
+const todayCheckOuts = MOCK_BOOKINGS.filter((b) => b.checkOutDate === today && b.status === "checked-in")
 
 const activeBookings = MOCK_BOOKINGS.filter((b) => b.status === "checked-in").length
 
@@ -100,73 +100,100 @@ export default function DashboardPage() {
 
         {/* Today's Activity */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Today's Check-ins */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Today's Check-ins</CardTitle>
-              <Badge variant="secondary">{todayCheckIns.length}</Badge>
+              <CardTitle className="text-lg font-semibold">Today's Activity</CardTitle>
             </CardHeader>
-            <CardContent>
-              {todayCheckIns.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">No check-ins scheduled for today</p>
-              ) : (
-                <div className="space-y-4">
-                  {todayCheckIns.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="flex items-center justify-between pb-4 border-b last:border-0 last:pb-0"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{booking.guestName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Room {booking.roomNumber} • {booking.guests} guests
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline">
-                          <DoorOpen className="w-4 h-4 mr-1" />
-                          Check-in
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <DoorOpen className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Check-ins</p>
+                    <p className="text-2xl font-bold">{todayCheckIns.length}</p>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <CalendarCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Check-outs</p>
+                    <p className="text-2xl font-bold">{todayCheckOuts.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/dashboard/bookings">
+                <Button className="w-full bg-transparent" variant="outline">
+                  View All Bookings
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
-          {/* Today's Check-outs */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Today's Check-outs</CardTitle>
-              <Badge variant="secondary">{todayCheckOuts.length}</Badge>
+              <CardTitle className="text-lg font-semibold">Live Room Status</CardTitle>
+              <Badge variant="secondary">
+                {MOCK_ROOM_AVAILABILITY.reduce((sum, room) => sum + room.available, 0)} Available
+              </Badge>
             </CardHeader>
             <CardContent>
-              {todayCheckOuts.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">No check-outs scheduled for today</p>
-              ) : (
-                <div className="space-y-4">
-                  {todayCheckOuts.map((booking) => (
+              <div className="space-y-3">
+                {MOCK_ROOM_AVAILABILITY.map((roomType) => {
+                  const isFull = roomType.available === 0
+                  const utilizationRate = ((roomType.total - roomType.available) / roomType.total) * 100
+
+                  return (
                     <div
-                      key={booking.id}
-                      className="flex items-center justify-between pb-4 border-b last:border-0 last:pb-0"
+                      key={roomType.type}
+                      className="flex items-center justify-between pb-3 border-b last:border-0 last:pb-0"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{booking.guestName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Room {booking.roomNumber} • Balance: ${booking.totalAmount - booking.paidAmount}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-xs font-medium">{roomType.type}</p>
+                          {isFull && (
+                            <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
+                              FULL
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-bold tabular-nums">
+                            {roomType.available}/{roomType.total}
+                          </p>
+                          <div className="flex-1 max-w-[100px]">
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${
+                                  isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
+                                }`}
+                                style={{ width: `${utilizationRate}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p
+                          className={`text-xs font-medium ${
+                            isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
+                          }`}
+                        >
+                          {isFull ? "No rooms" : roomType.available <= 2 ? "Low" : "Available"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline">
-                          <Printer className="w-4 h-4 mr-1" />
-                          Receipt
-                        </Button>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  )
+                })}
+              </div>
             </CardContent>
           </Card>
         </div>

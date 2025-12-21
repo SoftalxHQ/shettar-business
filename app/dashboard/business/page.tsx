@@ -11,21 +11,21 @@ import { useEffect } from "react"
 const revenueStats = [
   {
     title: "Revenue Today",
-    value: "$12,458",
+    value: "₦12,458",
     change: "+8%",
     trend: "up",
     icon: DollarSign,
   },
   {
     title: "This Week",
-    value: "$84,250",
+    value: "₦84,250",
     change: "+12%",
     trend: "up",
     icon: TrendingUp,
   },
   {
     title: "This Month",
-    value: "$342,800",
+    value: "₦342,800",
     change: "+15%",
     trend: "up",
     icon: TrendingUp,
@@ -163,25 +163,25 @@ export default function BusinessDashboardPage() {
                   <p className="font-medium">Room Bookings</p>
                   <p className="text-sm text-muted-foreground">145 bookings</p>
                 </div>
-                <p className="text-lg font-bold">$298,500</p>
+                <p className="text-lg font-bold">₦298,500</p>
               </div>
               <div className="flex items-center justify-between pb-3 border-b">
                 <div>
                   <p className="font-medium">Additional Services</p>
                   <p className="text-sm text-muted-foreground">Room service, amenities</p>
                 </div>
-                <p className="text-lg font-bold">$32,400</p>
+                <p className="text-lg font-bold">₦32,400</p>
               </div>
               <div className="flex items-center justify-between pb-3 border-b">
                 <div>
                   <p className="font-medium">Refunds & Cancellations</p>
                   <p className="text-sm text-muted-foreground">12 cancellations</p>
                 </div>
-                <p className="text-lg font-bold text-red-600">-$11,900</p>
+                <p className="text-lg font-bold text-red-600">-₦11,900</p>
               </div>
               <div className="flex items-center justify-between pt-2">
                 <p className="font-semibold text-lg">Net Revenue</p>
-                <p className="text-2xl font-bold text-blue-600">$319,000</p>
+                <p className="text-2xl font-bold text-blue-600">₦319,000</p>
               </div>
             </div>
           </CardContent>

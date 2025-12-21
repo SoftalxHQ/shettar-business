@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</div>
               <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
                 <TrendingUp className="w-3 h-3" />
                 <span>+12.5% from last period</span>
@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${avgDailyRate}</div>
+              <div className="text-2xl font-bold">₦{avgDailyRate}</div>
               <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
                 <TrendingDown className="w-3 h-3" />
                 <span>-2.1% from last period</span>
@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">$133</div>
+                  <div className="text-2xl font-bold">₦133</div>
                   <p className="text-xs text-muted-foreground mt-1">Revenue per available room</p>
                 </CardContent>
               </Card>
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${avgDailyRate}</div>
+                  <div className="text-2xl font-bold">₦{avgDailyRate}</div>
                   <p className="text-xs text-muted-foreground mt-1">Average daily rate</p>
                 </CardContent>
               </Card>
@@ -280,11 +280,11 @@ export default function AnalyticsPage() {
                         <div>
                           <h4 className="font-medium">{room.type}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {room.bookings} bookings • ${room.revenue.toLocaleString()} revenue
+                            {room.bookings} bookings • ₦{room.revenue.toLocaleString()} revenue
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold">${Math.round(room.revenue / room.bookings)}</div>
+                          <div className="text-lg font-bold">₦{Math.round(room.revenue / room.bookings)}</div>
                           <div className="text-xs text-muted-foreground">Avg per booking</div>
                         </div>
                       </div>

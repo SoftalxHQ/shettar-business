@@ -27,9 +27,11 @@ import {
   User,
   Building2,
   QrCode,
+  Bell,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -82,6 +84,42 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     .toUpperCase()
 
   const isAdmin = user.role === "admin"
+
+  const notifications = [
+    {
+      id: 1,
+      title: "New booking received",
+      message: "John Doe - Standard Room, Check-in: Dec 22",
+      time: "5 min ago",
+      unread: true,
+      type: "booking",
+    },
+    {
+      id: 2,
+      title: "Room disabled for maintenance",
+      message: "Room 305 - Deluxe - AC repair scheduled",
+      time: "1 hour ago",
+      unread: true,
+      type: "maintenance",
+    },
+    {
+      id: 3,
+      title: "New booking received",
+      message: "Sarah Johnson - Suite Room, Check-in: Dec 23",
+      time: "2 hours ago",
+      unread: false,
+      type: "booking",
+    },
+    {
+      id: 4,
+      title: "Room disabled for maintenance",
+      message: "Room 108 - Standard - Plumbing issue",
+      time: "3 hours ago",
+      unread: false,
+      type: "maintenance",
+    },
+  ]
+  const unreadCount = notifications.filter((n) => n.unread).length
 
   if (isAdmin) {
     // Admin layout with sidebar
@@ -177,35 +215,87 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             <h1 className="font-semibold text-base">{user.hotelName}</h1>
           </Link>
 
-          {/* User profile */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-3 h-auto py-2 px-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          {/* Notification dropdown */}
+          <div className="flex items-center gap-3">
+            {/* Notification dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                    >
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {unreadCount} new
+                    </Badge>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-[400px] overflow-y-auto">
+                  {notifications.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="flex flex-col items-start gap-1 p-3 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between w-full">
+                        <p className="font-medium text-sm">{notification.title}</p>
+                        {notification.unread && <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{notification.message}</p>
+                      <p className="text-xs text-muted-foreground">{notification.time}</p>
+                    </DropdownMenuItem>
+                  ))}
                 </div>
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">{initials}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-center justify-center text-blue-600 cursor-pointer">
+                  View all notifications
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* User profile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-3 h-auto py-2 px-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                  </div>
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 

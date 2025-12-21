@@ -261,3 +261,32 @@ export const MOCK_STAFF: StaffMember[] = [
     salary: 35000,
   },
 ]
+
+export interface RoomTypeAvailability {
+  type: string
+  available: number
+  total: number
+}
+
+export const MOCK_ROOM_AVAILABILITY: RoomTypeAvailability[] = [
+  {
+    type: "Standard",
+    available: 4,
+    total: 18,
+  },
+  {
+    type: "Deluxe",
+    available: 8,
+    total: 12,
+  },
+  {
+    type: "Suite",
+    available: 0,
+    total: 6,
+  },
+  {
+    type: "Executive",
+    available: 2,
+    total: 8,
+  },
+]

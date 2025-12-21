@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail } from "lucide-react"
 import { MOCK_BOOKINGS, MOCK_ROOMS, type Booking } from "@/lib/mock-data"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>(MOCK_BOOKINGS)
@@ -41,6 +42,10 @@ export default function BookingsPage() {
       booking.roomNumber.includes(searchQuery) ||
       booking.guestEmail.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  const today = new Date().toISOString().split("T")[0]
+  const checkInBookings = filteredBookings.filter((b) => b.checkInDate === today && b.status === "confirmed")
+  const checkOutBookings = filteredBookings.filter((b) => b.checkOutDate === today && b.status === "checked-in")
 
   const handleAddBooking = () => {
     const room = MOCK_ROOMS.find((r) => r.number === newBooking.roomNumber)
@@ -103,7 +108,7 @@ export default function BookingsPage() {
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-purple-600 hover:bg-purple-700">
+              <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
                 New Booking
               </Button>
@@ -170,7 +175,7 @@ export default function BookingsPage() {
                     <SelectContent>
                       {availableRooms.map((room) => (
                         <SelectItem key={room.id} value={room.number}>
-                          Room {room.number} - {room.type} (${room.price}/night)
+                          Room {room.number} - {room.type} (₦{room.price.toLocaleString()}/night)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -212,7 +217,7 @@ export default function BookingsPage() {
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddBooking} className="bg-purple-600 hover:bg-purple-700">
+                <Button onClick={handleAddBooking} className="bg-blue-600 hover:bg-blue-700">
                   Create Booking
                 </Button>
               </div>
@@ -233,89 +238,290 @@ export default function BookingsPage() {
           </div>
         </div>
 
-        {/* Bookings List */}
-        <div className="space-y-4">
-          {filteredBookings.map((booking) => (
-            <Card key={booking.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold">{booking.guestName}</h3>
-                          <Badge className={getStatusColor(booking.status)}>{booking.status.replace("-", " ")}</Badge>
-                        </div>
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="w-4 h-4" />
-                            {booking.guestEmail}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="w-4 h-4" />
-                            {booking.guestPhone}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">${booking.totalAmount}</div>
-                        <div className="text-sm text-muted-foreground">Paid: ${booking.paidAmount}</div>
-                      </div>
-                    </div>
+        {/* Tabs for All, Check-in, Check-out */}
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList>
+            <TabsTrigger value="all" className="gap-2">
+              All
+              <Badge variant="secondary" className="rounded-full">
+                {filteredBookings.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="checkin" className="gap-2">
+              Check-in
+              <Badge variant="secondary" className="rounded-full">
+                {checkInBookings.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="checkout" className="gap-2">
+              Check-out
+              <Badge variant="secondary" className="rounded-full">
+                {checkOutBookings.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
 
-                    <div className="grid grid-cols-4 gap-4 pt-4 border-t">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-4 h-4 text-purple-600" />
-                        </div>
+          <TabsContent value="all" className="space-y-4 mt-6">
+            {filteredBookings.map((booking) => (
+              <Card key={booking.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-start justify-between">
                         <div>
-                          <div className="text-xs text-muted-foreground">Room</div>
-                          <div className="font-medium">
-                            {booking.roomNumber} - {booking.roomType}
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold">{booking.guestName}</h3>
+                            <Badge className={getStatusColor(booking.status)}>{booking.status.replace("-", " ")}</Badge>
+                          </div>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="w-4 h-4" />
+                              {booking.guestEmail}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="w-4 h-4" />
+                              {booking.guestPhone}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">₦{booking.totalAmount.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Paid: ₦{booking.paidAmount.toLocaleString()}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Calendar className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Check-in</div>
-                          <div className="font-medium">{new Date(booking.checkInDate).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <Calendar className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Check-out</div>
-                          <div className="font-medium">{new Date(booking.checkOutDate).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Users className="w-4 h-4 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Guests</div>
-                          <div className="font-medium">{booking.guests}</div>
-                        </div>
-                      </div>
-                    </div>
 
-                    {booking.specialRequests && (
-                      <div className="pt-4 border-t">
-                        <div className="text-sm font-medium mb-1">Special Requests</div>
-                        <div className="text-sm text-muted-foreground">{booking.specialRequests}</div>
+                      <div className="grid grid-cols-4 gap-4 pt-4 border-t">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Room</div>
+                            <div className="font-medium">
+                              {booking.roomNumber} - {booking.roomType}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Check-in</div>
+                            <div className="font-medium">{new Date(booking.checkInDate).toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <Calendar className="w-4 h-4 text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Check-out</div>
+                            <div className="font-medium">{new Date(booking.checkOutDate).toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Users className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Guests</div>
+                            <div className="font-medium">{booking.guests}</div>
+                          </div>
+                        </div>
                       </div>
-                    )}
+
+                      {booking.specialRequests && (
+                        <div className="pt-4 border-t">
+                          <div className="text-sm font-medium mb-1">Special Requests</div>
+                          <div className="text-sm text-muted-foreground">{booking.specialRequests}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="checkin" className="space-y-4 mt-6">
+            {checkInBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  No check-ins scheduled for today
+                </CardContent>
+              </Card>
+            ) : (
+              checkInBookings.map((booking) => (
+                <Card key={booking.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold">{booking.guestName}</h3>
+                              <Badge className={getStatusColor(booking.status)}>
+                                {booking.status.replace("-", " ")}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Mail className="w-4 h-4" />
+                                {booking.guestEmail}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="w-4 h-4" />
+                                {booking.guestPhone}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold">₦{booking.totalAmount.toLocaleString()}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Paid: ₦{booking.paidAmount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-4 pt-4 border-t">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <DollarSign className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Room</div>
+                              <div className="font-medium">
+                                {booking.roomNumber} - {booking.roomType}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Check-in</div>
+                              <div className="font-medium">{new Date(booking.checkInDate).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Check-out</div>
+                              <div className="font-medium">{new Date(booking.checkOutDate).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Users className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Guests</div>
+                              <div className="font-medium">{booking.guests}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="checkout" className="space-y-4 mt-6">
+            {checkOutBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  No check-outs scheduled for today
+                </CardContent>
+              </Card>
+            ) : (
+              checkOutBookings.map((booking) => (
+                <Card key={booking.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold">{booking.guestName}</h3>
+                              <Badge className={getStatusColor(booking.status)}>
+                                {booking.status.replace("-", " ")}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Mail className="w-4 h-4" />
+                                {booking.guestEmail}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="w-4 h-4" />
+                                {booking.guestPhone}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold">₦{booking.totalAmount.toLocaleString()}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Paid: ₦{booking.paidAmount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-4 pt-4 border-t">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <DollarSign className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Room</div>
+                              <div className="font-medium">
+                                {booking.roomNumber} - {booking.roomType}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Check-in</div>
+                              <div className="font-medium">{new Date(booking.checkInDate).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Check-out</div>
+                              <div className="font-medium">{new Date(booking.checkOutDate).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Users className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Guests</div>
+                              <div className="font-medium">{booking.guests}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   )

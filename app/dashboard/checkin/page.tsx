@@ -237,7 +237,7 @@ export default function CheckInOutPage() {
                             </div>
                             <div>
                               <div className="text-xs text-muted-foreground">Balance</div>
-                              <div className="font-medium">${booking.totalAmount - booking.paidAmount}</div>
+                              <div className="font-medium">₦{booking.totalAmount - booking.paidAmount}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -342,16 +342,16 @@ export default function CheckInOutPage() {
               <div className="border-t pt-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-medium">${selectedBooking?.totalAmount}</span>
+                  <span className="font-medium">₦{selectedBooking?.totalAmount}</span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Paid</span>
-                  <span className="font-medium text-green-600">${selectedBooking?.paidAmount}</span>
+                  <span className="font-medium text-green-600">₦{selectedBooking?.paidAmount}</span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="font-semibold">Balance Due</span>
                   <span className="font-bold text-lg">
-                    ${(selectedBooking?.totalAmount || 0) - (selectedBooking?.paidAmount || 0)}
+                    ₦{(selectedBooking?.totalAmount || 0) - (selectedBooking?.paidAmount || 0)}
                   </span>
                 </div>
               </div>

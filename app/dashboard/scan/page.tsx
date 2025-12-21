@@ -146,7 +146,7 @@ export default function ScanPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Total Amount</p>
-                          <p className="font-medium">${booking.totalAmount}</p>
+                          <p className="font-medium">₦{booking.totalAmount}</p>
                         </div>
                       </div>
 

@@ -114,7 +114,7 @@ export default function PaymentsPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
@@ -125,7 +125,7 @@ export default function PaymentsPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${todayRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₦{todayRevenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground mt-1">{new Date().toLocaleDateString()}</p>
             </CardContent>
           </Card>
@@ -180,7 +180,7 @@ export default function PaymentsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">${payment.amount.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-green-600">₦{payment.amount.toLocaleString()}</div>
                     </div>
                   </div>
                 </div>
@@ -209,8 +209,8 @@ export default function PaymentsPage() {
                   <SelectContent>
                     {MOCK_BOOKINGS.filter((b) => b.status !== "cancelled").map((booking) => (
                       <SelectItem key={booking.id} value={booking.id}>
-                        {booking.guestName} - Room {booking.roomNumber} (${booking.totalAmount - booking.paidAmount}{" "}
-                        due)
+                        {booking.guestName} - Room {booking.roomNumber} (₦
+                        {(booking.totalAmount - booking.paidAmount).toLocaleString()} due)
                       </SelectItem>
                     ))}
                   </SelectContent>
