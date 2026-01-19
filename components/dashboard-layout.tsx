@@ -5,6 +5,7 @@ import type React from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { EmailVerificationBanner } from "@/components/email-verification-banner"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -50,7 +51,7 @@ const adminNavigation = [
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
-  const { user, logout, isLoading } = useAuth()
+  const { user, logout, changeBusiness, businessId, isLoading } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
@@ -75,6 +76,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const handleLogout = () => {
     logout()
     router.push("/login")
+  }
+
+  const handleChangeBusiness = () => {
+    if (confirm("Are you sure you want to change business? This will log you out and clear this device's business registration.")) {
+      changeBusiness()
+      router.push("/login")
+    }
   }
 
   const initials = user.name
@@ -134,7 +142,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground truncate">Management</p>
+              <p className="text-xs text-muted-foreground truncate font-mono">{businessId || 'N/A'}</p>
             </div>
           </div>
 
@@ -184,6 +192,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Change Business</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
@@ -212,7 +224,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Hotel className="w-5 h-5 text-white" />
             </div>
-            <h1 className="font-semibold text-base">{user.hotelName}</h1>
+            <div>
+              <h1 className="font-semibold text-base">{user.hotelName}</h1>
+              <p className="text-xs text-muted-foreground font-mono">{businessId || 'N/A'}</p>
+            </div>
           </Link>
 
           {/* Notification dropdown */}
@@ -289,6 +304,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Change Business</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
@@ -298,6 +317,9 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
 
       {/* Main content */}
       <div className="pt-16">

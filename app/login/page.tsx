@@ -4,19 +4,20 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { mockLogin } from "@/lib/mock-auth"
 import { useAuth } from "@/lib/auth-context"
-import { Hotel, AlertCircle } from "lucide-react"
+import { Hotel, AlertCircle, Info } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, businessId: storedBusinessId, isFirstTimeSetup } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [businessId, setBusinessId] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -25,18 +26,65 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // If this is first time setup, business ID is required
+    const businessIdToUse = storedBusinessId || businessId
 
-    const user = mockLogin(email, password)
-
-    if (user) {
-      login(user)
-      router.push("/dashboard")
-    } else {
-      setError("Invalid email or password")
+    if (isFirstTimeSetup && !businessId) {
+      setError("Business ID is required for first-time setup")
+      setIsLoading(false)
+      return
     }
 
-    setIsLoading(false)
+    try {
+      // Real API call - adjust URL as needed
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+
+      const response = await fetch(`${API_URL}/users/sign_in`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user: {
+            email,
+            password,
+            business_id: businessIdToUse,
+          },
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.status.code === 200) {
+        // Extract JWT token from Authorization header
+        const authHeader = response.headers.get("Authorization")
+        const token = authHeader?.replace("Bearer ", "") || ""
+
+        // Login with real data
+        login(
+          {
+            id: data.data.id,
+            email: data.data.email,
+            name: `${data.data.first_name} ${data.data.last_name}`,
+            role: data.data.business?.role || "staff",
+            hotelId: data.data.business?.id.toString() || "",
+            hotelName: data.data.business?.name || "",
+            businessId: data.data.business?.business_unique_id || businessIdToUse || "",
+          },
+          data.data.business?.business_unique_id || businessIdToUse || "",
+          token,
+        )
+
+        router.push("/dashboard")
+      } else {
+        setError(data.status?.message || "Invalid credentials or business ID")
+      }
+    } catch (err: any) {
+      console.error("Login error:", err)
+      setError("Unable to connect to server. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -50,8 +98,14 @@ export default function LoginPage() {
               <Hotel className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-balance">Welcome Back</h1>
-              <p className="text-muted-foreground mt-2">Sign in to your hotel management account</p>
+              <h1 className="text-3xl font-bold tracking-tight text-balance">
+                {isFirstTimeSetup ? "Welcome to Abri" : "Welcome Back"}
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {isFirstTimeSetup
+                  ? "Set up your device for this business"
+                  : `Sign in to ${storedBusinessId ? `business ${storedBusinessId}` : "your account"}`}
+              </p>
             </div>
           </div>
 
@@ -60,6 +114,39 @@ export default function LoginPage() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Business ID field - only shown on first time setup */}
+            {isFirstTimeSetup && (
+              <div className="space-y-2">
+                <Label htmlFor="businessId">Business ID</Label>
+                <Input
+                  id="businessId"
+                  type="text"
+                  placeholder="e.g., GPHF8A2C1"
+                  value={businessId}
+                  onChange={(e) => setBusinessId(e.target.value.toUpperCase())}
+                  required
+                  className="h-11 font-mono"
+                />
+                <p className="text-xs text-muted-foreground flex items-start gap-2">
+                  <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Enter your business unique ID. This device will be bound to this business. Contact your
+                    administrator if you don't have this ID.
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {/* Show business ID if already set */}
+            {!isFirstTimeSetup && storedBusinessId && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  This device is registered to business: <strong className="font-mono">{storedBusinessId}</strong>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -89,33 +176,27 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 cursor-pointer" disabled={isLoading}>
+              {isLoading ? "Signing in..." : isFirstTimeSetup ? "Set Up & Sign In" : "Sign In"}
             </Button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="space-y-3">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">Demo Credentials</span>
-              </div>
-            </div>
 
-            <div className="space-y-2 bg-blue-50 p-4 rounded-lg text-sm">
-              <div>
-                <p className="font-medium text-blue-900">Admin</p>
-                <p className="text-blue-700">admin@hotel.com / admin123</p>
-              </div>
-              <div>
-                <p className="font-medium text-blue-900">Staff</p>
-                <p className="text-blue-700">staff@hotel.com / staff123</p>
-              </div>
+
+          {/* Signup link - only shown if no business ID in storage */}
+          {isFirstTimeSetup && (
+            <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-900 font-medium mb-2">Don't have a business account yet?</p>
+              <p className="text-xs text-green-700 mb-3">
+                Create your business and administrator account to get started with Abri.
+              </p>
+              <Link href="/signup">
+                <Button type="button" variant="outline" className="w-full border-green-600 text-green-700 hover:bg-green-50 cursor-pointer">
+                  Create Business Account
+                </Button>
+              </Link>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -132,6 +213,16 @@ export default function LoginPage() {
           <p className="text-xl text-blue-100 max-w-md text-center text-balance">
             Streamline your operations with our comprehensive hotel management system
           </p>
+
+          {isFirstTimeSetup && (
+            <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm rounded-lg max-w-md">
+              <h3 className="font-semibold mb-2">🔐 Device-First Security</h3>
+              <p className="text-sm text-blue-100">
+                This device will be permanently bound to your business after first login. You won't need to enter
+                the business ID again on this machine.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
