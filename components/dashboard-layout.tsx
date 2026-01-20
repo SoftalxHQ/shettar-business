@@ -42,6 +42,7 @@ interface DashboardLayoutProps {
 const adminNavigation = [
   { name: "Business Dashboard", href: "/dashboard/business", icon: Building2 },
   { name: "Staff Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Check-in/out", href: "/dashboard/checkin", icon: DoorOpen },
   { name: "Scan Code", href: "/dashboard/scan", icon: QrCode },
