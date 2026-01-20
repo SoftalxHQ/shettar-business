@@ -40,15 +40,15 @@ interface DashboardLayoutProps {
 }
 
 const adminNavigation = [
-  { name: "Business Dashboard", href: "/dashboard/business", icon: Building2 },
-  { name: "Staff Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
-  { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
-  { name: "Check-in/out", href: "/dashboard/checkin", icon: DoorOpen },
-  { name: "Scan Code", href: "/dashboard/scan", icon: QrCode },
-  { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
-  { name: "Staff", href: "/dashboard/staff", icon: Users },
+  { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
+  // { name: "Staff Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
+  { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
+  { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
+  { name: "Staffs", href: "/dashboard/staff", icon: Users },
+  // { name: "Check-in/out", href: "/dashboard/checkin", icon: DoorOpen },
+  // { name: "Scan Code", href: "/dashboard/scan", icon: QrCode },
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {

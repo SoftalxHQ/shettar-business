@@ -45,7 +45,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Staff Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Quick access to daily operations</p>
         </div>
 
@@ -172,9 +172,8 @@ export default function DashboardPage() {
                           <div className="flex-1 max-w-[100px]">
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                               <div
-                                className={`h-full transition-all ${
-                                  isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
-                                }`}
+                                className={`h-full transition-all ${isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
+                                  }`}
                                 style={{ width: `${utilizationRate}%` }}
                               />
                             </div>
@@ -183,9 +182,8 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right">
                         <p
-                          className={`text-xs font-medium ${
-                            isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
-                          }`}
+                          className={`text-xs font-medium ${isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
+                            }`}
                         >
                           {isFull ? "No rooms" : roomType.available <= 2 ? "Low" : "Available"}
                         </p>
@@ -215,13 +213,12 @@ export default function DashboardPage() {
               {MOCK_BOOKINGS.slice(0, 5).map((booking) => (
                 <div key={booking.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      booking.status === "checked-in"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${booking.status === "checked-in"
                         ? "bg-green-100 text-green-700"
                         : booking.status === "confirmed"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-gray-100 text-gray-700"
-                    }`}
+                      }`}
                   >
                     {booking.status === "checked-in" && <DoorOpen className="w-5 h-5" />}
                     {booking.status === "confirmed" && <CalendarCheck className="w-5 h-5" />}
