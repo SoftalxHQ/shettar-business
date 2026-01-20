@@ -14,7 +14,7 @@ import { Hotel, AlertCircle, Info } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, businessId: storedBusinessId, isFirstTimeSetup } = useAuth()
+  const { login, businessId: storedBusinessId, businessName: storedBusinessName, isFirstTimeSetup } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [businessId, setBusinessId] = useState("")
@@ -71,7 +71,8 @@ export default function LoginPage() {
             hotelName: data.data.business?.name || "",
             businessId: data.data.business?.business_unique_id || businessIdToUse || "",
           },
-          data.data.business?.business_unique_id || businessIdToUse || "",
+          data.data.business?.business_unique_id || businessIdToUse || "", // Business ID (for API calls)
+          data.data.business?.name || "Your Business", // Business Name (for display)
           token,
         )
 
@@ -104,7 +105,7 @@ export default function LoginPage() {
               <p className="text-muted-foreground mt-2">
                 {isFirstTimeSetup
                   ? "Set up your device for this business"
-                  : `Sign in to ${storedBusinessId ? `business ${storedBusinessId}` : "your account"}`}
+                  : `Sign in to ${storedBusinessName || "your account"}`}
               </p>
             </div>
           </div>
@@ -140,15 +141,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Show business ID if already set */}
-            {!isFirstTimeSetup && storedBusinessId && (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  This device is registered to business: <strong className="font-mono">{storedBusinessId}</strong>
-                </AlertDescription>
-              </Alert>
-            )}
+
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

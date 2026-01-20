@@ -7,6 +7,8 @@ import type { User } from "./mock-auth"
 import {
   getStoredBusinessId,
   setStoredBusinessId,
+  getStoredBusinessName,
+  setStoredBusinessName,
   getAuthToken,
   setAuthToken,
   getUserData,
@@ -15,12 +17,14 @@ import {
   changeBusiness as storageChangeBusiness,
   getOrCreateDeviceId,
 } from "./storage"
+import { toast } from "sonner"
 
 interface AuthContextType {
   user: User | null
   businessId: string | null
+  businessName: string | null
   deviceId: string
-  login: (user: User, businessId: string, token: string) => void
+  login: (user: User, businessId: string, businessName: string, token: string) => void
   logout: () => void
   changeBusiness: () => void
   isLoading: boolean
@@ -32,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [businessId, setBusinessId] = useState<string | null>(null)
+  const [businessName, setBusinessName] = useState<string | null>(null)
   const [deviceId] = useState<string>(() => getOrCreateDeviceId())
   const [isLoading, setIsLoading] = useState(true)
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false)
@@ -39,11 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check for stored data on mount
     const storedBusinessId = getStoredBusinessId()
+    const storedBusinessName = getStoredBusinessName()
     const storedToken = getAuthToken()
     const storedUser = getUserData()
 
     if (storedBusinessId) {
       setBusinessId(storedBusinessId)
+      setBusinessName(storedBusinessName)
       setIsFirstTimeSetup(false)
     } else {
       setIsFirstTimeSetup(true)
@@ -56,33 +63,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = (userData: User, userBusinessId: string, token: string) => {
+  const login = (userData: User, userBusinessId: string, userBusinessName: string, token: string) => {
     setUser(userData)
     setUserData(userData)
     setAuthToken(token)
 
-    // Store business ID for this device
+    // Store business ID and name for this device
     setBusinessId(userBusinessId)
     setStoredBusinessId(userBusinessId)
+    setBusinessName(userBusinessName)
+    setStoredBusinessName(userBusinessName)
     setIsFirstTimeSetup(false)
+
+    // Show success toast
+    toast.success(`Welcome back, ${userData.name}!`, {
+      description: `Signed in to ${userBusinessName}`,
+    })
   }
 
   const logout = () => {
+    const currentBusinessName = businessName
+
     setUser(null)
     storageLogout()
     // Note: business ID remains in state and storage
+
+    // Show success toast
+    toast.success("Signed out successfully", {
+      description: `You've been logged out of ${currentBusinessName || "your account"}`,
+    })
   }
 
   const changeBusiness = () => {
     setUser(null)
     setBusinessId(null)
+    setBusinessName(null)
     storageChangeBusiness()
     setIsFirstTimeSetup(true)
+
+    // Show info toast
+    toast.info("Business cleared", {
+      description: "You can now sign in to a different business",
+    })
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, businessId, deviceId, login, logout, changeBusiness, isLoading, isFirstTimeSetup }}
+      value={{ user, businessId, businessName, deviceId, login, logout, changeBusiness, isLoading, isFirstTimeSetup }}
     >
       {children}
     </AuthContext.Provider>

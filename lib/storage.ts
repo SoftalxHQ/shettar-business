@@ -2,6 +2,7 @@
 // All functions check for client-side to prevent SSR errors
 
 const BUSINESS_ID_KEY = "abri_business_id"
+const BUSINESS_NAME_KEY = "abri_business_name"
 const AUTH_TOKEN_KEY = "abri_auth_token"
 const USER_DATA_KEY = "abri_user_data"
 const DEVICE_ID_KEY = "abri_device_id"
@@ -35,6 +36,22 @@ export function setStoredBusinessId(businessId: string): void {
 export function clearStoredBusinessId(): void {
   if (!isClient) return
   localStorage.removeItem(BUSINESS_ID_KEY)
+}
+
+// Business Name management
+export function getStoredBusinessName(): string | null {
+  if (!isClient) return null
+  return localStorage.getItem(BUSINESS_NAME_KEY)
+}
+
+export function setStoredBusinessName(businessName: string): void {
+  if (!isClient) return
+  localStorage.setItem(BUSINESS_NAME_KEY, businessName)
+}
+
+export function clearStoredBusinessName(): void {
+  if (!isClient) return
+  localStorage.removeItem(BUSINESS_NAME_KEY)
 }
 
 // Auth token management
@@ -82,6 +99,7 @@ export function changeBusiness(): void {
   clearAuthToken()
   clearUserData()
   clearStoredBusinessId()
+  clearStoredBusinessName()
 }
 
 // Check if this is first time login (no business ID stored)
