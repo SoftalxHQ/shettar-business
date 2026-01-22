@@ -41,7 +41,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <AuthProvider>{children}</AuthProvider>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-center" richColors />
         <Analytics />
       </body>
     </html>

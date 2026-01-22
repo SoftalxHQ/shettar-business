@@ -1,399 +1,261 @@
 "use client"
 
-import { useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Mail, Phone, Calendar, DollarSign, Edit } from "lucide-react"
-import { MOCK_STAFF, type StaffMember } from "@/lib/mock-data"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Users, Plus, Loader2, Search, Crown } from "lucide-react"
+import { toast } from "sonner"
+import type { StaffMember } from "@/lib/staff-types"
+import { getPermissionSummary } from "@/lib/staff-types"
+import { StaffCard } from "./components/StaffCard"
+import { AddStaffDialog } from "./components/AddStaffDialog"
+import { EditPermissionsDialog } from "./components/EditPermissionsDialog"
 
 export default function StaffPage() {
-  const [staff, setStaff] = useState<StaffMember[]>(MOCK_STAFF)
+  const { user, businessId } = useAuth()
+  const router = useRouter()
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false)
-  const [isEditStaffOpen, setIsEditStaffOpen] = useState(false)
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null)
-  const [newStaff, setNewStaff] = useState({
-    name: "",
-    email: "",
-    role: "",
-    department: "",
-    phone: "",
-    salary: "",
-  })
 
-  const filteredStaff = staff.filter(
-    (member) =>
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.department.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // Check admin access
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.push("/dashboard")
+    }
+  }, [user, router])
+
+  // Fetch staff members
+  useEffect(() => {
+    fetchStaffMembers()
+  }, [businessId])
+
+  const fetchStaffMembers = async () => {
+    if (!businessId) return
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = localStorage.getItem("abri_auth_token")
+
+      const response = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/staff`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setStaffMembers(Array.isArray(data) ? data : [])
+      } else {
+        toast.error("Failed to load staff members")
+      }
+    } catch (error) {
+      console.error("Error fetching staff:", error)
+      toast.error("Unable to load staff members")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleAddStaff = () => {
-    const member: StaffMember = {
-      id: (staff.length + 1).toString(),
-      ...newStaff,
-      salary: Number.parseFloat(newStaff.salary),
-      status: "active",
-      hireDate: new Date().toISOString().split("T")[0],
+    setShowAddDialog(false)
+    fetchStaffMembers()
+  }
+
+  const handleRemoveStaff = async (memberId: number) => {
+    if (!confirm("Are you sure you want to remove this staff member? They will lose access to this business.")) {
+      return
     }
 
-    setStaff([...staff, member])
-    setIsAddStaffOpen(false)
-    setNewStaff({
-      name: "",
-      email: "",
-      role: "",
-      department: "",
-      phone: "",
-      salary: "",
-    })
-  }
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = localStorage.getItem("abri_auth_token")
 
-  const handleEditStaff = () => {
-    if (!selectedStaff) return
+      const response = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/staff/${memberId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-    setStaff(staff.map((s) => (s.id === selectedStaff.id ? selectedStaff : s)))
-    setIsEditStaffOpen(false)
-    setSelectedStaff(null)
-  }
-
-  const openEditDialog = (member: StaffMember) => {
-    setSelectedStaff(member)
-    setIsEditStaffOpen(true)
-  }
-
-  const getStatusColor = (status: StaffMember["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-700"
-      case "on-leave":
-        return "bg-yellow-100 text-yellow-700"
-      case "inactive":
-        return "bg-gray-100 text-gray-700"
-      default:
-        return "bg-gray-100 text-gray-700"
+      if (response.ok) {
+        toast.success("Staff member removed")
+        fetchStaffMembers()
+      } else {
+        toast.error("Failed to remove staff member")
+      }
+    } catch (error) {
+      console.error("Error removing staff:", error)
+      toast.error("Unable to remove staff member")
     }
   }
 
-  const getDepartmentColor = (department: string) => {
-    switch (department.toLowerCase()) {
-      case "front desk":
-        return "bg-purple-100 text-purple-700"
-      case "housekeeping":
-        return "bg-blue-100 text-blue-700"
-      case "maintenance":
-        return "bg-orange-100 text-orange-700"
-      default:
-        return "bg-gray-100 text-gray-700"
-    }
+  // Filter staff by search query
+  const filteredStaff = staffMembers.filter(member => {
+    const query = searchQuery.toLowerCase()
+    return (
+      member.user?.name?.toLowerCase().includes(query) ||
+      member.user?.email?.toLowerCase().includes(query) ||
+      member.title?.toLowerCase().includes(query)
+    )
+  })
+
+  const ownersCount = staffMembers.filter(m => m.is_owner).length
+  const staffCount = staffMembers.filter(m => !m.is_owner).length
+
+  if (user?.role !== "admin") {
+    return null
   }
 
-  const activeStaff = staff.filter((s) => s.status === "active").length
+  if (isLoading) {
+    return (
+      <DashboardLayout activeTab="staffs">
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
-    <DashboardLayout activeTab="staff">
+    <DashboardLayout activeTab="staffs">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Staff Management</h1>
-            <p className="text-muted-foreground">Manage your hotel team members</p>
+            <p className="text-muted-foreground mt-1">
+              Manage team members and their permissions
+            </p>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setIsAddStaffOpen(true)}>
+          <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Staff
           </Button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{staff.length}</div>
-              <p className="text-sm text-muted-foreground">Total Staff</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{staffMembers.length}</div>
             </CardContent>
           </Card>
+
           <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{activeStaff}</div>
-              <p className="text-sm text-muted-foreground">Active</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Owners</CardTitle>
+              <Crown className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{ownersCount}</div>
             </CardContent>
           </Card>
+
           <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{staff.filter((s) => s.department === "Front Desk").length}</div>
-              <p className="text-sm text-muted-foreground">Front Desk</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold">{staff.filter((s) => s.department === "Housekeeping").length}</div>
-              <p className="text-sm text-muted-foreground">Housekeeping</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Staff</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{staffCount}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or department..."
+            placeholder="Search by name, email, or title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-10"
           />
         </div>
 
-        {/* Staff Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {filteredStaff.map((member) => {
-            const initials = member.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase()
-
-            return (
-              <Card key={member.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-purple-100 text-purple-700">{initials}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{member.name}</h3>
-                          <Badge className={getStatusColor(member.status)}>{member.status.replace("-", " ")}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
-                        <Badge variant="outline" className={`mt-2 ${getDepartmentColor(member.department)}`}>
-                          {member.department}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(member)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 pt-4 border-t">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{member.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{member.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Joined {new Date(member.hireDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">${member.salary.toLocaleString()} / year</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+        {/* Staff List */}
+        <div>
+          {filteredStaff.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="w-16 h-16 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {searchQuery ? "No staff found" : "No staff members yet"}
+                </h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  {searchQuery
+                    ? "Try adjusting your search query"
+                    : "Get started by adding your first team member"
+                  }
+                </p>
+                {!searchQuery && (
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Staff Member
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredStaff.map((member) => (
+                <StaffCard
+                  key={member.id}
+                  member={member}
+                  onEdit={(m) => {
+                    setSelectedMember(m)
+                    setShowEditDialog(true)
+                  }}
+                  onRemove={handleRemoveStaff}
+                />
+              ))}
+            </div>
+          )}
         </div>
-
-        {/* Add Staff Dialog */}
-        <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add Staff Member</DialogTitle>
-              <DialogDescription>Add a new team member to your hotel staff</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="John Doe"
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john@hotel.com"
-                    value={newStaff.email}
-                    onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Input
-                    id="role"
-                    placeholder="Front Desk Agent"
-                    value={newStaff.role}
-                    onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Select
-                    value={newStaff.department}
-                    onValueChange={(value) => setNewStaff({ ...newStaff, department: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Front Desk">Front Desk</SelectItem>
-                      <SelectItem value="Housekeeping">Housekeeping</SelectItem>
-                      <SelectItem value="Maintenance">Maintenance</SelectItem>
-                      <SelectItem value="Management">Management</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    placeholder="+1 (555) 123-4567"
-                    value={newStaff.phone}
-                    onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary">Annual Salary</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    placeholder="35000"
-                    value={newStaff.salary}
-                    onChange={(e) => setNewStaff({ ...newStaff, salary: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsAddStaffOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddStaff} className="bg-purple-600 hover:bg-purple-700">
-                Add Staff Member
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Staff Dialog */}
-        <Dialog open={isEditStaffOpen} onOpenChange={setIsEditStaffOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Staff Member</DialogTitle>
-              <DialogDescription>Update staff member information</DialogDescription>
-            </DialogHeader>
-            {selectedStaff && (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-name">Full Name</Label>
-                    <Input
-                      id="edit-name"
-                      value={selectedStaff.name}
-                      onChange={(e) => setSelectedStaff({ ...selectedStaff, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-email">Email</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={selectedStaff.email}
-                      onChange={(e) => setSelectedStaff({ ...selectedStaff, email: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-role">Role</Label>
-                    <Input
-                      id="edit-role"
-                      value={selectedStaff.role}
-                      onChange={(e) => setSelectedStaff({ ...selectedStaff, role: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-status">Status</Label>
-                    <Select
-                      value={selectedStaff.status}
-                      onValueChange={(value: StaffMember["status"]) =>
-                        setSelectedStaff({ ...selectedStaff, status: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="on-leave">On Leave</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-phone">Phone</Label>
-                    <Input
-                      id="edit-phone"
-                      value={selectedStaff.phone}
-                      onChange={(e) => setSelectedStaff({ ...selectedStaff, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-salary">Annual Salary</Label>
-                    <Input
-                      id="edit-salary"
-                      type="number"
-                      value={selectedStaff.salary}
-                      onChange={(e) =>
-                        setSelectedStaff({ ...selectedStaff, salary: Number.parseFloat(e.target.value) })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsEditStaffOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEditStaff} className="bg-purple-600 hover:bg-purple-700">
-                Save Changes
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Add Staff Dialog */}
+      {showAddDialog && (
+        <AddStaffDialog
+          onSuccess={handleAddStaff}
+          onCancel={() => setShowAddDialog(false)}
+        />
+      )}
+
+      {/* Edit Permissions Dialog */}
+      {showEditDialog && selectedMember && (
+        <EditPermissionsDialog
+          member={selectedMember}
+          onSuccess={() => {
+            setShowEditDialog(false)
+            setSelectedMember(null)
+            fetchStaffMembers()
+          }}
+          onCancel={() => {
+            setShowEditDialog(false)
+            setSelectedMember(null)
+          }}
+        />
+      )}
     </DashboardLayout>
   )
 }

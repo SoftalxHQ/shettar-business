@@ -81,17 +81,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const logout = () => {
+  const logout = async () => {
     const currentBusinessName = businessName
 
-    setUser(null)
-    storageLogout()
-    // Note: business ID remains in state and storage
+    try {
+      // Call backend to invalidate JWT token
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
 
-    // Show success toast
-    toast.success("Signed out successfully", {
-      description: `You've been logged out of ${currentBusinessName || "your account"}`,
-    })
+      if (token) {
+        await fetch(`${API_URL}/users/sign_out`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+      }
+    } catch (error) {
+      console.error("Logout API call failed:", error)
+      // Continue with local logout even if API fails
+    } finally {
+      // Clear local state and storage
+      setUser(null)
+      storageLogout()
+
+      // Show success toast
+      toast.success("Signed out successfully", {
+        description: `You've been logged out of ${currentBusinessName || "your account"}`,
+      })
+    }
   }
 
   const changeBusiness = () => {
