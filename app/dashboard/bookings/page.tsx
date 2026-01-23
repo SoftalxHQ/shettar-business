@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail } from "lucide-react"
+import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail, Eye, X } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { useSearchParams } from "next/navigation"
@@ -20,6 +21,9 @@ interface Reservation {
   other_last_name: string
   other_phone_number: string
   other_email_address: string
+  emer_first_name?: string
+  emer_last_name?: string
+  emer_phone_number?: string
   start_date: string
   end_date: string
   guests: number
@@ -30,6 +34,10 @@ interface Reservation {
   room_number: string
   room_type_name: string
   created_at: string
+  checked_in_at?: string
+  checked_out_at?: string
+  checked_in_by_name?: string
+  checked_out_by_name?: string
 }
 
 export default function BookingsPage() {
@@ -40,6 +48,7 @@ export default function BookingsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
 
 
   // Fetch reservations on mount
@@ -131,6 +140,21 @@ export default function BookingsPage() {
     3: "Cash",
   }
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }
+
+    return date.toLocaleString('en-US', options).replace(',', ' at')
+  }
+
   return (
     <DashboardLayout activeTab="bookings">
       <div className="space-y-6">
@@ -213,7 +237,11 @@ export default function BookingsPage() {
               </Card>
             ) : (
               filteredReservations.map((reservation) => (
-                <Card key={reservation.id}>
+                <Card
+                  key={reservation.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedReservation(reservation)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
@@ -267,8 +295,8 @@ export default function BookingsPage() {
                             </div>
                             <div>
                               <div className="text-xs text-muted-foreground">Check-in</div>
-                              <div className="font-medium">
-                                {new Date(reservation.start_date).toLocaleDateString()}
+                              <div className="font-medium text-sm">
+                                {formatDateTime(reservation.start_date)}
                               </div>
                             </div>
                           </div>
@@ -278,8 +306,8 @@ export default function BookingsPage() {
                             </div>
                             <div>
                               <div className="text-xs text-muted-foreground">Check-out</div>
-                              <div className="font-medium">
-                                {new Date(reservation.end_date).toLocaleDateString()}
+                              <div className="font-medium text-sm">
+                                {formatDateTime(reservation.end_date)}
                               </div>
                             </div>
                           </div>
@@ -311,7 +339,11 @@ export default function BookingsPage() {
               </Card>
             ) : (
               activeReservations.map((reservation) => (
-                <Card key={reservation.id}>
+                <Card
+                  key={reservation.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedReservation(reservation)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
@@ -361,7 +393,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-in</div>
                               <div className="font-medium">
-                                {new Date(reservation.start_date).toLocaleDateString()}
+                                {formatDateTime(reservation.start_date)}
                               </div>
                             </div>
                           </div>
@@ -372,7 +404,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-out</div>
                               <div className="font-medium">
-                                {new Date(reservation.end_date).toLocaleDateString()}
+                                {formatDateTime(reservation.end_date)}
                               </div>
                             </div>
                           </div>
@@ -404,7 +436,11 @@ export default function BookingsPage() {
               </Card>
             ) : (
               upcomingReservations.map((reservation) => (
-                <Card key={reservation.id}>
+                <Card
+                  key={reservation.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedReservation(reservation)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
@@ -454,7 +490,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-in</div>
                               <div className="font-medium">
-                                {new Date(reservation.start_date).toLocaleDateString()}
+                                {formatDateTime(reservation.start_date)}
                               </div>
                             </div>
                           </div>
@@ -465,7 +501,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-out</div>
                               <div className="font-medium">
-                                {new Date(reservation.end_date).toLocaleDateString()}
+                                {formatDateTime(reservation.end_date)}
                               </div>
                             </div>
                           </div>
@@ -497,7 +533,11 @@ export default function BookingsPage() {
               </Card>
             ) : (
               pastReservations.map((reservation) => (
-                <Card key={reservation.id}>
+                <Card
+                  key={reservation.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedReservation(reservation)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
@@ -547,7 +587,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-in</div>
                               <div className="font-medium">
-                                {new Date(reservation.start_date).toLocaleDateString()}
+                                {formatDateTime(reservation.start_date)}
                               </div>
                             </div>
                           </div>
@@ -558,7 +598,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-out</div>
                               <div className="font-medium">
-                                {new Date(reservation.end_date).toLocaleDateString()}
+                                {formatDateTime(reservation.end_date)}
                               </div>
                             </div>
                           </div>
@@ -590,7 +630,11 @@ export default function BookingsPage() {
               </Card>
             ) : (
               cancelledReservations.map((reservation) => (
-                <Card key={reservation.id}>
+                <Card
+                  key={reservation.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedReservation(reservation)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
@@ -640,7 +684,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-in</div>
                               <div className="font-medium">
-                                {new Date(reservation.start_date).toLocaleDateString()}
+                                {formatDateTime(reservation.start_date)}
                               </div>
                             </div>
                           </div>
@@ -651,7 +695,7 @@ export default function BookingsPage() {
                             <div>
                               <div className="text-xs text-muted-foreground">Check-out</div>
                               <div className="font-medium">
-                                {new Date(reservation.end_date).toLocaleDateString()}
+                                {formatDateTime(reservation.end_date)}
                               </div>
                             </div>
                           </div>
@@ -673,6 +717,172 @@ export default function BookingsPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Detailed Reservation Modal */}
+        <Dialog open={!!selectedReservation} onOpenChange={(open) => !open && setSelectedReservation(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-2xl">Reservation Details</DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedReservation(null)}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </DialogHeader>
+
+            {selectedReservation && (
+              <div className="space-y-6 mt-4">
+                {/* Booking ID and Status */}
+                <div className="flex items-center justify-between pb-4 border-b">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Booking ID</p>
+                    <p className="text-lg font-semibold">{selectedReservation.booking_id}</p>
+                  </div>
+                  <Badge className={getStatusColor(getReservationStatus(selectedReservation))}>
+                    {getReservationStatus(selectedReservation)}
+                  </Badge>
+                </div>
+
+                {/* Guest Information */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Guest Information</h3>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Name</p>
+                      <p className="font-medium">
+                        {selectedReservation.other_first_name} {selectedReservation.other_last_name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium text-sm">{selectedReservation.other_email_address}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone</p>
+                      <p className="font-medium">{selectedReservation.other_phone_number}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                {(selectedReservation.emer_first_name || selectedReservation.emer_phone_number) && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Emergency Contact</h3>
+                    <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                      {selectedReservation.emer_first_name && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Name</p>
+                          <p className="font-medium">
+                            {selectedReservation.emer_first_name} {selectedReservation.emer_last_name}
+                          </p>
+                        </div>
+                      )}
+                      {selectedReservation.emer_phone_number && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{selectedReservation.emer_phone_number}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Room & Stay Details */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Room & Stay Details</h3>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Room Number</p>
+                      <p className="font-medium">{selectedReservation.room_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Room Type</p>
+                      <p className="font-medium">{selectedReservation.room_type_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Adults</p>
+                      <p className="font-medium">{selectedReservation.guests}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Children</p>
+                      <p className="font-medium">{selectedReservation.children}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Check-in & Check-out Dates */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Reservation Period</h3>
+                  <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Check-in</p>
+                      <p className="font-medium">{formatDateTime(selectedReservation.start_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Check-out</p>
+                      <p className="font-medium">{formatDateTime(selectedReservation.end_date)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actual Check-in/Check-out Status */}
+                {(selectedReservation.checked_in_at || selectedReservation.checked_out_at) && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Stay Status</h3>
+                    <div className="space-y-3">
+                      {selectedReservation.checked_in_at && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <p className="text-green-700 font-medium mb-2">✓ Checked In</p>
+                          <p className="text-sm text-green-600">
+                            {formatDateTime(selectedReservation.checked_in_at)}
+                          </p>
+                          {selectedReservation.checked_in_by_name && (
+                            <p className="text-sm text-green-600 mt-1">
+                              By: {selectedReservation.checked_in_by_name}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {selectedReservation.checked_out_at && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-blue-700 font-medium mb-2">✓ Checked Out</p>
+                          <p className="text-sm text-blue-600">
+                            {formatDateTime(selectedReservation.checked_out_at)}
+                          </p>
+                          {selectedReservation.checked_out_by_name && (
+                            <p className="text-sm text-blue-600 mt-1">
+                              By: {selectedReservation.checked_out_by_name}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Information */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Payment Information</h3>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Payment Method</p>
+                      <p className="font-medium">{paymentMethodLabels[selectedReservation.payment_method]}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Amount</p>
+                      <p className="font-semibold text-lg">₦{selectedReservation.total_amount?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
