@@ -88,7 +88,7 @@ export default function DashboardPage() {
 
         {/* Quick actions */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Link href="/dashboard/bookings">
+          <Link href="/dashboard/bookings/new">
             <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -120,19 +120,21 @@ export default function DashboardPage() {
             </Card>
           </Link>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                  <DoorOpen className="w-6 h-6 text-cyan-700" />
+          <Link href="/dashboard/bookings?filter=active">
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                    <DoorOpen className="w-6 h-6 text-cyan-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Active Bookings</p>
+                    <p className="text-2xl font-bold">{activeBookings}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Bookings</p>
-                  <p className="text-2xl font-bold">{activeBookings}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Today's Activity */}
