@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CalendarCheck, DoorOpen, UserPlus, QrCode, ArrowRight } from "lucide-react"
-import { MOCK_BOOKINGS, MOCK_ROOM_AVAILABILITY } from "@/lib/mock-data"
+import { MOCK_BOOKINGS, type RoomTypeAvailability } from "@/lib/mock-data"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { getAuthToken } from "@/lib/storage"
 
 const today = new Date().toISOString().split("T")[0]
 
@@ -20,14 +21,50 @@ const todayCheckOuts = MOCK_BOOKINGS.filter((b) => b.checkOutDate === today && b
 const activeBookings = MOCK_BOOKINGS.filter((b) => b.status === "checked-in").length
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, businessId } = useAuth()
   const router = useRouter()
+  const [roomAvailability, setRoomAvailability] = useState<RoomTypeAvailability[]>([])
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true)
 
   useEffect(() => {
     if (user?.role === "admin") {
       router.push("/dashboard/business")
     }
   }, [user, router])
+
+  // Fetch room availability
+  useEffect(() => {
+    const fetchRoomAvailability = async () => {
+      if (!businessId) return
+
+      try {
+        setIsLoadingRooms(true)
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
+
+        const response = await fetch(
+          `${API_URL}/api/v1/user_businesses/${businessId}/room_availability`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          setRoomAvailability(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch room availability:", error)
+      } finally {
+        setIsLoadingRooms(false)
+      }
+    }
+
+    fetchRoomAvailability()
+  }, [businessId])
 
   // Show loading state while redirecting admin users
   if (user?.role === "admin") {
@@ -142,56 +179,66 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold">Live Room Status</CardTitle>
               <Badge variant="secondary">
-                {MOCK_ROOM_AVAILABILITY.reduce((sum, room) => sum + room.available, 0)} Available
+                {isLoadingRooms ? "..." : `${roomAvailability.reduce((sum, room) => sum + room.available, 0)} Available`}
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {MOCK_ROOM_AVAILABILITY.map((roomType) => {
-                  const isFull = roomType.available === 0
-                  const utilizationRate = ((roomType.total - roomType.available) / roomType.total) * 100
+              {isLoadingRooms ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+                </div>
+              ) : roomAvailability.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No room types configured yet
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {roomAvailability.map((roomType) => {
+                    const isFull = roomType.available === 0
+                    const utilizationRate = ((roomType.total - roomType.available) / roomType.total) * 100
 
-                  return (
-                    <div
-                      key={roomType.type}
-                      className="flex items-center justify-between pb-3 border-b last:border-0 last:pb-0"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-xs font-medium">{roomType.type}</p>
-                          {isFull && (
-                            <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
-                              FULL
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold tabular-nums">
-                            {roomType.available}/{roomType.total}
-                          </p>
-                          <div className="flex-1 max-w-[100px]">
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all ${isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
-                                  }`}
-                                style={{ width: `${utilizationRate}%` }}
-                              />
+                    return (
+                      <div
+                        key={roomType.type}
+                        className="flex items-center justify-between pb-3 border-b last:border-0 last:pb-0"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-xs font-medium">{roomType.type}</p>
+                            {isFull && (
+                              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
+                                FULL
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-lg font-bold tabular-nums">
+                              {roomType.available}/{roomType.total}
+                            </p>
+                            <div className="flex-1 max-w-[100px]">
+                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
+                                    }`}
+                                  style={{ width: `${utilizationRate}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <p
+                            className={`text-xs font-medium ${isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
+                              }`}
+                          >
+                            {isFull ? "No rooms" : roomType.available <= 2 ? "Low" : "Available"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p
-                          className={`text-xs font-medium ${isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
-                            }`}
-                        >
-                          {isFull ? "No rooms" : roomType.available <= 2 ? "Low" : "Available"}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -214,10 +261,10 @@ export default function DashboardPage() {
                 <div key={booking.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${booking.status === "checked-in"
-                        ? "bg-green-100 text-green-700"
-                        : booking.status === "confirmed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
+                      ? "bg-green-100 text-green-700"
+                      : booking.status === "confirmed"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-700"
                       }`}
                   >
                     {booking.status === "checked-in" && <DoorOpen className="w-5 h-5" />}

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { EmailVerificationBanner } from "@/components/email-verification-banner"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -175,6 +176,15 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-2">
                   <Avatar className="h-8 w-8">
+                    {user.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user.name}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                      />
+                    )}
                     <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
@@ -289,6 +299,15 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                     <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
                   </div>
                   <Avatar className="h-9 w-9">
+                    {user.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user.name}
+                        width={36}
+                        height={36}
+                        className="rounded-full object-cover"
+                      />
+                    )}
                     <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
                       {initials}
                     </AvatarFallback>
@@ -305,10 +324,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
-                  <Building2 className="mr-2 h-4 w-4" />
-                  <span>Change Business</span>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>

@@ -125,8 +125,7 @@ export default function ProfilePage() {
         setAvatarPreview(null)
 
         // Reload to get fresh data everywhere
-        // Update user in context with new avatar
-        updateUser({ profilePicture: data.user.avatar_url || user?.profilePicture })
+        setTimeout(() => window.location.reload(), 500)
       } else {
         const error = await response.json()
         toast.error(error.status?.message || "Failed to update profile")

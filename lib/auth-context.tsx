@@ -27,6 +27,7 @@ interface AuthContextType {
   login: (user: User, businessId: string, businessName: string, token: string) => void
   logout: () => void
   changeBusiness: () => void
+  updateUser: (updates: Partial<User>) => void
   isLoading: boolean
   isFirstTimeSetup: boolean
 }
@@ -126,9 +127,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates }
+      setUser(updatedUser)
+      setUserData(updatedUser)
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, businessId, businessName, deviceId, login, logout, changeBusiness, isLoading, isFirstTimeSetup }}
+      value={{ user, businessId, businessName, deviceId, login, logout, changeBusiness, updateUser, isLoading, isFirstTimeSetup }}
     >
       {children}
     </AuthContext.Provider>

@@ -3,6 +3,11 @@ export interface User {
   id: string
   email: string
   name: string
+  first_name?: string
+  last_name?: string
+  phone_number?: string
+  address?: string
+  zip_code?: string
   role: "admin" | "staff"
   hotelId: string
   hotelName: string
