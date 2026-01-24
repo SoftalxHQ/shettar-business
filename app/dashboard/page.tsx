@@ -26,7 +26,7 @@ const todayCheckOuts = MOCK_BOOKINGS.filter((b) => b.checkOutDate === today && b
 const activeBookings = MOCK_BOOKINGS.filter((b) => b.status === "checked-in").length
 
 export default function DashboardPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [roomAvailability, setRoomAvailability] = useState<RoomTypeAvailability[]>([])
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
@@ -91,6 +91,13 @@ export default function DashboardPage() {
         if (response.ok) {
           const data = await response.json()
           setRoomAvailability(data)
+        } else if (response.status === 401) {
+          const errorData = await response.json()
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.errors?.[0]?.message === 'Token has expired') {
+            // Token expired - redirect to login
+            logout()
+            router.push("/login")
+          }
         }
       } catch (error) {
         console.error("Failed to fetch room availability:", error)
