@@ -2,15 +2,20 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CalendarCheck, DoorOpen, UserPlus, QrCode, ArrowRight } from "lucide-react"
+import { CalendarCheck, DoorOpen, UserPlus, QrCode, ArrowRight, Calendar as CalendarIcon } from "lucide-react"
 import { MOCK_BOOKINGS, type RoomTypeAvailability } from "@/lib/mock-data"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { getAuthToken } from "@/lib/storage"
+import Flatpickr from "react-flatpickr"
+import "flatpickr/dist/themes/light.css"
+import { format, addDays } from "date-fns"
+import { cn } from "@/lib/utils"
 
 const today = new Date().toISOString().split("T")[0]
 
@@ -25,6 +30,14 @@ export default function DashboardPage() {
   const router = useRouter()
   const [roomAvailability, setRoomAvailability] = useState<RoomTypeAvailability[]>([])
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
+  const [selectedDates, setSelectedDates] = useState<Date[]>([
+    new Date(),
+    addDays(new Date(), 1)
+  ])
+  const [fetchedDates, setFetchedDates] = useState<Date[]>([
+    new Date(),
+    addDays(new Date(), 1)
+  ])
 
   useEffect(() => {
     if (user?.role === "admin") {
@@ -37,13 +50,36 @@ export default function DashboardPage() {
     const fetchRoomAvailability = async () => {
       if (!businessId) return
 
+      // Wait for complete range selection
+      if (fetchedDates.length === 1) return
+
       try {
         setIsLoadingRooms(true)
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
         const token = getAuthToken()
 
+        let startStr, endStr
+
+        if (fetchedDates && fetchedDates.length > 0) {
+          startStr = format(fetchedDates[0], "yyyy-MM-dd")
+          if (fetchedDates.length > 1) {
+            // If start and end are same day, assume 1 night
+            if (fetchedDates[0].getTime() === fetchedDates[1].getTime()) {
+              endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
+            } else {
+              endStr = format(fetchedDates[1], "yyyy-MM-dd")
+            }
+          } else {
+            // If only start date selected, assume 1 night
+            endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
+          }
+        } else {
+          startStr = format(new Date(), "yyyy-MM-dd")
+          endStr = format(addDays(new Date(), 1), "yyyy-MM-dd")
+        }
+
         const response = await fetch(
-          `${API_URL}/api/v1/user_businesses/${businessId}/room_availability`,
+          `${API_URL}/api/v1/user_businesses/${businessId}/room_availability?start_date=${startStr}&end_date=${endStr}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -64,7 +100,13 @@ export default function DashboardPage() {
     }
 
     fetchRoomAvailability()
-  }, [businessId])
+  }, [businessId, fetchedDates])
+
+  const flatpickrOptions = useMemo(() => ({
+    mode: "range" as const,
+    dateFormat: "Y-m-d",
+    minDate: "today",
+  }), [])
 
   // Show loading state while redirecting admin users
   if (user?.role === "admin") {
@@ -178,11 +220,57 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Live Room Status</CardTitle>
-              <Badge variant="secondary">
-                {isLoadingRooms ? "..." : `${roomAvailability.reduce((sum, room) => sum + room.available, 0)} Available`}
-              </Badge>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between mb-2">
+                <CardTitle className="text-lg font-semibold">Live Room Status</CardTitle>
+                <Badge variant="secondary">
+                  {isLoadingRooms ? "..." : `${roomAvailability.reduce((sum, room) => sum + room.available, 0)} Available`}
+                </Badge>
+              </div>
+              <div className="relative">
+                <Flatpickr
+                  options={flatpickrOptions}
+                  value={selectedDates}
+                  onChange={(dates) => setSelectedDates(dates)}
+                  onClose={(dates) => {
+                    if (dates.length === 2) {
+                      setFetchedDates(dates)
+                    }
+                  }}
+                  render={({ defaultValue, value, ...props }, ref) => {
+                    // Filter out the 'render' prop if it's being passed down to avoid React warning
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { render, ...inputProps } = props as any
+                    // Manually format the date range for display
+                    let displayValue = ""
+                    if (selectedDates && selectedDates.length > 0) {
+                      const start = selectedDates[0]
+                      const end = selectedDates.length > 1 ? selectedDates[1] : undefined
+
+                      if (end) {
+                        displayValue = `${format(start, "MMM d, yyyy")} to ${format(end, "MMM d, yyyy")}`
+                      } else {
+                        displayValue = format(start, "MMM d, yyyy")
+                      }
+                    }
+
+                    return (
+                      <input
+                        {...inputProps}
+                        ref={ref}
+                        value={displayValue}
+                        type="text"
+                        className={cn(
+                          "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-sm pl-9"
+                        )}
+                        placeholder="Select Date Range"
+                        readOnly
+                      />
+                    )
+                  }}
+                />
+                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </CardHeader>
             <CardContent>
               {isLoadingRooms ? (
@@ -244,56 +332,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Bookings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Bookings</CardTitle>
-              <Link href="/dashboard/bookings">
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {MOCK_BOOKINGS.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${booking.status === "checked-in"
-                      ? "bg-green-100 text-green-700"
-                      : booking.status === "confirmed"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-700"
-                      }`}
-                  >
-                    {booking.status === "checked-in" && <DoorOpen className="w-5 h-5" />}
-                    {booking.status === "confirmed" && <CalendarCheck className="w-5 h-5" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{booking.guestName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Room {booking.roomNumber} • {booking.checkInDate} to {booking.checkOutDate}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      booking.status === "checked-in"
-                        ? "default"
-                        : booking.status === "confirmed"
-                          ? "secondary"
-                          : "outline"
-                    }
-                  >
-                    {booking.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   )
