@@ -54,6 +54,7 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
+      console.log("Login API Response:", data)
 
       if (response.ok && data.status.code === 200) {
         // Extract JWT token from Authorization header
@@ -72,10 +73,18 @@ export default function LoginPage() {
             address: data.data.address,
             zip_code: data.data.zip_code,
             profilePicture: data.data.avatar_url,
-            role: data.data.business?.role || "staff",
+            role: (() => {
+              const apiRole = (data.data.business?.role || "staff").toLowerCase()
+              const title = (data.data.business?.title || "").toLowerCase()
+
+              if (apiRole === "admin") return "admin"
+              if (title.includes("manager")) return "manager"
+              return apiRole
+            })(),
             hotelId: data.data.business?.id.toString() || "",
             hotelName: data.data.business?.name || "",
             businessId: data.data.business?.business_unique_id || businessIdToUse || "",
+            permissions: data.data.business?.permissions,
           },
           data.data.business?.business_unique_id || businessIdToUse || "", // Business ID (for API calls)
           data.data.business?.name || "Your Business", // Business Name (for display)

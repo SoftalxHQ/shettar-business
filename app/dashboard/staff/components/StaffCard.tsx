@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Mail, Crown, Edit, Trash, Shield } from "lucide-react"
 import type { StaffMember } from "@/lib/staff-types"
 import { getPermissionSummary, getEnabledPermissionsCount } from "@/lib/staff-types"
+import { useAuth } from "@/lib/auth-context"
 
 interface StaffCardProps {
   member: StaffMember
@@ -15,6 +16,7 @@ interface StaffCardProps {
 }
 
 export function StaffCard({ member, onEdit, onRemove }: StaffCardProps) {
+  const { user } = useAuth()
   const userName = member.user?.name || `${member.user?.first_name} ${member.user?.last_name}` || "Unknown"
   const initials = userName
     .split(" ")
@@ -78,16 +80,18 @@ export function StaffCard({ member, onEdit, onRemove }: StaffCardProps) {
 
           {/* Right side: Actions */}
           <div className="flex flex-col gap-2 ml-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(member)}
-              className="w-full"
-            >
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
-            </Button>
-            {!member.is_owner && (
+            {(user?.role === 'admin' || user?.permissions?.staff?.edit) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(member)}
+                className="w-full"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            {!member.is_owner && (user?.role === 'admin' || user?.permissions?.staff?.remove) && (
               <Button
                 variant="ghost"
                 size="sm"

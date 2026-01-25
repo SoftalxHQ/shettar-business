@@ -15,7 +15,7 @@ import { BulkCreateRoomsDialog } from "../../components/BulkCreateRoomsDialog"
 import Link from "next/link"
 
 export default function RoomManagementPage({ params }: { params: Promise<{ id: string }> }) {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const router = useRouter()
   const { id: roomTypeId } = use(params)
 
@@ -49,6 +49,13 @@ export default function RoomManagementPage({ params }: { params: Promise<{ id: s
       if (roomTypeResponse.ok) {
         const roomTypeData = await roomTypeResponse.json()
         setRoomType(roomTypeData)
+      } else if (roomTypeResponse.status === 401) {
+        const errorData = await roomTypeResponse.json().catch(() => ({}))
+        if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+          toast.error("Session expired. Please login again.")
+          logout()
+          return
+        }
       }
 
       // Fetch rooms
@@ -65,6 +72,13 @@ export default function RoomManagementPage({ params }: { params: Promise<{ id: s
       if (roomsResponse.ok) {
         const roomsData = await roomsResponse.json()
         setRooms(roomsData)
+      } else if (roomsResponse.status === 401) {
+        const errorData = await roomsResponse.json().catch(() => ({}))
+        if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+          toast.error("Session expired. Please login again.")
+          logout()
+          return
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -102,6 +116,14 @@ export default function RoomManagementPage({ params }: { params: Promise<{ id: s
         toast.success(data.message || "Room status updated")
         fetchRoomTypeAndRooms()
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to update room status")
       }
     } catch (error) {
@@ -134,6 +156,14 @@ export default function RoomManagementPage({ params }: { params: Promise<{ id: s
         toast.success(data.message || "Room deleted")
         fetchRoomTypeAndRooms()
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to delete room")
       }
     } catch (error) {

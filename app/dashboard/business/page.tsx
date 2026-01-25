@@ -45,12 +45,12 @@ export default function BusinessDashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "admin" && user.role !== "manager") {
       router.push("/dashboard")
     }
   }, [user, router])
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" && user?.role !== "manager") {
     return null
   }
 
@@ -85,33 +85,35 @@ export default function BusinessDashboardPage() {
 
         {/* Business settings */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Business Name</label>
-                <p className="text-base">{user.hotelName}</p>
-              </div>
+          {user.role === "admin" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Business Name</label>
+                  <p className="text-base">{user.hotelName}</p>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Business ID</label>
-                <p className="text-base font-mono text-sm">{user.businessId}</p>
-              </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Business ID</label>
+                  <p className="text-base font-mono text-sm">{user.businessId}</p>
+                </div>
 
-              <Link href="/dashboard/business/settings">
-                <Button className="w-full">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Manage Business Settings
-                </Button>
-              </Link>
+                <Link href="/dashboard/business/settings">
+                  <Button className="w-full">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Manage Business Settings
+                  </Button>
+                </Link>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Update business info, logo, images, and amenities
-              </p>
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground text-center">
+                  Update business info, logo, images, and amenities
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

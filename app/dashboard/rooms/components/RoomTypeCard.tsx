@@ -7,6 +7,7 @@ import { Edit, Trash, Settings, Hotel, CheckCircle, Check } from "lucide-react"
 import type { RoomType } from "@/lib/room-types"
 import { getEnabledAmenities, formatAmenityName, countEnabledAmenities } from "@/lib/room-types"
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 
 interface RoomTypeCardProps {
   roomType: RoomType
@@ -16,6 +17,7 @@ interface RoomTypeCardProps {
 }
 
 export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: RoomTypeCardProps) {
+  const { user } = useAuth()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const enabledAmenities = getEnabledAmenities(roomType)
   const amenitiesCount = countEnabledAmenities(roomType)
@@ -148,32 +150,38 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(roomType)}
-              className="flex-1"
-            >
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onManageRooms(roomType.id)}
-              className="flex-1"
-            >
-              <Settings className="w-4 h-4 mr-1" />
-              Rooms
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(roomType.id)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash className="w-4 h-4" />
-            </Button>
+            {(user?.role === 'admin' || user?.permissions?.rooms?.edit) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(roomType)}
+                className="flex-1"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            {(user?.role === 'admin' || user?.permissions?.rooms?.edit) && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onManageRooms(roomType.id)}
+                className="flex-1"
+              >
+                <Settings className="w-4 h-4 mr-1" />
+                Rooms
+              </Button>
+            )}
+            {(user?.role === 'admin' || user?.permissions?.rooms?.delete) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(roomType.id)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

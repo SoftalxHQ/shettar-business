@@ -93,7 +93,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     .join("")
     .toUpperCase()
 
-  const isAdmin = user.role === "admin"
+  const isAdmin = user.role === "admin" || user.role === "manager"
 
   const notifications = [
     {
@@ -150,7 +150,31 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {adminNavigation.map((item) => {
+            {adminNavigation.filter(item => {
+              if (user.role === 'admin') return true;
+
+              // If no permissions object but role is manager/staff, default to safe subset or hidden?
+              // Assuming if permissions are present we strictly follow them.
+              if (!user.permissions) return true;
+
+              switch (item.name) {
+                case "Dashboard":
+                  // Keep access to dashboard main page if they can view revenue or analytics, or generic
+                  return true;
+                case "Analytics":
+                  return user.permissions.dashboard?.view_analytics;
+                case "Payments":
+                  return user.permissions.payments?.view;
+                case "Bookings":
+                  return user.permissions.bookings?.view;
+                case "Rooms":
+                  return user.permissions.rooms?.view;
+                case "Staffs":
+                  return user.permissions.staff?.view;
+                default:
+                  return true;
+              }
+            }).map((item) => {
               const isActive = activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
               return (
                 <Link

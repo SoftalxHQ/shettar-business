@@ -13,7 +13,7 @@ import { RoomTypeCard } from "./components/RoomTypeCard"
 import { RoomTypeDialog } from "./components/RoomTypeDialog"
 
 export default function RoomsPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -23,14 +23,18 @@ export default function RoomsPage() {
   // Check admin access
   useEffect(() => {
     if (user && user.role !== "admin") {
-      router.push("/dashboard")
+      if (!user.permissions?.rooms?.view) {
+        router.push("/dashboard/business")
+      }
     }
   }, [user, router])
 
   // Fetch room types
   useEffect(() => {
-    fetchRoomTypes()
-  }, [businessId])
+    if (user?.role === "admin" || user?.permissions?.rooms?.view) {
+      fetchRoomTypes()
+    }
+  }, [businessId, user])
 
   const fetchRoomTypes = async () => {
     if (!businessId) return
@@ -51,9 +55,16 @@ export default function RoomsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        // Ensure data is an array
         setRoomTypes(Array.isArray(data) ? data : [])
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to load room types")
       }
     } catch (error) {
@@ -98,6 +109,14 @@ export default function RoomsPage() {
         toast.success(data.message)
         fetchRoomTypes()
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to delete room type")
       }
     } catch (error) {
@@ -127,7 +146,7 @@ export default function RoomsPage() {
     ? roomTypes.reduce((sum, rt) => sum + rt.price, 0) / roomTypes.length
     : 0
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" && !user?.permissions?.rooms?.view) {
     return null
   }
 
@@ -152,10 +171,12 @@ export default function RoomsPage() {
               Manage room types and individual rooms
             </p>
           </div>
-          <Button onClick={handleCreateRoomType}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Room Type
-          </Button>
+          {(user?.role === "admin" || user?.permissions?.rooms?.create) && (
+            <Button onClick={handleCreateRoomType}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Room Type
+            </Button>
+          )}
         </div>
 
         {/* Stats */}

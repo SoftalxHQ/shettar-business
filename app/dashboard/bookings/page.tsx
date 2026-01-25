@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 
 interface Reservation {
   id: number
@@ -41,7 +42,8 @@ interface Reservation {
 }
 
 export default function BookingsPage() {
-  const { businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const filterParam = searchParams?.get("filter") || "all"
 
@@ -50,13 +52,25 @@ export default function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
 
+  // Check permissions
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      if (!user.permissions?.bookings?.view) {
+        router.push("/dashboard/business")
+      }
+    }
+  }, [user, router])
 
   // Fetch reservations on mount
   useEffect(() => {
     const fetchReservations = async () => {
+      // Logic only runs if we pass perm check
+      if (user?.role !== "admin" && !user?.permissions?.bookings?.view) return;
+
       if (!businessId) return
 
       try {
+        // ... existing fetch logic
         setIsLoading(true)
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
         const token = getAuthToken()
@@ -72,7 +86,16 @@ export default function BookingsPage() {
           const data = await response.json()
           setReservations(data)
         } else {
+          if (response.status === 401) {
+            const errorData = await response.json().catch(() => ({}))
+            if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+              toast.error("Session expired. Please login again.")
+              logout()
+              return
+            }
+          }
           console.error("Failed to fetch reservations")
+          toast.error("Failed to fetch reservations")
         }
       } catch (error) {
         console.error("Error fetching reservations:", error)
@@ -82,8 +105,9 @@ export default function BookingsPage() {
     }
 
     fetchReservations()
-  }, [businessId])
+  }, [businessId, user])
 
+  // ... (getReservationStatus etc)
   // Helper function to determine if a reservation is active, upcoming, or past
   const getReservationStatus = (reservation: Reservation) => {
     const now = new Date()
@@ -155,6 +179,10 @@ export default function BookingsPage() {
     return date.toLocaleString('en-US', options).replace(',', ' at')
   }
 
+  if (user && user.role !== "admin" && !user.permissions?.bookings?.view) {
+    return null
+  }
+
   return (
     <DashboardLayout activeTab="bookings">
       <div className="space-y-6">
@@ -164,12 +192,14 @@ export default function BookingsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
             <p className="text-muted-foreground">Manage all hotel reservations</p>
           </div>
-          <Link href="/dashboard/bookings/new">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              New Booking
-            </Button>
-          </Link>
+          {(user?.role === "admin" || user?.permissions?.bookings?.create) && (
+            <Link href="/dashboard/bookings/new">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Booking
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Search */}

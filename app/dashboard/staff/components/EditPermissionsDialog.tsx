@@ -18,7 +18,7 @@ interface EditPermissionsDialogProps {
 }
 
 export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermissionsDialogProps) {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const [permissions, setPermissions] = useState<Permissions>(member.permissions || {})
   const [isSaving, setIsSaving] = useState(false)
 
@@ -53,8 +53,17 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
         toast.success(data.message || "Permissions updated successfully!")
         onSuccess()
       } else {
-        const error = await response.json()
-        toast.error(error.error || "Failed to update permissions")
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
+        const error = await response.json().catch(() => ({}))
+        const errorMessage = error.message || error.error || "Failed to update permissions"
+        toast.error(errorMessage)
       }
     } catch (error) {
       console.error("Error updating permissions:", error)

@@ -7,10 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingUp, TrendingDown, DollarSign, Users, Calendar, Percent, BarChart3, Star, Clock } from "lucide-react"
 import { MOCK_BOOKINGS, MOCK_PAYMENTS } from "@/lib/mock-data"
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts"
 
 export default function AnalyticsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [timeRange, setTimeRange] = useState("7d")
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      if (!user.permissions?.dashboard?.view_analytics) {
+        router.push("/dashboard/business")
+      }
+    }
+  }, [user, router])
+
+  if (user && user.role !== 'admin' && !user.permissions?.dashboard?.view_analytics) {
+    return null
+  }
 
   // Calculate analytics
   const totalRevenue = MOCK_PAYMENTS.filter((p) => p.status === "completed").reduce((sum, p) => sum + p.amount, 0)

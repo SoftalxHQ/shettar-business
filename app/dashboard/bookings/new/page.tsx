@@ -25,7 +25,7 @@ interface RoomType {
 
 export default function NewBookingPage() {
   const router = useRouter()
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
@@ -84,7 +84,19 @@ export default function NewBookingPage() {
         const data = await response.json()
         setRoomTypes(data.room_types || [])
       } else {
-        const errorData = await response.json()
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast({
+              variant: "destructive",
+              title: "Session Expired",
+              description: "Please login again.",
+            })
+            logout()
+            return
+          }
+        }
+        const errorData = await response.json().catch(() => ({}))
         toast({
           variant: "destructive",
           title: "Error",
@@ -168,6 +180,17 @@ export default function NewBookingPage() {
         })
         router.push("/dashboard/bookings")
       } else {
+        if (response.status === 401) {
+          if (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired') {
+            toast({
+              variant: "destructive",
+              title: "Session Expired",
+              description: "Please login again.",
+            })
+            logout()
+            return
+          }
+        }
         toast({
           variant: "destructive",
           title: "Error",

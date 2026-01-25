@@ -16,7 +16,7 @@ import { AddStaffDialog } from "./components/AddStaffDialog"
 import { EditPermissionsDialog } from "./components/EditPermissionsDialog"
 
 export default function StaffPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -25,17 +25,21 @@ export default function StaffPage() {
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Check admin access
+  // Check access permissions
   useEffect(() => {
     if (user && user.role !== "admin") {
-      router.push("/dashboard")
+      if (!user.permissions?.staff?.view) {
+        router.push("/dashboard/business")
+      }
     }
   }, [user, router])
 
   // Fetch staff members
   useEffect(() => {
-    fetchStaffMembers()
-  }, [businessId])
+    if (user?.role === "admin" || user?.permissions?.staff?.view) {
+      fetchStaffMembers()
+    }
+  }, [businessId, user])
 
   const fetchStaffMembers = async () => {
     if (!businessId) return
@@ -58,6 +62,14 @@ export default function StaffPage() {
         const data = await response.json()
         setStaffMembers(Array.isArray(data) ? data : [])
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to load staff members")
       }
     } catch (error) {
@@ -96,6 +108,14 @@ export default function StaffPage() {
         toast.success("Staff member removed")
         fetchStaffMembers()
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to remove staff member")
       }
     } catch (error) {
@@ -117,7 +137,7 @@ export default function StaffPage() {
   const ownersCount = staffMembers.filter(m => m.is_owner).length
   const staffCount = staffMembers.filter(m => !m.is_owner).length
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" && !user?.permissions?.staff?.view) {
     return null
   }
 

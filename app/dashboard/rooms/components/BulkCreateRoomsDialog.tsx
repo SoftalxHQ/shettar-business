@@ -17,7 +17,7 @@ interface BulkCreateRoomsDialogProps {
 }
 
 export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCreateRoomsDialogProps) {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const [startingNumber, setStartingNumber] = useState(101)
   const [quantity, setQuantity] = useState(10)
   const [isCreating, setIsCreating] = useState(false)
@@ -70,7 +70,15 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
         toast.success(data.message || `${quantity} rooms created successfully!`)
         onSuccess()
       } else {
-        const error = await response.json()
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
+        const error = await response.json().catch(() => ({}))
         toast.error(error.message || "Failed to create rooms")
       }
     } catch (error) {

@@ -38,7 +38,7 @@ interface Reservation {
 }
 
 export default function ScanPage() {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const { toast } = useToast()
   const [code, setCode] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -89,6 +89,18 @@ export default function ScanPage() {
           description: "Booking found successfully!",
         })
       } else {
+        if (response.status === 401) {
+          // Check for JWT expired signature pattern if different
+          if (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired' || data.status?.message === 'Signature has expired') {
+            toast({
+              variant: "destructive",
+              title: "Session Expired",
+              description: "Please login again.",
+            })
+            logout()
+            return
+          }
+        }
         setResult("error")
         setReservation(null)
         toast({

@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
 import { getAuthToken } from "@/lib/storage"
+import { toast } from "sonner"
 import Flatpickr from "react-flatpickr"
 import "flatpickr/dist/themes/light.css"
 import { format, addDays } from "date-fns"
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   ])
 
   useEffect(() => {
-    if (user?.role === "admin") {
+    if (user?.role === "admin" || user?.role === "manager") {
       router.push("/dashboard/business")
     }
   }, [user, router])
@@ -93,10 +94,10 @@ export default function DashboardPage() {
           setRoomAvailability(data)
         } else if (response.status === 401) {
           const errorData = await response.json()
-          if (errorData.errors?.[0]?.id === 'expiration' || errorData.errors?.[0]?.message === 'Token has expired') {
-            // Token expired - redirect to login
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
             logout()
-            router.push("/login")
+            return
           }
         }
       } catch (error) {

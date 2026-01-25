@@ -18,7 +18,7 @@ interface AddStaffDialogProps {
 }
 
 export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -95,8 +95,16 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
         toast.success(data.message || "Staff member added successfully!")
         onSuccess()
       } else {
-        const error = await response.json()
-        toast.error(error.message || "Failed to add staff member")
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
+        const error = await response.json().catch(() => ({}))
+        toast.error(error.status?.message || "Failed to add staff member")
       }
     } catch (error) {
       console.error("Error adding staff:", error)

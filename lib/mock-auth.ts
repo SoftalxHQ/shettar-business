@@ -8,11 +8,19 @@ export interface User {
   phone_number?: string
   address?: string
   zip_code?: string
-  role: "admin" | "staff"
+  role: "admin" | "manager" | "staff"
   hotelId: string
   hotelName: string
   profilePicture?: string
   businessId: string // Added business unique ID
+  permissions?: {
+    rooms?: { view: boolean; edit: boolean; create: boolean; delete: boolean }
+    staff?: { view: boolean; add: boolean; edit: boolean; remove: boolean; manage_permissions: boolean }
+    bookings?: { view: boolean; edit: boolean; cancel: boolean; create: boolean; view_payments: boolean; checkin_checkout: boolean }
+    payments?: { view: boolean; process_refunds: boolean; manage_payment_methods: boolean }
+    settings?: { view: boolean; edit_details: boolean; edit_branding: boolean; edit_amenities: boolean }
+    dashboard?: { view_revenue: boolean; view_analytics: boolean }
+  }
 }
 
 export const MOCK_USERS = {

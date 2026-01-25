@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import Image from "next/image"
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -128,7 +128,15 @@ export default function ProfilePage() {
         // Update user in context with new avatar
         updateUser({ profilePicture: data.user.avatar_url || user?.profilePicture })
       } else {
-        const error = await response.json()
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
+        const error = await response.json().catch(() => ({}))
         toast.error(error.status?.message || "Failed to update profile")
       }
     } catch (error) {
@@ -177,7 +185,15 @@ export default function ProfilePage() {
         setIsChangingPassword(false)
         setPasswordData({ current_password: "", new_password: "", confirm_password: "" })
       } else {
-        const error = await response.json()
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
+        const error = await response.json().catch(() => ({}))
         toast.error(error.status?.message || error.errors?.[0] || "Failed to change password")
       }
     } catch (error) {

@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +15,21 @@ import { Search, Plus, CreditCard, Banknote, Globe, TrendingUp, DollarSign, Cale
 import { MOCK_PAYMENTS, MOCK_BOOKINGS, type Payment } from "@/lib/mock-data"
 
 export default function PaymentsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS)
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      if (!user.permissions?.payments?.view) {
+        router.push("/dashboard/business")
+      }
+    }
+  }, [user, router])
+
+  if (user && user.role !== 'admin' && !user.permissions?.payments?.view) {
+    return null
+  }
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false)
   const [newPayment, setNewPayment] = useState({

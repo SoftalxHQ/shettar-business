@@ -57,7 +57,7 @@ interface BusinessData {
 }
 
 export default function BusinessSettingsPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -102,6 +102,14 @@ export default function BusinessSettingsPage() {
             setImagePreviews(data.images_url)
           }
         } else {
+          if (response.status === 401) {
+            const errorData = await response.json().catch(() => ({}))
+            if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+              toast.error("Session expired. Please login again.")
+              logout()
+              return
+            }
+          }
           toast.error("Failed to load business data")
         }
       } catch (error) {
@@ -236,6 +244,14 @@ export default function BusinessSettingsPage() {
         setRemoveLogo(false)
         setRemoveImages(false)
       } else {
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
         toast.error("Failed to update business settings", {
           description: data.error?.message || "Please try again",
         })

@@ -21,7 +21,7 @@ interface RoomTypeDialogProps {
 }
 
 export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogProps) {
-  const { businessId } = useAuth()
+  const { businessId, logout } = useAuth()
   const [currentTab, setCurrentTab] = useState("basic")
   const [isSaving, setIsSaving] = useState(false)
 
@@ -141,24 +141,24 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
         toast.success(data.message || "Room type saved successfully!")
         onSave()
       } else {
-        // Log detailed error information
-        console.error("Failed to save room type. Status:", response.status)
-        const errorText = await response.text()
-        console.error("Error response:", errorText)
+        if (response.status === 401) {
+          const errorData = await response.json().catch(() => ({}))
+          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+            toast.error("Session expired. Please login again.")
+            logout()
+            return
+          }
+        }
 
         try {
-          const error = JSON.parse(errorText)
-          console.error("Parsed error:", error)
-
-          // Show detailed error message
+          const error = await response.json()
           if (error.errors) {
-            // Handle validation errors
             const errorMessages = Object.entries(error.errors)
               .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
               .join('\n')
             toast.error(`Validation errors:\n${errorMessages}`)
           } else {
-            toast.error(error.message || "Failed to save room type")
+            toast.error(error.message || error.status?.message || "Failed to save room type")
           }
         } catch (parseError) {
           console.error("Could not parse error response:", parseError)
