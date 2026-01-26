@@ -91,13 +91,13 @@ export default function ScanPage() {
       } else {
         if (response.status === 401) {
           // Check for JWT expired signature pattern if different
-          if (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired' || data.status?.message === 'Signature has expired') {
-            toast({
-              variant: "destructive",
-              title: "Session Expired",
-              description: "Please login again.",
-            })
-            logout()
+          if (
+            data.errors?.[0]?.id === 'expiration' ||
+            data.errors?.[0]?.message === 'Token has expired' ||
+            data.message === 'Signature has expired' ||
+            data.status?.message === 'Signature has expired'
+          ) {
+            logout(true)
             return
           }
         }

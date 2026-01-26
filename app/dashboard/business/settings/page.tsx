@@ -105,8 +105,7 @@ export default function BusinessSettingsPage() {
           if (response.status === 401) {
             const errorData = await response.json().catch(() => ({}))
             if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
-              toast.error("Session expired. Please login again.")
-              logout()
+              logout(true)
               return
             }
           }
@@ -247,8 +246,7 @@ export default function BusinessSettingsPage() {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
           if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
-            toast.error("Session expired. Please login again.")
-            logout()
+            logout(true)
             return
           }
         }

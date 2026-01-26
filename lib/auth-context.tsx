@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import type { User } from "./mock-auth"
 import {
   getStoredBusinessId,
@@ -25,7 +26,7 @@ interface AuthContextType {
   businessName: string | null
   deviceId: string
   login: (user: User, businessId: string, businessName: string, token: string) => void
-  logout: () => void
+  logout: (skipApiCall?: boolean) => void
   changeBusiness: () => void
   updateUser: (updates: Partial<User>) => void
   isLoading: boolean
@@ -41,6 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [deviceId] = useState<string>(() => getOrCreateDeviceId())
   const [isLoading, setIsLoading] = useState(true)
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false)
+  const router = useRouter()
+  const isLoggingOutRef = useRef(false)
 
   useEffect(() => {
     // Check for stored data on mount
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = (userData: User, userBusinessId: string, userBusinessName: string, token: string) => {
+    isLoggingOutRef.current = false // Reset logout lock
     setUser(userData)
     setUserData(userData)
     setAuthToken(token)
@@ -82,22 +86,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const logout = async () => {
+  const logout = async (skipApiCall = false) => {
+    if (isLoggingOutRef.current) return
+    isLoggingOutRef.current = true
+
     const currentBusinessName = businessName
 
     try {
-      // Call backend to invalidate JWT token
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = getAuthToken()
+      if (!skipApiCall) {
+        // Call backend to invalidate JWT token
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
 
-      if (token) {
-        await fetch(`${API_URL}/users/sign_out`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
+        if (token) {
+          await fetch(`${API_URL}/users/sign_out`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        }
       }
     } catch (error) {
       console.error("Logout API call failed:", error)
@@ -107,10 +116,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       storageLogout()
 
-      // Show success toast
-      toast.success("Signed out successfully", {
-        description: `You've been logged out of ${currentBusinessName || "your account"}`,
-      })
+      if (skipApiCall) {
+        toast.error("Session expired. Please login again.")
+      } else {
+        // Show success toast
+        toast.success("Signed out successfully", {
+          description: `You've been logged out of ${currentBusinessName || "your account"}`,
+        })
+      }
+
+      router.push("/login")
     }
   }
 
