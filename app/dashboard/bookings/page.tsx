@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail, Eye, X, Printer, MoreVertical, ArrowLeft } from "lucide-react"
+import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail, Eye, X, Printer, MoreVertical, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -166,13 +166,21 @@ export default function BookingsPage() {
   }
 
   const filteredReservations = reservations.filter((reservation) => {
+    const searchLower = searchQuery.toLowerCase()
+    const fullName = `${reservation.other_first_name || ""} ${reservation.other_last_name || ""}`.toLowerCase()
+
+    // Safety checks for other fields
+    const roomNum = String(reservation.room_number || "").toLowerCase()
+    const email = String(reservation.other_email_address || "").toLowerCase()
+    const bookingId = String(reservation.booking_id || "").toLowerCase()
+    const status = getReservationStatus(reservation)
+
     const matchesSearch =
-      `${reservation.other_first_name} ${reservation.other_last_name}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      reservation.room_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reservation.other_email_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reservation.booking_id.toLowerCase().includes(searchQuery.toLowerCase())
+      fullName.includes(searchLower) ||
+      roomNum.includes(searchLower) ||
+      email.includes(searchLower) ||
+      bookingId.includes(searchLower) ||
+      status.includes(searchLower)
 
     return matchesSearch
   })
@@ -342,6 +350,15 @@ export default function BookingsPage() {
   }
 
   const ReservationsTable = ({ data }: { data: Reservation[] }) => {
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+    const totalPages = Math.ceil(data.length / itemsPerPage)
+
+    // Reset to page 1 if data changes (e.g. search filter applied or tab changed)
+    useEffect(() => {
+      setCurrentPage(1)
+    }, [data.length])
+
     if (data.length === 0) {
       return (
         <Card>
@@ -352,64 +369,134 @@ export default function BookingsPage() {
       )
     }
 
+    const paginatedData = data.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+
+    const goToPage = (page: number) => {
+      if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page)
+      }
+    }
+
     return (
-      <div className="rounded-md border bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Client Name</TableHead>
-              <TableHead>Booking ID</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Start Date</TableHead>
-              <TableHead>End Date</TableHead>
-              <TableHead>Room Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((reservation) => (
-              <TableRow key={reservation.id}>
-                <TableCell className="font-medium">
-                  <div>{reservation.other_first_name} {reservation.other_last_name}</div>
-                  <div className="text-xs text-muted-foreground">{reservation.other_email_address}</div>
-                </TableCell>
-                <TableCell className="text-indigo-500 font-medium">{reservation.booking_id}</TableCell>
-                <TableCell className="font-medium">₦{reservation.total_amount?.toLocaleString()}</TableCell>
-                <TableCell>{new Date(reservation.start_date).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(reservation.end_date).toLocaleDateString()}</TableCell>
-                <TableCell>{reservation.room_type_name}</TableCell>
-                <TableCell>
-                  <Badge className={`${getStatusColor(getReservationStatus(reservation))} rounded-full`}>
-                    {getReservationStatus(reservation)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedReservation(reservation)}
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span className="sr-only">View</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handlePrintReceipt(reservation)}
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span className="sr-only">Print</span>
-                    </Button>
-                  </div>
-                </TableCell>
+      <div className="space-y-4">
+        <div className="rounded-md border bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Client Name</TableHead>
+                <TableHead>Booking ID</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Room Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.map((reservation) => (
+                <TableRow key={reservation.id}>
+                  <TableCell className="font-medium">
+                    <div>{reservation.other_first_name} {reservation.other_last_name}</div>
+                    <div className="text-xs text-muted-foreground">{reservation.other_email_address}</div>
+                  </TableCell>
+                  <TableCell className="text-indigo-500 font-medium">{reservation.booking_id}</TableCell>
+                  <TableCell className="font-medium">₦{reservation.total_amount?.toLocaleString()}</TableCell>
+                  <TableCell>{new Date(reservation.start_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(reservation.end_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{reservation.room_type_name}</TableCell>
+                  <TableCell>
+                    <Badge className={`${getStatusColor(getReservationStatus(reservation))} rounded-full`}>
+                      {getReservationStatus(reservation)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedReservation(reservation)}
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span className="sr-only">View</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handlePrintReceipt(reservation)}
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span className="sr-only">Print</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, data.length)} of {data.length} entries
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <span className="sr-only">Previous page</span>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = i + 1;
+                  if (totalPages > 5) {
+                    // Logic to show pages around current page could go here
+                    // simplifying for now to show first 5 or minimal logic
+                    // A proper pagination component is ideal but staying within bounds:
+                    if (currentPage > 3) pageNum = currentPage - 2 + i;
+                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                  }
+                  if (pageNum > 0 && pageNum <= totalPages) {
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className={`h-8 w-8 p-0 ${currentPage === pageNum ? "bg-indigo-500 hover:bg-indigo-600" : ""}`}
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  }
+                  return null
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <span className="sr-only">Next page</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -519,212 +606,131 @@ export default function BookingsPage() {
         {/* Detailed Reservation Modal */}
         <Dialog open={!!selectedReservation} onOpenChange={(open) => !open && setSelectedReservation(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="border-b pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-2xl font-bold">Reservation Details</DialogTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedReservation && selectedReservation.booking_id}
-                    </p>
-                  </div>
-                </div>
-                {selectedReservation && (
-                  <Badge className={getStatusColor(getReservationStatus(selectedReservation))} variant="outline">
-                    {getReservationStatus(selectedReservation)}
-                  </Badge>
-                )}
+            <DialogHeader className="border-b pb-4 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <DialogTitle className="text-xl">Reservation Details</DialogTitle>
+                <DialogDescription>
+                  Booking ID: <span className="font-mono text-primary font-bold">{selectedReservation?.booking_id}</span>
+                </DialogDescription>
               </div>
+              {selectedReservation && (
+                <Button variant="outline" size="sm" onClick={() => handlePrintReceipt(selectedReservation)} className="gap-2">
+                  <Printer className="w-4 h-4" />
+                  Print Receipt
+                </Button>
+              )}
             </DialogHeader>
 
             {selectedReservation && (
-              <div className="space-y-6 mt-6">
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border-primary/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Amount</p>
-                          <p className="text-xl font-bold">₦{selectedReservation.total_amount?.toLocaleString()}</p>
-                        </div>
+              <div className="space-y-8 pt-2">
+                {/* Primary Guest Card */}
+                <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-6 h-6 text-green-600" />
                       </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-orange-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                          <Users className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Guests</p>
-                          <p className="text-xl font-bold">{selectedReservation.guests + selectedReservation.children}</p>
-                        </div>
+                      <div>
+                        <h3 className="font-bold text-lg">{selectedReservation.other_first_name} {selectedReservation.other_last_name}</h3>
+                        <p className="text-muted-foreground text-sm">{selectedReservation.other_email_address}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-green-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🛏️</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Room</p>
-                          <p className="text-xl font-bold">{selectedReservation.room_number}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Left Column */}
-                  <div className="space-y-8">
-                    {/* Guest Information */}
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <Users className="w-4 h-4 text-primary" />
-                        </div>
-                        <h3 className="font-semibold text-lg">Guest Information</h3>
-                      </div>
-                      <div className="bg-white border rounded-lg p-4 space-y-3 shadow-sm">
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase">Primary Guest</p>
-                          <p className="font-medium text-lg">{selectedReservation.other_first_name} {selectedReservation.other_last_name}</p>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 pt-2">
-                          <div className="flex items-center gap-3">
-                            <Mail className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm">{selectedReservation.other_email_address}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Phone className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm">{selectedReservation.other_phone_number}</span>
-                          </div>
-                          {(selectedReservation.emer_first_name || selectedReservation.emer_phone_number) && (
-                            <div className="pt-2 mt-2 border-t">
-                              <p className="text-xs text-muted-foreground mb-1">Emergency Contact</p>
-                              <div className="text-sm">
-                                {selectedReservation.emer_first_name && <span className="font-medium">{selectedReservation.emer_first_name} {selectedReservation.emer_last_name}</span>}
-                                {selectedReservation.emer_phone_number && <div className="text-muted-foreground text-xs mt-0.5">{selectedReservation.emer_phone_number}</div>}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </section>
-
-                    {/* Room Details */}
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🛏️</span>
-                        </div>
-                        <h3 className="font-semibold text-lg">Room Details</h3>
-                      </div>
-                      <div className="bg-white border rounded-lg p-4 space-y-4 shadow-sm">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase">Room Type</p>
-                            <p className="font-medium">{selectedReservation.room_type_name}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase">Room Number</p>
-                            <p className="font-medium">{selectedReservation.room_number || "Not Assigned"}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase">Adults</p>
-                            <p className="font-medium">{selectedReservation.guests}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase">Children</p>
-                            <p className="font-medium">{selectedReservation.children}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
+                    </div>
+                    <Badge className={getStatusColor(getReservationStatus(selectedReservation))}>
+                      {getReservationStatus(selectedReservation).toUpperCase()}
+                    </Badge>
                   </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-8">
-                    {/* Stay Duration */}
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                          <Calendar className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <h3 className="font-semibold text-lg">Stay Duration</h3>
-                      </div>
-                      <div className="bg-white border rounded-lg p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase mb-1">Check-in</p>
-                            <p className="font-medium">{formatDateTime(selectedReservation.start_date)}</p>
-                          </div>
-                          <div className="text-muted-foreground">→</div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground uppercase mb-1">Check-out</p>
-                            <p className="font-medium">{formatDateTime(selectedReservation.end_date)}</p>
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-2 gap-y-6 gap-x-8 text-sm">
+                    <div>
+                      <p className="text-muted-foreground mb-1">Check-in</p>
+                      <p className="font-semibold text-slate-900">{formatDateTime(selectedReservation.start_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">Check-out</p>
+                      <p className="font-semibold text-slate-900">{formatDateTime(selectedReservation.end_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">Guests</p>
+                      <p className="font-semibold text-slate-900">{selectedReservation.guests} Adults, {selectedReservation.children} Children</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">Total Amount</p>
+                      <p className="font-semibold text-slate-900">₦{selectedReservation.total_amount?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">Phone</p>
+                      <p className="font-semibold text-slate-900">{selectedReservation.other_phone_number}</p>
+                    </div>
+                  </div>
+                </div>
 
-                        {/* Status Indicators */}
-                        <div className="space-y-3 pt-3 border-t">
-                          {selectedReservation.checked_in_at ? (
-                            <div className="text-sm bg-green-50 text-green-700 p-2 rounded flex justify-between items-center">
-                              <span>✓ Checked In</span>
-                              <span className="text-xs opacity-75">{formatDateTime(selectedReservation.checked_in_at)}</span>
-                            </div>
-                          ) : (
-                            <div className="text-sm bg-slate-50 text-slate-500 p-2 rounded flex justify-between items-center">
-                              <span>Pending Check-in</span>
-                            </div>
+                {/* Technical Details (Gray Box) */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-lg px-1">Room & Booking Details</h4>
+                  <div className="bg-slate-50/80 border rounded-xl p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-sm">
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Room Type</p>
+                      <p className="text-slate-600">{selectedReservation.room_type_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Room Number</p>
+                      <p className="text-slate-600">{selectedReservation.room_number || "Unassigned"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Payment Method</p>
+                      <p className="text-slate-600 font-medium">
+                        {selectedReservation.payment_method !== null && selectedReservation.payment_method !== undefined
+                          ? (paymentMethodLabels[selectedReservation.payment_method] || "Unknown")
+                          : "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Booking Date</p>
+                      <p className="text-slate-600">{new Date(selectedReservation.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Timeline */}
+                <div className="space-y-4">
+                  <h4 className="font-bold text-lg px-1">Activity Timeline</h4>
+                  <div className="space-y-3">
+                    {/* Created */}
+                    <div className="flex gap-4 items-start">
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 mt-2.5 shrink-0 ring-4 ring-yellow-50" />
+                      <div className="bg-yellow-50/50 border border-yellow-100 rounded-lg p-3 w-full">
+                        <p className="font-semibold text-sm text-yellow-900">Reservation Created</p>
+                        <p className="text-xs text-yellow-700 mt-1">{formatDateTime(selectedReservation.created_at)}</p>
+                      </div>
+                    </div>
+
+                    {/* Checked In */}
+                    {selectedReservation.checked_in_at && (
+                      <div className="flex gap-4 items-start">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500 mt-2.5 shrink-0 ring-4 ring-green-50" />
+                        <div className="bg-green-50/50 border border-green-100 rounded-lg p-3 w-full">
+                          <p className="font-semibold text-sm text-green-900">Guest Checked In</p>
+                          <p className="text-xs text-green-700 mt-1">{formatDateTime(selectedReservation.checked_in_at)}</p>
+                          {selectedReservation.checked_in_by_name && (
+                            <p className="text-xs text-green-700 mt-0.5">Processed by {selectedReservation.checked_in_by_name}</p>
                           )}
+                        </div>
+                      </div>
+                    )}
 
-                          {selectedReservation.checked_out_at && (
-                            <div className="text-sm bg-blue-50 text-blue-700 p-2 rounded flex justify-between items-center">
-                              <span>✓ Checked Out</span>
-                              <span className="text-xs opacity-75">{formatDateTime(selectedReservation.checked_out_at)}</span>
-                            </div>
+                    {/* Checked Out */}
+                    {selectedReservation.checked_out_at && (
+                      <div className="flex gap-4 items-start">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-2.5 shrink-0 ring-4 ring-blue-50" />
+                        <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 w-full">
+                          <p className="font-semibold text-sm text-blue-900">Guest Checked Out</p>
+                          <p className="text-xs text-blue-700 mt-1">{formatDateTime(selectedReservation.checked_out_at)}</p>
+                          {selectedReservation.checked_out_by_name && (
+                            <p className="text-xs text-blue-700 mt-0.5">Processed by {selectedReservation.checked_out_by_name}</p>
                           )}
                         </div>
                       </div>
-                    </section>
-
-                    {/* Payment Info */}
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                        </div>
-                        <h3 className="font-semibold text-lg">Payment</h3>
-                      </div>
-                      <div className="bg-white border rounded-lg p-4 shadow-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Payment Method</span>
-                          <Badge variant="outline">
-                            {selectedReservation.payment_method !== null && selectedReservation.payment_method !== undefined
-                              ? (paymentMethodLabels[selectedReservation.payment_method] || "Unknown")
-                              : "Not specified"}
-                          </Badge>
-                        </div>
-                        <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                          <span className="font-medium">Total Paid</span>
-                          <span className="font-bold text-lg">₦{selectedReservation.total_amount?.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </section>
+                    )}
                   </div>
                 </div>
               </div>
