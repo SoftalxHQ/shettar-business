@@ -17,6 +17,7 @@ import Flatpickr from "react-flatpickr"
 import "flatpickr/dist/themes/light.css"
 import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 const today = new Date().toISOString().split("T")[0]
 
@@ -39,6 +40,51 @@ export default function DashboardPage() {
     new Date(),
     addDays(new Date(), 1)
   ])
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+
+    try {
+      setIsSearching(true)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      const response = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/reservations/${searchQuery.trim()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (response.ok && data.status?.code === 200) {
+        // Success: Redirect to scan page with code
+        router.push(`/dashboard/scan?code=${encodeURIComponent(searchQuery.trim())}`)
+      } else {
+        // Error: Show toast
+        if (response.status === 401 && (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired')) {
+          logout(true)
+          return
+        }
+        // Use the imported toast function from sonner
+        toast.error("No job reservation found with this code")
+      }
+    } catch (error) {
+      console.error("Search failed:", error)
+      toast.error("Failed to verify booking code")
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   useEffect(() => {
     if (user?.role === "admin" || user?.role === "manager") {
@@ -124,7 +170,7 @@ export default function DashboardPage() {
     return (
       <DashboardLayout activeTab="staffdashboard">
         <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
     )
@@ -132,113 +178,135 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout activeTab="staffdashboard">
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Quick access to daily operations</p>
+      <div className="-m-8 mb-8 relative flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-8 lg:py-16 bg-indigo-500 overflow-hidden">
+        {/* Glow */}
+        <div className="absolute pointer-events-none top-0 left-1/2 -translate-x-1/2 -mt-10" aria-hidden="true">
+          <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient cx="50%" cy="50%" fx="50%" fy="50%" r="50%" id="ill-a">
+                <stop stopColor="#FFF" offset="0%" />
+                <stop stopColor="#FFF" stopOpacity="0" offset="100%" />
+              </radialGradient>
+            </defs>
+            <circle
+              style={{ mixBlendMode: 'overlay' }}
+              cx="256"
+              cy="256"
+              r="256"
+              fill="url(#ill-a)"
+              fillRule="evenodd"
+              opacity=".48"
+            />
+          </svg>
         </div>
 
-        {/* Quick actions */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link href="/dashboard/bookings/new">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <UserPlus className="w-6 h-6 text-blue-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Walk-in Booking</p>
-                    <p className="text-2xl font-bold">Create New</p>
-                  </div>
+        <div className="relative w-full max-w-2xl mx-auto text-center z-10">
+          <div className="mb-5">
+            <h1 className="text-2xl md:text-3xl text-white font-bold">👋 What Can We Help You Find?</h1>
+          </div>
+          <form className="relative" onSubmit={handleSearch}>
+            <label htmlFor="action-search" className="sr-only">
+              Search
+            </label>
+            <input
+              id="action-search"
+              className="form-input pl-9 py-3 focus:border-indigo-300 w-full rounded-md"
+              type="search"
+              placeholder="Enter Booking Code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isSearching}
+            />
+            <button className="absolute inset-0 right-auto group" type="submit" aria-label="Search" disabled={isSearching}>
+              {!isSearching ? (
+                <svg
+                  className="w-4 h-4 shrink-0 fill-current text-slate-400 group-hover:text-slate-500 ml-3 mr-2"
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M7 14c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zM7 2C4.243 2 2 4.243 2 7s2.243 5 5 5 5-2.243 5-5-2.243-5-5-5z" />
+                  <path d="M15.707 14.293L13.314 11.9a8.019 8.019 0 01-1.414 1.414l2.393 2.393a.997.997 0 001.414 0 .999.999 0 000-1.414z" />
+                </svg>
+              ) : (
+                <div className="ml-3 mr-2">
+                  <LoadingSpinner size={16} />
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/dashboard/scan">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <QrCode className="w-6 h-6 text-green-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Scan Booking</p>
-                    <p className="text-2xl font-bold">Check-in</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/dashboard/bookings?filter=active">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <DoorOpen className="w-6 h-6 text-cyan-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Active Bookings</p>
-                    <p className="text-2xl font-bold">{activeBookings}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+              )}
+            </button>
+          </form>
         </div>
+      </div>
 
-        {/* Today's Activity */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Today's Activity</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <DoorOpen className="w-5 h-5 text-white" />
+      <div className="px-4 sm:px-6 lg:px-8 w-full max-w-9xl mx-auto">
+        <div className="space-y-8">
+          <h3 className="text-xl text-slate-800 font-bold">Quick Actions</h3>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Scan QR Code */}
+            <Link href="/dashboard/scan">
+              <div className="bg-slate-100 rounded-sm text-center p-5 hover:bg-slate-50 transition-colors border border-transparent hover:border-indigo-200">
+                <div className="flex flex-col h-full bg-slate-100 items-center">
+                  <div className="grow mb-2">
+                    <div className="inline-flex w-12 h-12 rounded-full bg-indigo-400 items-center justify-center mb-4 text-white">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-1">Scan QR Code</h3>
+                    <div className="text-sm text-slate-600">Scan slip or phone to lodge customer.</div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Check-ins</p>
-                    <p className="text-2xl font-bold">{todayCheckIns.length}</p>
+                    <div className="text-sm font-medium text-indigo-500 hover:text-indigo-600 cursor-pointer">
+                      Explore -&gt;
+                    </div>
                   </div>
                 </div>
               </div>
+            </Link>
 
-              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-                    <CalendarCheck className="w-5 h-5 text-white" />
+            {/* New Reservation */}
+            <Link href="/dashboard/bookings/new">
+              <div className="bg-slate-100 rounded-sm text-center p-5 hover:bg-slate-50 transition-colors border border-transparent hover:border-indigo-200">
+                <div className="flex flex-col h-full items-center">
+                  <div className="grow mb-2">
+                    <div className="inline-flex w-12 h-12 rounded-full bg-indigo-400 items-center justify-center mb-4 text-white">
+                      <UserPlus className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-1">New Reservation</h3>
+                    <div className="text-sm text-slate-600">Reserve room for client on site.</div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Check-outs</p>
-                    <p className="text-2xl font-bold">{todayCheckOuts.length}</p>
+                    <div className="text-sm font-medium text-indigo-500 hover:text-indigo-600 cursor-pointer">
+                      Explore -&gt;
+                    </div>
                   </div>
                 </div>
               </div>
+            </Link>
 
-              <Link href="/dashboard/bookings">
-                <Button className="w-full bg-transparent" variant="outline">
-                  View All Bookings
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between mb-2">
-                <CardTitle className="text-lg font-semibold">Live Room Status</CardTitle>
-                <Badge variant="secondary">
-                  {isLoadingRooms ? "..." : `${roomAvailability.reduce((sum, room) => sum + room.available, 0)} Available`}
-                </Badge>
+            {/* View Reservations */}
+            <Link href="/dashboard/bookings?filter=active">
+              <div className="bg-slate-100 rounded-sm text-center p-5 hover:bg-slate-50 transition-colors border border-transparent hover:border-indigo-200">
+                <div className="flex flex-col h-full items-center">
+                  <div className="grow mb-2">
+                    <div className="inline-flex w-12 h-12 rounded-full bg-indigo-400 items-center justify-center mb-4 text-white">
+                      <DoorOpen className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-1">View Reservations</h3>
+                    <div className="text-sm text-slate-600">View active ({activeBookings}) reservations.</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-indigo-500 hover:text-indigo-600 cursor-pointer">
+                      Explore -&gt;
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="relative">
+            </Link>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl text-slate-800 font-bold">Live Room Status</h2>
+              <div className="relative w-64">
                 <Flatpickr
                   options={flatpickrOptions}
                   value={selectedDates}
@@ -249,20 +317,14 @@ export default function DashboardPage() {
                     }
                   }}
                   render={({ defaultValue, value, ...props }, ref) => {
-                    // Filter out the 'render' prop if it's being passed down to avoid React warning
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { render, ...inputProps } = props as any
-                    // Manually format the date range for display
                     let displayValue = ""
                     if (selectedDates && selectedDates.length > 0) {
                       const start = selectedDates[0]
                       const end = selectedDates.length > 1 ? selectedDates[1] : undefined
-
-                      if (end) {
-                        displayValue = `${format(start, "MMM d, yyyy")} to ${format(end, "MMM d, yyyy")}`
-                      } else {
-                        displayValue = format(start, "MMM d, yyyy")
-                      }
+                      if (end) displayValue = `${format(start, "MMM d")} - ${format(end, "MMM d")}`
+                      else displayValue = format(start, "MMM d")
                     }
 
                     return (
@@ -271,56 +333,45 @@ export default function DashboardPage() {
                         ref={ref}
                         value={displayValue}
                         type="text"
-                        className={cn(
-                          "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-sm pl-9"
-                        )}
-                        placeholder="Select Date Range"
+                        className="form-input pl-9 py-2 w-full"
+                        placeholder="Select Date"
                         readOnly
                       />
                     )
                   }}
                 />
-                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-sm p-5 shadow-lg">
               {isLoadingRooms ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+                  <LoadingSpinner />
                 </div>
               ) : roomAvailability.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No room types configured yet
-                </p>
+                <p className="text-sm text-slate-500 text-center py-4">No room types configured yet</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {roomAvailability.map((roomType) => {
                     const isFull = roomType.available === 0
                     const utilizationRate = ((roomType.total - roomType.available) / roomType.total) * 100
 
                     return (
-                      <div
-                        key={roomType.type}
-                        className="flex items-center justify-between pb-3 border-b last:border-0 last:pb-0"
-                      >
+                      <div key={roomType.type} className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0 last:pb-0">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-xs font-medium">{roomType.type}</p>
-                            {isFull && (
-                              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
-                                FULL
-                              </Badge>
-                            )}
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-sm font-medium text-slate-800">{roomType.type}</p>
+                            {isFull && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">FULL</Badge>}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-lg font-bold tabular-nums">
-                              {roomType.available}/{roomType.total}
+                          <div className="flex items-center gap-4">
+                            <p className="text-2xl font-bold text-slate-800 tabular-nums">
+                              {roomType.available}<span className="text-sm text-slate-400 font-normal">/{roomType.total}</span>
                             </p>
-                            <div className="flex-1 max-w-[100px]">
-                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="flex-1 max-w-[150px]">
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                  className={`h-full transition-all ${isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-green-500"
-                                    }`}
+                                  className={`h-full transition-all ${isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                                   style={{ width: `${utilizationRate}%` }}
                                 />
                               </div>
@@ -328,20 +379,20 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p
-                            className={`text-xs font-medium ${isFull ? "text-red-600" : roomType.available <= 2 ? "text-amber-600" : "text-green-600"
-                              }`}
-                          >
-                            {isFull ? "No rooms" : roomType.available <= 2 ? "Low" : "Available"}
-                          </p>
+                          <div className={`text-xs font-bold px-2 py-1 rounded ${isFull ? "bg-red-100 text-red-600" :
+                            roomType.available <= 2 ? "bg-amber-100 text-amber-600" :
+                              "bg-emerald-100 text-emerald-600"
+                            }`}>
+                            {isFull ? "No rooms" : roomType.available <= 2 ? "Low Stock" : "Available"}
+                          </div>
                         </div>
                       </div>
                     )
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

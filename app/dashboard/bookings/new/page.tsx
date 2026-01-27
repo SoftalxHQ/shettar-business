@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface RoomType {
   id: number
@@ -178,7 +179,19 @@ export default function NewBookingPage() {
           title: "Success",
           description: data.message || "Booking created successfully",
         })
-        router.push("/dashboard/bookings")
+        const bookingId =
+          data.reservations?.[0]?.booking_id ||
+          data.data?.booking_id ||
+          data.booking_id ||
+          data.reservation?.booking_id ||
+          data.data?.reservation?.booking_id
+
+        if (bookingId) {
+          router.push(`/dashboard/bookings/success?booking_id=${bookingId}`)
+        } else {
+          // Fallback if ID can't be found, just go to list but show success
+          router.push("/dashboard/bookings")
+        }
       } else {
         if (response.status === 401) {
           if (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired') {
@@ -232,265 +245,277 @@ export default function NewBookingPage() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      <div className="space-y-6 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/bookings">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">New Walk-in Booking</h1>
-            <p className="text-muted-foreground">Create a new reservation for a walk-in guest</p>
-          </div>
-        </div>
+      <div className="px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Page content */}
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row lg:space-x-8 xl:space-x-16">
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Guest Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5" />
-                Guest Information
-              </CardTitle>
-              <CardDescription>Primary guest contact details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name *</Label>
-                  <Input
-                    id="first_name"
-                    required
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    placeholder="John"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name *</Label>
-                  <Input
-                    id="last_name"
-                    required
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    placeholder="Doe"
-                  />
-                </div>
+          {/* Form Content */}
+          <div className="mb-6 lg:mb-0 flex-1">
+            <div className="mb-3">
+              <div className="flex text-sm font-medium text-slate-400 space-x-2">
+                <span className="text-indigo-500"><Link href="/dashboard">Dashboard</Link></span>
+                <span>-&gt;</span>
+                <span className="text-slate-500">Reservation</span>
               </div>
+            </div>
+            <header className="mb-6">
+              <h1 className="text-2xl md:text-3xl text-slate-800 font-bold">New Reservation ✨</h1>
+            </header>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="john@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+234 123 456 7890"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Emergency Contact */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Emergency Contact</CardTitle>
-              <CardDescription>Contact person in case of emergency</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="emer_first_name">First Name *</Label>
-                  <Input
-                    id="emer_first_name"
-                    required
-                    value={formData.emer_first_name}
-                    onChange={(e) => setFormData({ ...formData, emer_first_name: e.target.value })}
-                    placeholder="Jane"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emer_last_name">Last Name *</Label>
-                  <Input
-                    id="emer_last_name"
-                    required
-                    value={formData.emer_last_name}
-                    onChange={(e) => setFormData({ ...formData, emer_last_name: e.target.value })}
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="emer_phone">Emergency Contact Phone *</Label>
-                <Input
-                  id="emer_phone"
-                  type="tel"
-                  required
-                  value={formData.emer_phone}
-                  onChange={(e) => setFormData({ ...formData, emer_phone: e.target.value })}
-                  placeholder="+234 123 456 7890"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Booking Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Booking Details
-              </CardTitle>
-              <CardDescription>Reservation dates and room selection</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="check_in_date">Check-in Date *</Label>
-                  <Input
-                    id="check_in_date"
-                    type="date"
-                    required
-                    value={formData.check_in_date}
-                    onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="check_out_date">Check-out Date *</Label>
-                  <Input
-                    id="check_out_date"
-                    type="date"
-                    required
-                    value={formData.check_out_date}
-                    onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
-                    min={formData.check_in_date || new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-              </div>
-
-              {formData.check_in_date && formData.check_out_date && (
-                <div className="space-y-2">
-                  <Label htmlFor="room_type_id">Room Type *</Label>
-                  <Select
-                    value={formData.room_type_id}
-                    onValueChange={(value) => setFormData({ ...formData, room_type_id: value })}
-                    disabled={loadingRoomTypes}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={loadingRoomTypes ? "Loading..." : "Select a room type"}
+            <form id="new-booking-form" onSubmit={handleSubmit}>
+              <div className="bg-white p-5 shadow-lg rounded-sm border border-slate-200">
+                {/* Guest Details */}
+                <div className="space-y-4 mb-8">
+                  <h2 className="text-xl text-slate-800 font-bold">1. Guest Details</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name" className="text-sm font-medium mb-1">First Name <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="first_name"
+                        className="form-input w-full"
+                        required
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                        placeholder="John"
                       />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roomTypes.map((roomType) => (
-                        <SelectItem key={roomType.id} value={roomType.id.toString()}>
-                          {roomType.name} - ₦{roomType.price.toLocaleString()}/night ({roomType.available_rooms}{" "}
-                          available)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {roomTypes.length === 0 && !loadingRoomTypes && (
-                    <p className="text-sm text-red-500">No rooms available for selected dates</p>
-                  )}
-                </div>
-              )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name" className="text-sm font-medium mb-1">Last Name <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="last_name"
+                        className="form-input w-full"
+                        required
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="guests">Adults *</Label>
-                  <Input
-                    id="guests"
-                    type="number"
-                    min="1"
-                    required
-                    value={formData.guests}
-                    onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium mb-1">Email <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="email"
+                        type="email"
+                        className="form-input w-full"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-sm font-medium mb-1">Phone Number <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="phone"
+                        type="tel"
+                        className="form-input w-full"
+                        required
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="+234 123 456 7890"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="children">Children</Label>
-                  <Input
-                    id="children"
-                    type="number"
-                    min="0"
-                    value={formData.children}
-                    onChange={(e) => setFormData({ ...formData, children: e.target.value })}
-                  />
+
+                <hr className="my-6 border-t border-slate-200" />
+
+                {/* Emergency Contact */}
+                <div className="space-y-4 mb-8">
+                  <h2 className="text-xl text-slate-800 font-bold">2. Emergency Contact</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emer_first_name" className="text-sm font-medium mb-1">First Name <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="emer_first_name"
+                        className="form-input w-full"
+                        required
+                        value={formData.emer_first_name}
+                        onChange={(e) => setFormData({ ...formData, emer_first_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emer_last_name" className="text-sm font-medium mb-1">Last Name <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="emer_last_name"
+                        className="form-input w-full"
+                        required
+                        value={formData.emer_last_name}
+                        onChange={(e) => setFormData({ ...formData, emer_last_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emer_phone" className="text-sm font-medium mb-1">Phone <span className="text-rose-500">*</span></Label>
+                    <input
+                      id="emer_phone"
+                      className="form-input w-full"
+                      required
+                      value={formData.emer_phone}
+                      onChange={(e) => setFormData({ ...formData, emer_phone: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="number_of_rooms">Number of Rooms *</Label>
-                  <Input
-                    id="number_of_rooms"
-                    type="number"
-                    min="1"
-                    required
-                    value={formData.number_of_rooms}
-                    onChange={(e) => setFormData({ ...formData, number_of_rooms: e.target.value })}
-                  />
+
+                <hr className="my-6 border-t border-slate-200" />
+
+                {/* Booking Details */}
+                <div className="space-y-4 mb-8">
+                  <h2 className="text-xl text-slate-800 font-bold">3. Reservation Details</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="check_in_date" className="text-sm font-medium mb-1">Check-in <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="check_in_date"
+                        type="date"
+                        className="form-input w-full"
+                        required
+                        value={formData.check_in_date}
+                        onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
+                        min={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="check_out_date" className="text-sm font-medium mb-1">Check-out <span className="text-rose-500">*</span></Label>
+                      <input
+                        id="check_out_date"
+                        type="date"
+                        className="form-input w-full"
+                        required
+                        value={formData.check_out_date}
+                        onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                        min={formData.check_in_date || new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+                  </div>
+
+                  {formData.check_in_date && formData.check_out_date && (
+                    <div className="space-y-2">
+                      <Label htmlFor="room_type_id" className="text-sm font-medium mb-1">Room Type <span className="text-rose-500">*</span></Label>
+                      <Select
+                        value={formData.room_type_id}
+                        onValueChange={(value) => setFormData({ ...formData, room_type_id: value })}
+                        disabled={loadingRoomTypes}
+                      >
+                        <SelectTrigger className="form-input w-full">
+                          <SelectValue
+                            placeholder={loadingRoomTypes ? "Loading..." : "Select a room type"}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomTypes.map((roomType) => (
+                            <SelectItem key={roomType.id} value={roomType.id.toString()}>
+                              {roomType.name} - ₦{roomType.price.toLocaleString()}/night ({roomType.available_rooms} available)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {roomTypes.length === 0 && !loadingRoomTypes && (
+                        <p className="text-xs text-rose-500 mt-1">No rooms available for selected dates</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium mb-1">Adults</Label>
+                      <input type="number" min="1" className="form-input w-full" value={formData.guests} onChange={(e) => setFormData({ ...formData, guests: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium mb-1">Children</Label>
+                      <input type="number" min="0" className="form-input w-full" value={formData.children} onChange={(e) => setFormData({ ...formData, children: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium mb-1">Rooms</Label>
+                      <input type="number" min="1" className="form-input w-full" value={formData.number_of_rooms} onChange={(e) => setFormData({ ...formData, number_of_rooms: e.target.value })} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </form>
+          </div>
 
-          {/* Payment Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Payment Information
-              </CardTitle>
-              <CardDescription>Select payment method</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor="payment_method">Payment Method *</Label>
+          {/* Sidebar */}
+          <div>
+            <div className="bg-white p-5 shadow-lg rounded-sm border border-slate-200 lg:w-72 xl:w-80 sticky top-24">
+              <div className="text-slate-800 font-semibold mb-2">Booking Summary</div>
+              <ul className="mb-4">
+                <li className="text-sm w-full flex justify-between py-3 border-b border-slate-200">
+                  <div>Rooms <span>x {formData.number_of_rooms}</span></div>
+                  <div className="font-medium text-slate-800">
+                    {/* Calculate price if room selected */}
+                    {formData.room_type_id
+                      ? `₦${(roomTypes.find(r => r.id.toString() === formData.room_type_id)?.price || 0).toLocaleString()}`
+                      : '-'}
+                  </div>
+                </li>
+                <li className="text-sm w-full flex justify-between py-3 border-b border-slate-200">
+                  <div>Duration</div>
+                  <div className="font-medium text-slate-800">
+                    {formData.check_in_date && formData.check_out_date
+                      ? `${Math.max(1, Math.ceil((new Date(formData.check_out_date).getTime() - new Date(formData.check_in_date).getTime()) / (1000 * 60 * 60 * 24)))} Nights`
+                      : '-'}
+                  </div>
+                </li>
+                <li className="text-sm w-full flex justify-between py-3 border-b border-slate-200">
+                  <div>Taxes</div>
+                  <div className="font-medium text-slate-800">-</div>
+                </li>
+                <li className="text-sm w-full flex justify-between py-3 border-b border-slate-200">
+                  <div className="font-bold">Total Due</div>
+                  <div className="font-bold text-emerald-600">
+                    {formData.room_type_id && formData.check_in_date && formData.check_out_date
+                      ? `₦${(
+                        (roomTypes.find(r => r.id.toString() === formData.room_type_id)?.price || 0) *
+                        Number(formData.number_of_rooms) *
+                        Math.max(1, Math.ceil((new Date(formData.check_out_date).getTime() - new Date(formData.check_in_date).getTime()) / (1000 * 60 * 60 * 24)))
+                      ).toLocaleString()}`
+                      : '-'}
+                  </div>
+                </li>
+              </ul>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium mb-1" htmlFor="promo">Payment Method</label>
+                </div>
                 <Select
                   value={formData.payment_method}
                   onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input w-full">
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="2">POS</SelectItem>
                     <SelectItem value="3">Cash</SelectItem>
+                    <SelectItem value="4">Transfer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3">
-            <Link href="/dashboard/bookings">
-              <Button type="button" variant="outline" disabled={isLoading}>
-                Cancel
-              </Button>
-            </Link>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-              {isLoading ? "Creating..." : "Create Booking"}
-            </Button>
+              <div className="mb-4">
+                <Button
+                  onClick={(e) => {
+                    // Trigger form submission manually since button is outside form
+                    const form = document.getElementById('new-booking-form') as HTMLFormElement;
+                    if (form) form.requestSubmit();
+                  }}
+                  disabled={isLoading}
+                  className="w-full shadow-none"
+                >
+                  {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Complete Reservation"}
+                </Button>
+              </div>
+              <div className="text-xs text-slate-500 text-center italic">
+                Secure booking processing
+              </div>
+            </div>
           </div>
-        </form>
+
+        </div>
       </div>
     </DashboardLayout>
   )

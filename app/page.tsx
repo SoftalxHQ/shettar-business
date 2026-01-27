@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function Home() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+      <LoadingSpinner size={40} />
     </div>
   )
 }

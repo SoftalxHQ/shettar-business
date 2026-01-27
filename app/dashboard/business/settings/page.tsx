@@ -13,6 +13,7 @@ import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check } 
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface BusinessData {
   id: number
@@ -272,7 +273,7 @@ export default function BusinessSettingsPage() {
     return (
       <DashboardLayout activeTab="businessdashboard">
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
     )

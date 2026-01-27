@@ -9,6 +9,7 @@ import { EmailVerificationBanner } from "@/components/email-verification-banner"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,7 +71,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   if (!user || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <LoadingSpinner size={40} />
       </div>
     )
   }
@@ -139,12 +140,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col">
           {/* Logo */}
           <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Hotel className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground truncate font-mono">{businessId || 'N/A'}</p>
+              <p className="text-xs text-muted-foreground truncate">{businessId || 'N/A'}</p>
             </div>
           </div>
 
@@ -183,7 +184,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-blue-50 text-blue-700"
+                      ? "bg-indigo-50 text-indigo-700"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
@@ -209,7 +210,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                         className="rounded-full object-cover"
                       />
                     )}
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-medium truncate">{user.name}</p>
@@ -256,12 +257,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <div className="h-full px-6 flex items-center justify-between">
           {/* Logo and hotel name */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Hotel className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="font-semibold text-base">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground font-mono">{businessId || 'N/A'}</p>
+              <p className="text-xs text-muted-foreground">{businessId || 'N/A'}</p>
             </div>
           </Link>
 
@@ -300,7 +301,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                     >
                       <div className="flex items-start justify-between w-full">
                         <p className="font-medium text-sm">{notification.title}</p>
-                        {notification.unread && <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />}
+                        {notification.unread && <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0 mt-1" />}
                       </div>
                       <p className="text-xs text-muted-foreground">{notification.message}</p>
                       <p className="text-xs text-muted-foreground">{notification.time}</p>
@@ -308,7 +309,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   ))}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center justify-center text-blue-600 cursor-pointer">
+                <DropdownMenuItem className="text-center justify-center text-indigo-600 cursor-pointer">
                   View all notifications
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -332,7 +333,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                         className="rounded-full object-cover"
                       />
                     )}
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
+                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm font-medium">
                       {initials}
                     </AvatarFallback>
                   </Avatar>

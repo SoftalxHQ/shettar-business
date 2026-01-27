@@ -35,7 +35,7 @@ export function StaffCard({ member, onEdit, onRemove }: StaffCardProps) {
           {/* Left side: Avatar and Info */}
           <div className="flex items-start gap-4 flex-1">
             <Avatar className="h-14 w-14">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>

@@ -81,7 +81,7 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600" />
+            <Shield className="w-5 h-5 text-primary" />
             Manage Permissions - {userName}
           </DialogTitle>
           <DialogDescription>

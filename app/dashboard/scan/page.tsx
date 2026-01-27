@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { QrCode, Check, X, Printer, ArrowLeft } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface Reservation {
   id: number
@@ -37,32 +38,47 @@ interface Reservation {
   checked_out_by_name?: string
 }
 
+import { useSearchParams } from "next/navigation"
+
 export default function ScanPage() {
-  const { businessId, logout } = useAuth()
+  const { user, businessId, businessName, logout } = useAuth()
   const { toast } = useToast()
-  const [code, setCode] = useState("")
+  const searchParams = useSearchParams()
+  const [code, setCode] = useState(searchParams.get("code") || "")
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<"success" | "error" | null>(null)
   const [reservation, setReservation] = useState<Reservation | null>(null)
+  const [businessDetails, setBusinessDetails] = useState<{ logo_url?: string; check_in?: string; check_out?: string } | null>(null)
 
-  const handleScan = async () => {
-    if (!businessId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Business information not found. Please try logging in again.",
-      })
-      return
+  // Fetch business details
+  useEffect(() => {
+    const fetchBusinessDetails = async () => {
+      if (!businessId) return
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
+        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBusinessDetails(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch business details:", error)
+      }
     }
 
-    if (!code.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter a booking code",
-      })
-      return
-    }
+    fetchBusinessDetails()
+  }, [businessId])
+
+  const verifyBooking = async (bookingCode: string) => {
+    if (!businessId || !bookingCode.trim()) return
 
     try {
       setIsLoading(true)
@@ -70,7 +86,7 @@ export default function ScanPage() {
       const token = getAuthToken()
 
       const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/reservations/${code.trim()}`,
+        `${API_URL}/api/v1/user_businesses/${businessId}/reservations/${bookingCode.trim()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -90,7 +106,6 @@ export default function ScanPage() {
         })
       } else {
         if (response.status === 401) {
-          // Check for JWT expired signature pattern if different
           if (
             data.errors?.[0]?.id === 'expiration' ||
             data.errors?.[0]?.message === 'Token has expired' ||
@@ -121,6 +136,36 @@ export default function ScanPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Auto-scan on mount if code exists
+  useEffect(() => {
+    const urlCode = searchParams.get("code")
+    if (urlCode && businessId) { // Ensure businessId is ready
+      verifyBooking(urlCode)
+    }
+  }, [businessId, searchParams]) // Add dependencies
+
+  const handleScan = () => {
+    if (!businessId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Business information not found. Please try logging in again.",
+      })
+      return
+    }
+
+    if (!code.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a booking code",
+      })
+      return
+    }
+
+    verifyBooking(code)
   }
 
   const handleReset = () => {
@@ -224,16 +269,13 @@ export default function ScanPage() {
   const handlePrintReceipt = () => {
     if (!reservation) return
 
-    // Create a printable receipt
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please allow popups to print receipts",
-      })
-      return
-    }
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'absolute'
+    iframe.style.width = '0px'
+    iframe.style.height = '0px'
+    iframe.style.border = 'none'
+    document.body.appendChild(iframe)
 
     const receiptHtml = `
       <!DOCTYPE html>
@@ -284,8 +326,14 @@ export default function ScanPage() {
           </style>
         </head>
         <body>
+
           <div class="header">
-            <h2>RESERVATION RECEIPT</h2>
+            ${businessDetails?.logo_url
+        ? `<img src="${businessDetails.logo_url}" alt="Logo" style="max-height: 60px; max-width: 150px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;" />`
+        : `<div style="width: 60px; height: 60px; background-color: #f3f4f6; border-radius: 50%; margin: 0 auto 10px auto; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; font-weight: bold;">${(businessName || "H").charAt(0)}</div>`
+      }
+            <h2>${businessName || "RESERVATION RECEIPT"}</h2>
+            ${businessName ? '<p style="font-size: 14px; margin-bottom: 5px;">RESERVATION RECEIPT</p>' : ''}
             <p>Booking ID: ${reservation.booking_id}</p>
           </div>
 
@@ -327,10 +375,20 @@ export default function ScanPage() {
               <span class="label">Check-in Date:</span>
               <span>${new Date(reservation.start_date).toLocaleDateString()}</span>
             </div>
+            ${businessDetails?.check_in ? `
+            <div class="row">
+              <span class="label">Business Check-in:</span>
+              <span>${businessDetails.check_in}</span>
+            </div>` : ''}
             <div class="row">
               <span class="label">Check-out Date:</span>
               <span>${new Date(reservation.end_date).toLocaleDateString()}</span>
             </div>
+            ${businessDetails?.check_out ? `
+            <div class="row">
+              <span class="label">Business Check-out:</span>
+              <span>${businessDetails.check_out}</span>
+            </div>` : ''}
             ${reservation.checked_in_at ? `
             <div class="row">
               <span class="label">Actual Check-in:</span>
@@ -361,7 +419,7 @@ export default function ScanPage() {
             <h3>Payment</h3>
             <div class="row">
               <span class="label">Payment Method:</span>
-              <span>${paymentMethodLabels[reservation.payment_method]}</span>
+              <span>${paymentMethodLabels[reservation.payment_method] || "Unknown"}</span>
             </div>
             <div class="row total">
               <span class="label">Total Amount:</span>
@@ -372,22 +430,32 @@ export default function ScanPage() {
           <div class="footer">
             <p>Thank you for your stay!</p>
             <p>Printed on: ${new Date().toLocaleString()}</p>
+            <div style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px solid #eee; padding-top: 5px;">
+              Powered by SoftalxHQ
+            </div>
           </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() {
-                window.close();
-              }
-            }
-          </script>
         </body>
       </html>
     `
 
-    printWindow.document.write(receiptHtml)
-    printWindow.document.close()
+    const doc = iframe.contentWindow?.document
+    if (doc) {
+      doc.open()
+      doc.write(receiptHtml)
+      doc.close()
+
+      // Print after content loads
+      iframe.contentWindow?.focus()
+      // Small delay to ensure styles render
+      setTimeout(() => {
+        iframe.contentWindow?.print()
+        // Wait for print dialog to potentially close before removing (though removed from DOM doesn't always stop print)
+        // A generous timeout usually works best for invisible iframe cleanup
+        setTimeout(() => {
+          document.body.removeChild(iframe)
+        }, 1000)
+      }, 500)
+    }
   }
 
   const paymentMethodLabels: { [key: number]: string } = {
@@ -395,6 +463,7 @@ export default function ScanPage() {
     1: "Card",
     2: "POS",
     3: "Cash",
+    4: "Transfer",
   }
 
   const isWithinReservationWindow = () => {
@@ -446,11 +515,13 @@ export default function ScanPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* QR Code visual */}
-            <div className="flex justify-center py-8">
-              <div className="w-48 h-48 border-4 border-dashed border-purple-300 rounded-lg flex items-center justify-center bg-purple-50">
-                <QrCode className="w-24 h-24 text-purple-400" />
+            {result === null && (
+              <div className="flex justify-center py-8">
+                <div className="w-48 h-48 border-4 border-dashed border-primary/30 rounded-lg flex items-center justify-center bg-primary/5 cursor-pointer">
+                  <QrCode className="w-24 h-24 text-primary" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Manual input */}
             <div className="space-y-4">
@@ -475,7 +546,7 @@ export default function ScanPage() {
                   size="lg"
                 >
                   <QrCode className="w-5 h-5 mr-2" />
-                  {isLoading ? "Verifying..." : "Scan / Verify Code"}
+                  {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Scan / Verify Code"}
                 </Button>
               )}
             </div>
@@ -539,7 +610,7 @@ export default function ScanPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Payment Method</p>
-                          <p className="font-medium">{paymentMethodLabels[reservation.payment_method]}</p>
+                          <p className="font-medium">{paymentMethodLabels[reservation.payment_method] || "Unknown"}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Phone</p>
@@ -600,12 +671,12 @@ export default function ScanPage() {
                             <Button
                               onClick={handleCheckIn}
                               disabled={isLoading || !isWithinReservationWindow()}
-                              className="flex-1 h-11 bg-green-600 hover:bg-green-700"
+                              className="flex-1 h-11"
                               size="lg"
                             >
-                              {isLoading ? "Processing..." : "Complete Check-in"}
+                              {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Complete Check-in"}
                             </Button>
-                            <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent">
+                            <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent cursor-pointer">
                               <Printer className="w-5 h-5" />
                             </Button>
                           </div>
@@ -615,12 +686,12 @@ export default function ScanPage() {
                           <Button
                             onClick={handleCheckOut}
                             disabled={isLoading}
-                            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700"
+                            className="flex-1 h-11"
                             size="lg"
                           >
-                            {isLoading ? "Processing..." : "Complete Check-out"}
+                            {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Complete Check-out"}
                           </Button>
-                          <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent">
+                          <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent cursor-pointer">
                             <Printer className="w-5 h-5" />
                           </Button>
                         </div>

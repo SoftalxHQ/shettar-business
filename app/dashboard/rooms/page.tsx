@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import type { RoomType } from "@/lib/room-types"
 import { RoomTypeCard } from "./components/RoomTypeCard"
 import { RoomTypeDialog } from "./components/RoomTypeDialog"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function RoomsPage() {
   const { user, businessId, logout } = useAuth()
@@ -160,7 +161,7 @@ export default function RoomsPage() {
     return (
       <DashboardLayout activeTab="rooms">
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
     )

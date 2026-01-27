@@ -14,6 +14,7 @@ import { getPermissionSummary } from "@/lib/staff-types"
 import { StaffCard } from "./components/StaffCard"
 import { AddStaffDialog } from "./components/AddStaffDialog"
 import { EditPermissionsDialog } from "./components/EditPermissionsDialog"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function StaffPage() {
   const { user, businessId, logout } = useAuth()
@@ -151,7 +152,7 @@ export default function StaffPage() {
     return (
       <DashboardLayout activeTab="staffs">
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
     )
