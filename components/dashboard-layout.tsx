@@ -45,7 +45,7 @@ const adminNavigation = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
   // { name: "Staff Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
+  { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
