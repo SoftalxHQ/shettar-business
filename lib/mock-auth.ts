@@ -17,8 +17,14 @@ export interface User {
     rooms?: { view: boolean; edit: boolean; create: boolean; delete: boolean }
     staff?: { view: boolean; add: boolean; edit: boolean; remove: boolean; manage_permissions: boolean }
     bookings?: { view: boolean; edit: boolean; cancel: boolean; create: boolean; view_payments: boolean; checkin_checkout: boolean }
-    payments?: { view: boolean; process_refunds: boolean; manage_payment_methods: boolean }
-    finance?: { view: boolean; withdraw: boolean; add: boolean; update_account: boolean } // Added finance access
+    finance?: {
+      view: boolean
+      withdraw: boolean
+      add: boolean
+      update_account: boolean
+      process_refunds: boolean
+      manage_payment_methods: boolean
+    } // Added finance access
     settings?: { view: boolean; edit_details: boolean; edit_branding: boolean; edit_amenities: boolean }
     dashboard?: { view_revenue: boolean; view_analytics: boolean }
   }

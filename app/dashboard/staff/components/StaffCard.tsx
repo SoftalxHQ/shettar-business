@@ -29,65 +29,57 @@ export function StaffCard({ member, onEdit, onRemove }: StaffCardProps) {
   const permissionsSummary = getPermissionSummary(member.permissions)
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
+    <Card className="hover:shadow-sm transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-4">
           {/* Left side: Avatar and Info */}
-          <div className="flex items-start gap-4 flex-1">
-            <Avatar className="h-14 w-14">
-              <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 min-w-0">
-              {/* Name and Owner Badge */}
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-lg truncate">{userName}</h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm truncate">{userName}</h3>
                 {member.is_owner && (
-                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                    <Crown className="w-3 h-3 mr-1" />
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 gap-1 rounded-sm font-normal">
+                    <Crown className="w-2.5 h-2.5" />
                     Owner
                   </Badge>
                 )}
               </div>
 
-              {/* Title */}
-              <p className="text-sm text-muted-foreground mb-3">
-                {member.title || "No title"}
-              </p>
-
-              {/* Email */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <Mail className="w-4 h-4" />
-                <span className="truncate">{member.user?.email}</span>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                <span className="truncate max-w-[150px]">{member.title || "No title"}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
+                <div className="flex items-center gap-1 truncate">
+                  <Mail className="w-3 h-3" />
+                  <span className="truncate max-w-[200px]">{member.user?.email}</span>
+                </div>
               </div>
 
-              {/* Permissions Summary */}
-              <div className="flex items-start gap-2">
-                <Shield className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    {permissionsCount} {permissionsCount === 1 ? "permission" : "permissions"}
-                  </p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {member.is_owner ? "Full access to all features" : permissionsSummary}
-                  </p>
-                </div>
+              {/* Compact Permissions Line */}
+              <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1.5">
+                <Shield className="w-3 h-3" />
+                <span className="truncate">
+                  {member.is_owner ? "Full Access" : `${permissionsCount} permissions: ${permissionsSummary}`}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Right side: Actions */}
-          <div className="flex flex-col gap-2 ml-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {(user?.role === 'admin' || user?.permissions?.staff?.edit) && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onEdit(member)}
-                className="w-full"
+                className="h-8 px-2 text-xs"
               >
-                <Edit className="w-4 h-4 mr-1" />
+                <Edit className="w-3.5 h-3.5 mr-1" />
                 Edit
               </Button>
             )}
@@ -96,10 +88,9 @@ export function StaffCard({ member, onEdit, onRemove }: StaffCardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemove(member.id)}
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
               >
-                <Trash className="w-4 h-4 mr-1" />
-                Remove
+                <Trash className="w-3.5 h-3.5" />
               </Button>
             )}
           </div>

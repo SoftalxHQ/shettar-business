@@ -25,7 +25,7 @@ export interface Permissions {
   rooms?: RoomsPermissions
   bookings?: BookingsPermissions
   staff?: StaffPermissions
-  payments?: PaymentsPermissions
+  finance?: FinancePermissions
   settings?: SettingsPermissions
 }
 
@@ -58,8 +58,11 @@ export interface StaffPermissions {
   manage_permissions?: boolean
 }
 
-export interface PaymentsPermissions {
+export interface FinancePermissions {
   view?: boolean
+  withdraw?: boolean
+  add?: boolean
+  update_account?: boolean
   process_refunds?: boolean
   manage_payment_methods?: boolean
 }
@@ -81,7 +84,7 @@ export const PERMISSION_PRESETS = {
       rooms: { view: true, create: true, edit: true, delete: true },
       bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
       staff: { view: true, add: true, edit: true, remove: true, manage_permissions: true },
-      payments: { view: true, process_refunds: true, manage_payment_methods: true },
+      finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
       settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true }
     }
   },
@@ -93,7 +96,7 @@ export const PERMISSION_PRESETS = {
       rooms: { view: true, create: true, edit: true, delete: false },
       bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
       staff: { view: true, add: false, edit: false, remove: false, manage_permissions: false },
-      payments: { view: true, process_refunds: false, manage_payment_methods: false },
+      finance: { view: true, withdraw: false, add: false, update_account: false, process_refunds: false, manage_payment_methods: false },
       settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false }
     }
   },
@@ -105,7 +108,7 @@ export const PERMISSION_PRESETS = {
       rooms: { view: true, create: false, edit: false, delete: false },
       bookings: { view: true, create: true, edit: true, cancel: false, view_payments: false, checkin_checkout: true },
       staff: { view: false },
-      payments: { view: false },
+      finance: { view: false },
       settings: { view: false }
     }
   },
@@ -155,10 +158,13 @@ export const PERMISSION_LABELS = {
       manage_permissions: "Manage Permissions"
     }
   },
-  payments: {
-    title: "Payments",
+  finance: {
+    title: "Finance",
     permissions: {
-      view: "View Payments",
+      view: "View Finance",
+      withdraw: "Withdraw Funds",
+      add: "Add Funds",
+      update_account: "Update Accounts",
       process_refunds: "Process Refunds",
       manage_payment_methods: "Manage Payment Methods"
     }
