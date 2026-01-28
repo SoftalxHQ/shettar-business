@@ -31,6 +31,8 @@ import {
   Building2,
   QrCode,
   Bell,
+  Settings,
+  Landmark,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -49,6 +51,8 @@ const adminNavigation = [
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
+  { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
+  { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
   // { name: "Check-in/out", href: "/dashboard/checkin", icon: DoorOpen },
   // { name: "Scan Code", href: "/dashboard/scan", icon: QrCode },
 ]

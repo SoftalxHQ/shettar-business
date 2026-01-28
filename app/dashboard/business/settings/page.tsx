@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check } from "lucide-react"
+import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -271,7 +272,7 @@ export default function BusinessSettingsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout activeTab="businessdashboard">
+      <DashboardLayout activeTab="settings">
         <div className="flex items-center justify-center h-96">
           <LoadingSpinner size={32} />
         </div>
@@ -281,7 +282,7 @@ export default function BusinessSettingsPage() {
 
   if (!businessData) {
     return (
-      <DashboardLayout activeTab="businessdashboard">
+      <DashboardLayout activeTab="settings">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Business data not found</p>
         </div>
@@ -290,7 +291,7 @@ export default function BusinessSettingsPage() {
   }
 
   return (
-    <DashboardLayout activeTab="businessdashboard">
+    <DashboardLayout activeTab="settings">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -640,6 +641,6 @@ export default function BusinessSettingsPage() {
           </div>
         </form>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   )
 }
