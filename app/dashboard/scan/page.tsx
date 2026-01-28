@@ -493,46 +493,46 @@ export default function ScanPage() {
   return (
     <DashboardLayout activeTab="scancode">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-32 rounded-b-3xl">
+      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-20 rounded-b-3xl">
         <div className="absolute inset-x-0 bottom-0 h-full bg-grid-white/[0.1] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16 text-center">
-          <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white mb-6 transition-colors bg-white/10 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 text-center">
+          <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white mb-6 transition-colors bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm">
+            <ArrowLeft className="w-3 h-3 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-3">
             Scan Booking Code
           </h1>
-          <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto">
+          <p className="text-indigo-100 text-base max-w-xl mx-auto">
             Scan the guest's QR code or enter the booking ID manually to verify and manage the check-in process.
           </p>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-10 pb-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-10 pb-12">
         <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/95 backdrop-blur-sm">
           {!result && (
-            <CardHeader className="text-center pt-8 pb-2">
-              <CardTitle className="text-2xl font-bold text-slate-900">Verify Reservation</CardTitle>
-              <CardDescription className="text-base">
+            <CardHeader className="text-center pt-6 pb-2">
+              <CardTitle className="text-xl font-bold text-slate-900">Verify Reservation</CardTitle>
+              <CardDescription className="text-sm">
                 Use your scanner or type the code below
               </CardDescription>
             </CardHeader>
           )}
 
-          <CardContent className="p-8 space-y-8">
+          <CardContent className="p-6 space-y-6">
             {/* Initial State: Scanner & Input */}
             {result === null && (
-              <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Visual Scanner Area */}
                 <div className="relative group cursor-pointer">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
-                  <div className="relative bg-slate-50 border-2 border-dashed border-indigo-200 rounded-2xl p-10 flex flex-col items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-all">
-                    <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
-                      <QrCode className="w-12 h-12" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative bg-slate-50 border-2 border-dashed border-indigo-200 rounded-xl p-6 flex flex-col items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-all">
+                    <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-sm mb-3">
+                      <QrCode className="w-8 h-8" />
                     </div>
-                    <p className="font-medium">Ready to Scan</p>
-                    <p className="text-xs text-slate-400 mt-1">Point scanner at QR code</p>
+                    <p className="font-medium text-sm">Ready to Scan</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Point scanner at QR code</p>
                   </div>
                 </div>
 
@@ -540,13 +540,13 @@ export default function ScanPage() {
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-slate-200" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
+                  <div className="relative flex justify-center text-[10px] uppercase">
                     <span className="bg-white px-2 text-slate-500 font-medium">Or enter manually</span>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
                     <Label htmlFor="code" className="sr-only">Booking Code</Label>
                     <Input
                       id="code"
@@ -554,17 +554,17 @@ export default function ScanPage() {
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
-                      className="text-center text-lg h-14 font-mono uppercase tracking-wider border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                      className="text-center text-base h-11 font-mono uppercase tracking-wider border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                       disabled={isLoading}
                     />
                   </div>
                   <Button
                     onClick={handleScan}
                     disabled={!code || isLoading}
-                    className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md"
+                    className="w-full h-11 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md"
                     size="lg"
                   >
-                    {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Verify Booking Code"}
+                    {isLoading ? <LoadingSpinner size={18} className="text-white" /> : "Verify Booking Code"}
                   </Button>
                 </div>
               </div>
@@ -602,13 +602,13 @@ export default function ScanPage() {
                 </div>
 
                 {/* Guest & Room Info */}
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                       Guest Information
                       <span className="h-px bg-slate-200 flex-1"></span>
                     </h3>
-                    <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Name</span>
                         <span className="font-semibold">{reservation.other_first_name} {reservation.other_last_name}</span>
@@ -625,11 +625,11 @@ export default function ScanPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                       Stay Details
                       <span className="h-px bg-slate-200 flex-1"></span>
                     </h3>
-                    <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Room Type</span>
                         <span className="font-semibold">{reservation.room_type_name}</span>
@@ -649,21 +649,21 @@ export default function ScanPage() {
                 </div>
 
                 {/* Status Actions */}
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                   <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div className="text-center md:text-left">
-                      <p className="font-semibold text-indigo-900">Action Required</p>
-                      <p className="text-sm text-indigo-600">
+                      <p className="font-semibold text-indigo-900 text-sm">Action Required</p>
+                      <p className="text-xs text-indigo-600">
                         {!reservation.checked_in_at ? "Guest is ready for check-in" : !reservation.checked_out_at ? "Guest is checked in" : "Stay completed"}
                       </p>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto">
+                    <div className="flex gap-2 w-full md:w-auto">
                       {!reservation.checked_in_at ? (
                         <Button
                           onClick={handleCheckIn}
                           disabled={isLoading || !isWithinReservationWindow()}
-                          className="flex-1 md:flex-none h-11 bg-indigo-600 hover:bg-indigo-700"
+                          className="flex-1 md:flex-none h-10 bg-indigo-600 hover:bg-indigo-700 text-sm"
                         >
                           {isLoading ? <LoadingSpinner className="text-white" /> : "Check In Guest"}
                         </Button>
@@ -671,16 +671,16 @@ export default function ScanPage() {
                         <Button
                           onClick={handleCheckOut}
                           disabled={isLoading}
-                          className="flex-1 md:flex-none h-11 bg-rose-600 hover:bg-rose-700"
+                          className="flex-1 md:flex-none h-10 bg-rose-600 hover:bg-rose-700 text-sm"
                         >
                           {isLoading ? <LoadingSpinner className="text-white" /> : "Check Out Guest"}
                         </Button>
                       ) : (
-                        <Button disabled variant="outline" className="flex-1 md:flex-none">Completed</Button>
+                        <Button disabled variant="outline" className="flex-1 md:flex-none h-10 text-sm">Completed</Button>
                       )}
 
-                      <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-700">
-                        <Printer className="w-5 h-5" />
+                      <Button onClick={handlePrintReceipt} variant="outline" className="h-10 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-700">
+                        <Printer className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
