@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus } from "lucide-react"
+import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus, CheckCircle2, AlertCircle, Trash2, Star } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { getAuthToken } from "@/lib/storage"
@@ -18,26 +20,42 @@ interface BankAccount {
   bank_name: string
   account_name: string
   account_number: string
-  swift_code?: string
+  bank_code?: string
   currency: string
+  is_active?: boolean
+}
+
+interface Bank {
+  id: number
+  name: string
+  code: string
+  active: boolean
 }
 
 export default function BankSettingsPage() {
   const { toast } = useToast()
   const { user, businessId, logout } = useAuth()
   const router = useRouter()
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [bankAccount, setBankAccount] = useState<BankAccount | null>(null)
-  const [showForm, setShowForm] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
 
-  const [formData, setFormData] = useState<BankAccount>({
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [banks, setBanks] = useState<Bank[]>([])
+
+  const initialFormState: BankAccount = {
     bank_name: "",
     account_name: "",
     account_number: "",
-    swift_code: "", // Optional but good for business
-    currency: "NGN"
-  })
+    bank_code: "",
+    currency: "NGN",
+    is_active: true
+  }
+
+  const [formData, setFormData] = useState<BankAccount>(initialFormState)
 
   // Check admin access
   useEffect(() => {
@@ -46,50 +64,103 @@ export default function BankSettingsPage() {
     }
   }, [user, router])
 
-  // Fetch existing bank details 
+  // Fetch Banks List
   useEffect(() => {
-    const fetchBankDetails = async () => {
-      if (!businessId) return
-      setIsLoading(true)
+    const fetchBanks = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        const token = getAuthToken()
-
-        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_account`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-
+        const response = await fetch(`${API_URL}/api/v1/banks`)
         if (response.ok) {
           const data = await response.json()
-          // Assuming API returns data directly or wrapped in data property
-          // Adjust based on your API response structure 
-          const account = data.data || data
-
-          if (account && account.account_number) {
-            setBankAccount(account)
-            setFormData(account)
+          if (data.success) {
+            const uniqueBanks = Array.from(
+              new Map(data.data.map((item: Bank) => [item.code, item])).values()
+            ) as Bank[]
+            setBanks(uniqueBanks)
           }
         }
       } catch (error) {
-        console.error("Failed to load bank details", error)
-      } finally {
-        setIsLoading(false)
+        console.error("Failed to fetch banks", error)
       }
     }
-    fetchBankDetails()
-  }, [businessId])
+    fetchBanks()
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSaving(true)
-
+  // Fetch existing bank accounts
+  const fetchBankAccounts = async () => {
+    if (!businessId) return
+    setIsLoading(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      // Assuming endpoint to save/update bank details
-      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_account`, {
-        method: "POST", // or PUT/PATCH depending on backend
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAccounts(data.data || [])
+      }
+    } catch (error) {
+      console.error("Failed to load bank details", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchBankAccounts()
+  }, [businessId])
+
+  const handleVerifyAccount = async () => {
+    if (formData.account_number.length < 10 || !formData.bank_code) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a bank and enter a valid 10-digit account number." })
+      return
+    }
+
+    setIsVerifying(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+
+      const response = await fetch(`${API_URL}/api/v1/banks/resolve_account?account_number=${formData.account_number}&bank_code=${formData.bank_code}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setFormData(prev => ({ ...prev, account_name: data.data.account_name }))
+        toast({ title: "Account Verified", description: `Account Name: ${data.data.account_name}` })
+      } else {
+        setFormData(prev => ({ ...prev, account_name: "" }))
+        toast({ variant: "destructive", title: "Verification Failed", description: data.message || "Could not verify account details." })
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Verification service unreachable." })
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.account_name) {
+      toast({ variant: "destructive", title: "Verification Required", description: "Please verify the account details before saving." })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      const isEditing = !!editingId
+      const url = isEditing
+        ? `${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${editingId}`
+        : `${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`
+
+      const method = isEditing ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -99,14 +170,13 @@ export default function BankSettingsPage() {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         toast({
           title: "Success",
-          description: "Bank account details saved successfully.",
+          description: `Bank account ${isEditing ? 'updated' : 'added'} successfully.`,
         })
-        const newAccount = data.data || data
-        setBankAccount(newAccount)
-        setShowForm(false)
+        fetchBankAccounts() // Refresh list
+        handleCancel()
       } else {
         if (response.status === 401) {
           logout(true)
@@ -130,155 +200,231 @@ export default function BankSettingsPage() {
     }
   }
 
-  const handleEdit = () => {
-    setFormData(bankAccount!)
+  const handleSetActive = async (id: number) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ is_active: true })
+      })
+
+      fetchBankAccounts()
+      toast({ title: "Updated", description: "Primary payout account updated." })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update active account." })
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this account?")) return;
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      fetchBankAccounts()
+      toast({ title: "Deleted", description: "Bank account removed." })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete account." })
+    }
+  }
+
+  const startEdit = (account: BankAccount) => {
+    setFormData(account)
+    setEditingId(account.id!)
+    setShowForm(true)
+  }
+
+  const startAdd = () => {
+    setFormData(initialFormState)
+    setEditingId(null)
     setShowForm(true)
   }
 
   const handleCancel = () => {
     setShowForm(false)
-    if (bankAccount) {
-      setFormData(bankAccount)
-    } else {
-      setFormData({
-        bank_name: "",
-        account_name: "",
-        account_number: "",
-        swift_code: "",
-        currency: "NGN"
-      })
-    }
+    setEditingId(null)
+    setFormData(initialFormState)
+  }
+
+  const handleBankChange = (code: string) => {
+    const bank = banks.find(b => b.code === code)
+    setFormData(prev => ({
+      ...prev,
+      bank_code: code,
+      bank_name: bank ? bank.name : "",
+      account_name: ""
+    }))
   }
 
   return (
     <DashboardLayout activeTab="bankdetails">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/business/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-slate-500" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bank Account Details</h1>
-            <p className="text-slate-500">Add or update your business bank account for payouts.</p>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/business/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <ArrowLeft className="w-5 h-5 text-slate-500" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bank Accounts</h1>
+              <p className="text-slate-500">Manage payout accounts.</p>
+            </div>
           </div>
+          {!showForm && (
+            <Button onClick={startAdd} className="bg-indigo-600">
+              <Plus className="w-4 h-4 mr-2" /> Add Account
+            </Button>
+          )}
         </div>
 
-        {/* LOADING STATE */}
+        {/* LOADING */}
         {isLoading && (
           <Card className="border-0 shadow-sm p-8 flex justify-center items-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </Card>
         )}
 
-        {/* VIEW MODE: If not loading, and not showing form, and bankAccount exists */}
-        {!isLoading && !showForm && bankAccount && (
-          <Card className="border-0 shadow-lg bg-white overflow-hidden">
-            <div className="h-2 bg-indigo-600 w-full" />
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-xl text-slate-900 flex items-center gap-2">
-                    <Building className="w-5 h-5 text-indigo-600" />
-                    Active Account
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Payouts will be sent to this account.
-                  </CardDescription>
-                </div>
-                <Button variant="outline" onClick={handleEdit} className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Details
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Bank Name</p>
-                  <p className="font-medium text-lg text-slate-900">{bankAccount.bank_name}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Account Number</p>
-                  <p className="font-mono font-medium text-lg text-slate-900 tracking-wider">
-                    {bankAccount.account_number}
+        {/* ACCOUNTS LIST */}
+        {!isLoading && !showForm && (
+          <div className="space-y-4">
+            {accounts.length === 0 ? (
+              <Card className="border-2 border-dashed border-slate-200 shadow-none bg-slate-50/50">
+                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                    <CreditCard className="w-8 h-8 text-indigo-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2">No Bank Accounts</h3>
+                  <p className="text-slate-500 max-w-sm mb-6">
+                    Add a bank account to receive payouts.
                   </p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Account Name</p>
-                  <p className="font-medium text-lg text-slate-900">{bankAccount.account_name}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  <Button onClick={startAdd} className="bg-indigo-600">
+                    <Plus className="w-4 h-4 mr-2" /> Add Bank Details
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              accounts.map((acc) => (
+                <Card key={acc.id} className={`border transition-all ${acc.is_active ? 'border-indigo-600 shadow-md ring-1 ring-indigo-600' : 'border-slate-200 hover:border-indigo-300'}`}>
+                  <CardContent className="p-6 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg text-slate-900">{acc.bank_name}</h3>
+                        {acc.is_active && <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-0">Primary</Badge>}
+                      </div>
+                      <p className="font-mono text-slate-600">{acc.account_number}</p>
+                      <p className="text-sm text-slate-500">{acc.account_name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {!acc.is_active && (
+                        <Button size="sm" variant="ghost" onClick={() => handleSetActive(acc.id!)} title="Set as Primary">
+                          <Star className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
+                        <Pencil className="w-4 h-4 mr-2" /> Edit
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         )}
 
-        {/* EMPTY STATE: If not loading, not showing form, and NO bankAccount */}
-        {!isLoading && !showForm && !bankAccount && (
-          <Card className="border-2 border-dashed border-slate-200 shadow-none bg-slate-50/50">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                <CreditCard className="w-8 h-8 text-indigo-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">No Bank Account Added</h3>
-              <p className="text-slate-500 max-w-sm mb-6">
-                Add your company bank account details to receive payouts directly.
-              </p>
-              <Button onClick={() => setShowForm(true)} className="bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Bank Details
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* FORM MODE: If showForm is true */}
+        {/* FORM MODE */}
         {!isLoading && showForm && (
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="w-5 h-5 text-indigo-600" />
-                {bankAccount ? "Update Bank Information" : "Add Bank Information"}
+                {editingId ? "Update Bank Account" : "Add New Account"}
               </CardTitle>
               <CardDescription>
-                Please ensure these details are correct to avoid payment delays.
+                Select your bank and verify account details.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="bank_name">Bank Name <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="bank_name"
-                      placeholder="e.g. Zenith Bank"
-                      value={formData.bank_name}
-                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                      required
-                    />
+                    <Label htmlFor="bank_select">Bank Name <span className="text-rose-500">*</span></Label>
+                    <Select value={formData.bank_code} onValueChange={handleBankChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a bank" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {banks.map((bank) => (
+                          <SelectItem key={bank.code} value={bank.code}>
+                            {bank.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="account_number">Account Number <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="account_number"
-                      placeholder="0123456789"
-                      value={formData.account_number}
-                      onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-                      required
-                      type="number"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="account_number"
+                        placeholder="0123456789"
+                        value={formData.account_number}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setFormData({ ...formData, account_number: val, account_name: "" });
+                        }}
+                        required
+                        type="text"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleVerifyAccount}
+                        disabled={isVerifying || formData.account_number.length !== 10 || !formData.bank_code}
+                        className="min-w-[100px]"
+                      >
+                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="account_name">Account Name <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="account_name"
-                      placeholder="e.g. Abri Hotels Ltd"
-                      value={formData.account_name}
-                      onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
-                      required
+                    <Label htmlFor="account_name">Account Name</Label>
+                    <div className={`flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 ${formData.account_name ? "border-green-200 bg-green-50" : "border-slate-200"}`}>
+                      {formData.account_name ? (
+                        <>
+                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          <span className="text-sm font-medium text-green-900">{formData.account_name}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">Verified account name will appear here</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
                     />
-                    <p className="text-xs text-slate-500">Must match the registered business name.</p>
+                    <Label htmlFor="is_active" className="cursor-pointer">Set as primary payout account</Label>
                   </div>
                 </div>
 
@@ -286,7 +432,11 @@ export default function BankSettingsPage() {
                   <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]">
+                  <Button
+                    type="submit"
+                    disabled={isSaving || !formData.account_name}
+                    className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]"
+                  >
                     {isSaving ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -295,7 +445,7 @@ export default function BankSettingsPage() {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Details
+                        {editingId ? "Update Account" : "Add Account"}
                       </>
                     )}
                   </Button>
