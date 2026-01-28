@@ -282,8 +282,8 @@ export default function DashboardPage() {
                   if (selectedDates && selectedDates.length > 0) {
                     const start = selectedDates[0]
                     const end = selectedDates.length > 1 ? selectedDates[1] : undefined
-                    if (end) displayValue = `${format(start, "MMM d")} - ${format(end, "MMM d")}`
-                    else displayValue = format(start, "MMM d")
+                    if (end) displayValue = `${format(start, "MMM d Y")} - ${format(end, "MMM d Y")}`
+                    else displayValue = format(start, "MMM d Y")
                   }
 
                   return (
@@ -326,36 +326,36 @@ export default function DashboardPage() {
                     const statusColor = isFull ? "bg-red-500" : utilizationRate > 70 ? "bg-amber-500" : "bg-emerald-500"
 
                     return (
-                      <div key={roomType.type} className="p-6 hover:bg-slate-50/50 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div key={roomType.type} className="p-4 hover:bg-slate-50/50 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg text-slate-900">{roomType.type}</h3>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <h3 className="font-semibold text-base text-slate-900">{roomType.type}</h3>
                               {isFull ? (
-                                <Badge variant="destructive">Full</Badge>
+                                <Badge variant="destructive" className="h-5 text-[10px] px-1.5">Full</Badge>
                               ) : roomType.available <= 2 ? (
-                                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">High Demand</Badge>
+                                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 h-5 text-[10px] px-1.5">High Demand</Badge>
                               ) : (
-                                <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">Available</Badge>
+                                <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 h-5 text-[10px] px-1.5">Available</Badge>
                               )}
                             </div>
 
-                            <div className="flex items-center gap-4">
-                              <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden max-w-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-sm">
                                 <div
                                   className={`h-full rounded-full transition-all duration-500 ${statusColor}`}
                                   style={{ width: `${utilizationRate}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-medium text-slate-500 w-12 text-right">
+                              <span className="text-[10px] font-medium text-slate-500 w-8 text-right">
                                 {Math.round(utilizationRate)}%
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-baseline gap-1 sm:text-right">
-                            <span className="text-3xl font-bold text-slate-900">{roomType.available}</span>
-                            <span className="text-sm text-slate-500 font-medium">/ {roomType.total} rooms</span>
+                            <span className="text-2xl font-bold text-slate-900">{roomType.available}</span>
+                            <span className="text-xs text-slate-500 font-medium">/ {roomType.total}</span>
                           </div>
                         </div>
                       </div>

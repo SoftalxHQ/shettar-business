@@ -14,6 +14,8 @@ import { getAuthToken } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import Flatpickr from "react-flatpickr"
+import "flatpickr/dist/themes/material_blue.css"
 
 interface RoomType {
   id: number
@@ -27,6 +29,10 @@ interface RoomType {
 export default function NewBookingPage() {
   const router = useRouter()
   const { businessId, logout } = useAuth()
+  // ... (rest of component until the date inputs)
+
+  // ... inside the JSX where inputs are:
+
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
@@ -245,41 +251,73 @@ export default function NewBookingPage() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-32 rounded-b-3xl">
+      {/* Custom Styles for Flatpickr Theme Override */}
+      <style jsx global>{`
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.selected:focus, .flatpickr-day.startRange:focus, .flatpickr-day.endRange:focus, .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover, .flatpickr-day.selected.prevMonthDay, .flatpickr-day.startRange.prevMonthDay, .flatpickr-day.endRange.prevMonthDay, .flatpickr-day.selected.nextMonthDay, .flatpickr-day.startRange.nextMonthDay, .flatpickr-day.endRange.nextMonthDay {
+          background: #4f46e5 !important;
+          border-color: #4f46e5 !important;
+        }
+        .flatpickr-day.today {
+          border-color: #4f46e5 !important;
+        }
+        .flatpickr-day.today:hover {
+          background: #e0e7ff !important;
+          color: #312e81 !important;
+        }
+        .flatpickr-months .flatpickr-month {
+            background: #4f46e5 !important;
+            color: #fff !important;
+            fill: #fff !important;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+            background-color: #4f46e5 !important;
+        }
+        .flatpickr-weekdays {
+            background: #4f46e5 !important;
+        }
+        span.flatpickr-weekday {
+          background: #4f46e5 !important;
+          color: #fff !important;
+        }
+      `}</style>
+
+      {/* Hero Section - Compact */}
+      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-24 rounded-b-3xl">
         <div className="absolute inset-x-0 bottom-0 h-full bg-grid-white/[0.1] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
-          <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white mb-4 transition-colors">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-2">
+            <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white transition-colors text-sm font-medium">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
             New Reservation
           </h1>
-          <p className="text-indigo-100 text-lg max-w-2xl">
-            Create a new booking instantly. Fill in the guest details and room preferences below.
-          </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-10 pb-12">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 pb-8">
+        <div className="flex flex-col lg:flex-row gap-6">
 
           {/* Main Form Area */}
           <div className="flex-1">
             <form id="new-booking-form" onSubmit={handleSubmit}>
               <Card className="border-0 shadow-xl rounded-xl overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-2 text-indigo-600 mb-1">
-                    <UserPlus className="w-5 h-5" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Guest Information</span>
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-3 px-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg text-slate-900 flex items-center gap-2">
+                        <UserPlus className="w-5 h-5 text-indigo-600" />
+                        Guest Info
+                      </CardTitle>
+                    </div>
                   </div>
-                  <CardTitle className="text-xl text-slate-900">1. Primary Guest Details</CardTitle>
-                  <CardDescription>Enter the personal information for the main guest.</CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CardContent className="p-5 space-y-5">
+                  {/* Primary Guest */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="first_name">First Name <span className="text-rose-500">*</span></Label>
                       <Input
@@ -302,11 +340,8 @@ export default function NewBookingPage() {
                         className="h-10"
                       />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address <span className="text-rose-500">*</span></Label>
+                      <Label htmlFor="email">Email <span className="text-rose-500">*</span></Label>
                       <Input
                         id="email"
                         type="email"
@@ -318,29 +353,33 @@ export default function NewBookingPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number <span className="text-rose-500">*</span></Label>
+                      <Label htmlFor="phone">Phone <span className="text-rose-500">*</span></Label>
                       <Input
                         id="phone"
                         type="tel"
                         required
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+234 800 000 0000"
+                        placeholder="+234..."
                         className="h-10"
                       />
                     </div>
                   </div>
-                </CardContent>
 
-                <div className="border-t border-slate-100"></div>
+                  {/* Divider with Label */}
+                  <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-100" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-slate-400 font-medium">Emergency Contact</span>
+                    </div>
+                  </div>
 
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                  <CardTitle className="text-xl text-slate-900">2. Emergency Contact</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Emergency Contact - Compact Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="emer_first_name">Contact First Name <span className="text-rose-500">*</span></Label>
+                      <Label htmlFor="emer_first_name">First Name <span className="text-rose-500">*</span></Label>
                       <Input
                         id="emer_first_name"
                         required
@@ -350,7 +389,7 @@ export default function NewBookingPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="emer_last_name">Contact Last Name <span className="text-rose-500">*</span></Label>
+                      <Label htmlFor="emer_last_name">Last Name <span className="text-rose-500">*</span></Label>
                       <Input
                         id="emer_last_name"
                         required
@@ -359,89 +398,106 @@ export default function NewBookingPage() {
                         className="h-10"
                       />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emer_phone">Contact Phone <span className="text-rose-500">*</span></Label>
-                    <Input
-                      id="emer_phone"
-                      required
-                      value={formData.emer_phone}
-                      onChange={(e) => setFormData({ ...formData, emer_phone: e.target.value })}
-                      className="h-10"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="emer_phone">Phone <span className="text-rose-500">*</span></Label>
+                      <Input
+                        id="emer_phone"
+                        required
+                        value={formData.emer_phone}
+                        onChange={(e) => setFormData({ ...formData, emer_phone: e.target.value })}
+                        className="h-10"
+                      />
+                    </div>
                   </div>
                 </CardContent>
 
-                <div className="border-t border-slate-100"></div>
-
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-2 text-indigo-600 mb-1">
-                    <Calendar className="w-5 h-5" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Stay Details</span>
-                  </div>
-                  <CardTitle className="text-xl text-slate-900">3. Reservation Preferences</CardTitle>
+                <CardHeader className="bg-slate-50/50 border-t border-b border-slate-100 py-3 px-5">
+                  <CardTitle className="text-lg text-slate-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-indigo-600" />
+                    Stay Details
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="check_in_date">Check-in Date <span className="text-rose-500">*</span></Label>
-                      <Input
-                        id="check_in_date"
-                        type="date"
-                        required
-                        value={formData.check_in_date}
-                        onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
-                        min={new Date().toISOString().split("T")[0]}
-                        className="h-10"
-                      />
+                <CardContent className="p-5 space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Dates - 5 cols */}
+                    <div className="md:col-span-5 grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="check_in_date">Check-in <span className="text-rose-500">*</span></Label>
+                        <Flatpickr
+                          id="check_in_date"
+                          value={formData.check_in_date}
+                          onChange={([date]) => {
+                            if (date) {
+                              const offset = date.getTimezoneOffset();
+                              const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+                              setFormData({ ...formData, check_in_date: adjustedDate.toISOString().split('T')[0] });
+                            }
+                          }}
+                          options={{
+                            minDate: "today",
+                            dateFormat: "Y-m-d",
+                            disableMobile: true
+                          }}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Select date"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="check_out_date">Check-out <span className="text-rose-500">*</span></Label>
+                        <Flatpickr
+                          id="check_out_date"
+                          value={formData.check_out_date}
+                          onChange={([date]) => {
+                            if (date) {
+                              const offset = date.getTimezoneOffset();
+                              const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+                              setFormData({ ...formData, check_out_date: adjustedDate.toISOString().split('T')[0] });
+                            }
+                          }}
+                          options={{
+                            minDate: formData.check_in_date || "today",
+                            dateFormat: "Y-m-d",
+                            disableMobile: true
+                          }}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Select date"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="check_out_date">Check-out Date <span className="text-rose-500">*</span></Label>
-                      <Input
-                        id="check_out_date"
-                        type="date"
-                        required
-                        value={formData.check_out_date}
-                        onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
-                        min={formData.check_in_date || new Date().toISOString().split("T")[0]}
-                        className="h-10"
-                      />
-                    </div>
-                  </div>
 
-                  {formData.check_in_date && formData.check_out_date && (
-                    <div className="space-y-2 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                      <Label htmlFor="room_type_id" className="text-indigo-900">Select Room Type <span className="text-rose-500">*</span></Label>
-                      <Select
-                        value={formData.room_type_id}
-                        onValueChange={(value) => setFormData({ ...formData, room_type_id: value })}
-                        disabled={loadingRoomTypes}
-                      >
-                        <SelectTrigger className="w-full bg-white h-11 border-indigo-200 focus:ring-indigo-500">
-                          <SelectValue
-                            placeholder={loadingRoomTypes ? "Loading availability..." : "Choose a room..."}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roomTypes.map((roomType) => (
-                            <SelectItem key={roomType.id} value={roomType.id.toString()}>
-                              <div className="flex items-center justify-between w-full gap-2">
-                                <span className="font-medium">{roomType.name}</span>
+                    {/* Room Selection - 7 cols */}
+                    {formData.check_in_date && formData.check_out_date && (
+                      <div className="md:col-span-7 space-y-2">
+                        <Label htmlFor="room_type_id">Room Type <span className="text-rose-500">*</span></Label>
+                        <Select
+                          value={formData.room_type_id}
+                          onValueChange={(value) => setFormData({ ...formData, room_type_id: value })}
+                          disabled={loadingRoomTypes}
+                        >
+                          <SelectTrigger className="w-full bg-white h-10 border-indigo-200 focus:ring-indigo-500">
+                            <SelectValue
+                              placeholder={loadingRoomTypes ? "Loading..." : "Select Room..."}
+                            />
+                          </SelectTrigger>
+                          <SelectContent align="end">
+                            {roomTypes.map((roomType) => (
+                              <SelectItem key={roomType.id} value={roomType.id.toString()}>
+                                <span className="font-medium mr-2">{roomType.name}</span>
                                 <span className="text-slate-500 text-xs">
-                                  (₦{roomType.price.toLocaleString()}/night) • {roomType.available_rooms} left
+                                  (₦{roomType.price.toLocaleString()}) • {roomType.available_rooms} left
                                 </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {roomTypes.length === 0 && !loadingRoomTypes && (
-                        <p className="text-sm text-rose-600 font-medium flex items-center mt-2">
-                          ⚠️ No rooms available for these dates
-                        </p>
-                      )}
-                    </div>
-                  )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {roomTypes.length === 0 && !loadingRoomTypes && (
+                          <p className="text-sm text-rose-600 font-medium">
+                            ⚠️ No rooms available
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -461,6 +517,7 @@ export default function NewBookingPage() {
               </Card>
             </form>
           </div>
+
 
           {/* Sidebar Summary */}
           <div className="lg:w-80 xl:w-96 flex-shrink-0">
