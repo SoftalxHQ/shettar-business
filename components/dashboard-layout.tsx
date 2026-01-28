@@ -164,8 +164,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   return true;
                 case "Analytics":
                   return user.permissions.dashboard?.view_analytics;
-                case "Payments":
-                  return user.permissions.payments?.view;
+                case "Finance":
+                  return user.permissions.finance?.view;
                 case "Bookings":
                   return user.permissions.bookings?.view;
                 case "Rooms":
@@ -176,7 +176,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   return true;
               }
             }).map((item) => {
-              const isActive = activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
+              let isActive = activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
+
+              // Special case for Dashboard (matches "dashboard" or "business")
+              if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
+                isActive = true
+              }
+
               return (
                 <Link
                   key={item.name}

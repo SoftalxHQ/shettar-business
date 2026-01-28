@@ -492,252 +492,211 @@ export default function ScanPage() {
 
   return (
     <DashboardLayout activeTab="scancode">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header with back button for easy navigation */}
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-32 rounded-b-3xl">
+        <div className="absolute inset-x-0 bottom-0 h-full bg-grid-white/[0.1] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16 text-center">
+          <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white mb-6 transition-colors bg-white/10 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
           </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">Scan Booking Code</h1>
-            <p className="text-muted-foreground">Scan QR code or enter booking code manually</p>
-          </div>
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            Scan Booking Code
+          </h1>
+          <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto">
+            Scan the guest's QR code or enter the booking ID manually to verify and manage the check-in process.
+          </p>
         </div>
+      </div>
 
-        {/* Scanner */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking Code Scanner</CardTitle>
-            <CardDescription>Enter the booking code or scan the QR code from the guest's confirmation</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* QR Code visual */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-10 pb-12">
+        <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/95 backdrop-blur-sm">
+          {!result && (
+            <CardHeader className="text-center pt-8 pb-2">
+              <CardTitle className="text-2xl font-bold text-slate-900">Verify Reservation</CardTitle>
+              <CardDescription className="text-base">
+                Use your scanner or type the code below
+              </CardDescription>
+            </CardHeader>
+          )}
+
+          <CardContent className="p-8 space-y-8">
+            {/* Initial State: Scanner & Input */}
             {result === null && (
-              <div className="flex justify-center py-8">
-                <div className="w-48 h-48 border-4 border-dashed border-primary/30 rounded-lg flex items-center justify-center bg-primary/5 cursor-pointer">
-                  <QrCode className="w-24 h-24 text-primary" />
+              <div className="space-y-8 animate-in fade-in duration-500">
+                {/* Visual Scanner Area */}
+                <div className="relative group cursor-pointer">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative bg-slate-50 border-2 border-dashed border-indigo-200 rounded-2xl p-10 flex flex-col items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-all">
+                    <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                      <QrCode className="w-12 h-12" />
+                    </div>
+                    <p className="font-medium">Ready to Scan</p>
+                    <p className="text-xs text-slate-400 mt-1">Point scanner at QR code</p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-slate-500 font-medium">Or enter manually</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="code" className="sr-only">Booking Code</Label>
+                    <Input
+                      id="code"
+                      placeholder="e.g., SSH-123-ABC-456"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
+                      className="text-center text-lg h-14 font-mono uppercase tracking-wider border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleScan}
+                    disabled={!code || isLoading}
+                    className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md"
+                    size="lg"
+                  >
+                    {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Verify Booking Code"}
+                  </Button>
                 </div>
               </div>
             )}
 
-            {/* Manual input */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Booking Code</Label>
-                <Input
-                  id="code"
-                  placeholder="Enter booking ID (e.g., SSH123ABC456)"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
-                  className="text-lg h-12"
-                  disabled={result !== null || isLoading}
-                />
-              </div>
-
-              {result === null && (
-                <Button
-                  onClick={handleScan}
-                  disabled={!code || isLoading}
-                  className="w-full h-11"
-                  size="lg"
-                >
-                  <QrCode className="w-5 h-5 mr-2" />
-                  {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Scan / Verify Code"}
+            {/* ERROR State */}
+            {result === "error" && (
+              <div className="text-center py-8 animate-in zoom-in duration-300">
+                <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <X className="w-10 h-10 text-rose-600" strokeWidth={3} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Booking Not Found</h3>
+                <p className="text-slate-500 mb-8 max-w-sm mx-auto">
+                  We couldn't locate a reservation with the code <span className="font-mono font-bold text-slate-900">{code}</span>. Please check the code and try again.
+                </p>
+                <Button onClick={handleReset} variant="outline" size="lg" className="h-12 px-8 min-w-[200px]">
+                  Try Again
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Result */}
-            {result && (
-              <div className="pt-4 border-t">
-                {result === "success" && reservation ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 text-green-700 bg-green-50 p-4 rounded-lg">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Check className="w-6 h-6" />
+            {/* SUCCESS State */}
+            {result === "success" && reservation && (
+              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                {/* Success Header */}
+                <div className="text-center pb-6 border-b border-slate-100">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-emerald-600" strokeWidth={3} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900">Verified Reservation</h2>
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    {getStatusBadge()}
+                    <span className="text-sm text-slate-500 font-mono">{reservation.booking_id}</span>
+                  </div>
+                </div>
+
+                {/* Guest & Room Info */}
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      Guest Information
+                      <span className="h-px bg-slate-200 flex-1"></span>
+                    </h3>
+                    <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Name</span>
+                        <span className="font-semibold">{reservation.other_first_name} {reservation.other_last_name}</span>
                       </div>
-                      <div>
-                        <p className="font-semibold">Booking Found!</p>
-                        <p className="text-sm">Guest information verified successfully</p>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Phone</span>
+                        <span className="font-medium">{reservation.other_phone_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Email</span>
+                        <span className="font-medium text-xs truncate max-w-[150px]">{reservation.other_email_address}</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Booking details */}
-                    <div className="space-y-4 bg-muted p-6 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-lg">
-                          {reservation.other_first_name} {reservation.other_last_name}
-                        </h3>
-                        {getStatusBadge()}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      Stay Details
+                      <span className="h-px bg-slate-200 flex-1"></span>
+                    </h3>
+                    <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Room Type</span>
+                        <span className="font-semibold">{reservation.room_type_name}</span>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Booking ID</p>
-                          <p className="font-medium">{reservation.booking_id}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Email</p>
-                          <p className="font-medium text-xs">{reservation.other_email_address}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Room Number</p>
-                          <p className="font-medium">{reservation.room_number}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Room Type</p>
-                          <p className="font-medium">{reservation.room_type_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Check-in</p>
-                          <p className="font-medium">{new Date(reservation.start_date).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Check-out</p>
-                          <p className="font-medium">{new Date(reservation.end_date).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Guests</p>
-                          <p className="font-medium">{reservation.guests} adults, {reservation.children} children</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Total Amount</p>
-                          <p className="font-medium">₦{reservation.total_amount?.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Payment Method</p>
-                          <p className="font-medium">{paymentMethodLabels[reservation.payment_method] || "Unknown"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Phone</p>
-                          <p className="font-medium text-xs">{reservation.other_phone_number}</p>
-                        </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Room No.</span>
+                        <span className="font-semibold">{reservation.room_number || "Not Assigned"}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Duration</span>
+                        <span className="font-medium text-xs">
+                          {new Date(reservation.start_date).toLocaleDateString()} - {new Date(reservation.end_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                      {/* Check-in/Check-out Information */}
-                      {(reservation.checked_in_at || reservation.checked_out_at) && (
-                        <div className="border-t pt-4 mt-4">
-                          <p className="text-sm font-semibold mb-3">Stay Status</p>
-                          <div className="grid grid-cols-1 gap-3 text-sm">
-                            {reservation.checked_in_at && (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <p className="text-green-700 font-medium mb-1">✓ Checked In</p>
-                                <p className="text-xs text-green-600">
-                                  {new Date(reservation.checked_in_at).toLocaleString()}
-                                </p>
-                                {reservation.checked_in_by_name && (
-                                  <p className="text-xs text-green-600 mt-1">
-                                    By: {reservation.checked_in_by_name}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            {reservation.checked_out_at && (
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <p className="text-blue-700 font-medium mb-1">✓ Checked Out</p>
-                                <p className="text-xs text-blue-600">
-                                  {new Date(reservation.checked_out_at).toLocaleString()}
-                                </p>
-                                {reservation.checked_out_by_name && (
-                                  <p className="text-xs text-blue-600 mt-1">
-                                    By: {reservation.checked_out_by_name}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                {/* Status Actions */}
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="text-center md:text-left">
+                      <p className="font-semibold text-indigo-900">Action Required</p>
+                      <p className="text-sm text-indigo-600">
+                        {!reservation.checked_in_at ? "Guest is ready for check-in" : !reservation.checked_out_at ? "Guest is checked in" : "Stay completed"}
+                      </p>
                     </div>
 
-                    {/* Actions */}
-                    <div className="space-y-3">
+                    <div className="flex gap-3 w-full md:w-auto">
                       {!reservation.checked_in_at ? (
-                        <>
-                          {!isWithinReservationWindow() && (
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                              <p className="text-amber-800 text-sm font-medium">
-                                {new Date() < new Date(reservation.start_date)
-                                  ? `⏰ Check-in available from ${new Date(reservation.start_date).toLocaleString()}`
-                                  : `⚠️ Reservation period has ended`}
-                              </p>
-                            </div>
-                          )}
-                          <div className="flex gap-3">
-                            <Button
-                              onClick={handleCheckIn}
-                              disabled={isLoading || !isWithinReservationWindow()}
-                              className="flex-1 h-11"
-                              size="lg"
-                            >
-                              {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Complete Check-in"}
-                            </Button>
-                            <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent cursor-pointer">
-                              <Printer className="w-5 h-5" />
-                            </Button>
-                          </div>
-                        </>
+                        <Button
+                          onClick={handleCheckIn}
+                          disabled={isLoading || !isWithinReservationWindow()}
+                          className="flex-1 md:flex-none h-11 bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          {isLoading ? <LoadingSpinner className="text-white" /> : "Check In Guest"}
+                        </Button>
                       ) : !reservation.checked_out_at ? (
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={handleCheckOut}
-                            disabled={isLoading}
-                            className="flex-1 h-11"
-                            size="lg"
-                          >
-                            {isLoading ? <LoadingSpinner size={20} className="text-white" /> : "Complete Check-out"}
-                          </Button>
-                          <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent cursor-pointer">
-                            <Printer className="w-5 h-5" />
-                          </Button>
-                        </div>
+                        <Button
+                          onClick={handleCheckOut}
+                          disabled={isLoading}
+                          className="flex-1 md:flex-none h-11 bg-rose-600 hover:bg-rose-700"
+                        >
+                          {isLoading ? <LoadingSpinner className="text-white" /> : "Check Out Guest"}
+                        </Button>
                       ) : (
-                        <div className="flex gap-3">
-                          <Button
-                            disabled
-                            className="flex-1 h-11"
-                            variant="secondary"
-                            size="lg"
-                          >
-                            Stay Completed
-                          </Button>
-                          <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-transparent">
-                            <Printer className="w-5 h-5" />
-                          </Button>
-                        </div>
+                        <Button disabled variant="outline" className="flex-1 md:flex-none">Completed</Button>
                       )}
-                    </div>
 
-                    <Button onClick={handleReset} variant="ghost" className="w-full">
-                      Scan Another Code
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-red-700 bg-red-50 p-4 rounded-lg">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <X className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">Booking Not Found</p>
-                        <p className="text-sm">The code you entered doesn't match any booking</p>
-                      </div>
+                      <Button onClick={handlePrintReceipt} variant="outline" className="h-11 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-700">
+                        <Printer className="w-5 h-5" />
+                      </Button>
                     </div>
-
-                    <Button onClick={handleReset} variant="outline" className="w-full bg-transparent">
-                      Try Again
-                    </Button>
                   </div>
-                )}
+                </div>
+
+                <div className="text-center pt-4">
+                  <Button onClick={handleReset} variant="ghost" className="text-slate-500 hover:text-slate-800">
+                    Scan Another Code
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
     </DashboardLayout>
   )
 }

@@ -212,63 +212,74 @@ export default function BookingSuccessPage() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      <div className="flex items-center justify-center min-h-[60vh] px-4">
-        <Card className="max-w-md w-full text-center">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Check className="w-8 h-8 text-green-600" />
+      <div className="relative min-h-[calc(100vh-4rem)] bg-slate-50 flex items-center justify-center p-4 overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-indigo-600/5 to-transparent pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl" />
+
+        <Card className="relative max-w-lg w-full border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm z-10">
+
+
+          <CardHeader className="text-center pt-10 pb-6">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm animate-in zoom-in duration-300">
+              <Check className="w-10 h-10 text-emerald-600" strokeWidth={3} />
             </div>
-            <CardTitle className="text-2xl">Booking Successful!</CardTitle>
-            <CardDescription>
-              Your reservation has been created successfully.
+            <CardTitle className="text-3xl font-bold text-slate-900 mb-2">Booking Confirmed!</CardTitle>
+            <CardDescription className="text-lg text-slate-600">
+              The reservation has been successfully created.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-500 mb-1">Booking ID</p>
-              <p className="text-3xl font-bold tracking-wide text-primary">{bookingId}</p>
+
+          <CardContent className="px-8 pb-10 space-y-8">
+            <div className="bg-white border-2 border-dashed border-indigo-100 rounded-xl p-6 text-center transform transition-all hover:scale-[1.02] hover:border-indigo-200">
+              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Booking Reference</p>
+              <p className="text-4xl font-black text-indigo-600 tracking-tight">{bookingId}</p>
             </div>
 
             {reservation && (
-              <div className="space-y-4 text-left border-t border-b py-4 border-dashed">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <span className="text-muted-foreground">Guest</span>
-                  <span className="font-medium text-right truncate">{reservation.other_first_name} {reservation.other_last_name}</span>
-
-                  <span className="text-muted-foreground">Room Type</span>
-                  <span className="font-medium text-right truncate">{reservation.room_type_name}</span>
-
-                  <span className="text-muted-foreground">Check-in</span>
-                  <span className="font-medium text-right">{formatDateTime(reservation.start_date, businessDetails?.check_in)}</span>
-
-                  <span className="text-muted-foreground">Check-out</span>
-                  <span className="font-medium text-right">{formatDateTime(reservation.end_date, businessDetails?.check_out)}</span>
-
-                  <span className="text-muted-foreground">Payment Method</span>
-                  <span className="font-medium text-right">
-                    {reservation.payment_method !== null && reservation.payment_method !== undefined
-                      ? (paymentMethodLabels[reservation.payment_method] || "Unknown")
-                      : "Not specified"}
-                  </span>
-
-                  <span className="text-muted-foreground font-medium">Total Amount</span>
-                  <span className="font-bold text-right text-base">₦{reservation.total_amount?.toLocaleString()}</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Guest Name</span>
+                  <span className="font-semibold text-slate-800 text-right">{reservation.other_first_name} {reservation.other_last_name}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Dates</span>
+                  <div className="text-right">
+                    <span className="block font-semibold text-slate-800">{formatDateTime(reservation.start_date).split(' at ')[0]}</span>
+                    <span className="text-xs text-slate-400">to {formatDateTime(reservation.end_date).split(' at ')[0]}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Room Type</span>
+                  <span className="font-semibold text-slate-800 text-right">{reservation.room_type_name}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2">
+                  <span className="font-medium text-slate-700">Total Amount</span>
+                  <span className="font-bold text-lg text-emerald-600">₦{reservation.total_amount?.toLocaleString()}</span>
                 </div>
               </div>
             )}
 
             <div className="space-y-3">
-              <Button onClick={handlePrint} className="w-full gap-2" size="lg">
-                <Printer className="w-4 h-4" />
+              <Button onClick={handlePrint} className="w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all bg-indigo-600 hover:bg-indigo-700">
+                <Printer className="w-5 h-5 mr-2" />
                 Print Receipt
               </Button>
 
-              <Link href="/dashboard" className="block">
-                <Button variant="outline" className="w-full gap-2">
-                  <Home className="w-4 h-4" />
-                  Back to Home
-                </Button>
-              </Link>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/dashboard/bookings/new" className="block">
+                  <Button variant="outline" className="w-full h-12 border-slate-200 hover:bg-slate-50 hover:text-indigo-600">
+                    New Booking
+                  </Button>
+                </Link>
+                <Link href="/dashboard" className="block">
+                  <Button variant="outline" className="w-full h-12 border-slate-200 hover:bg-slate-50">
+                    <Home className="w-4 h-4 mr-2" />
+                    Home
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>

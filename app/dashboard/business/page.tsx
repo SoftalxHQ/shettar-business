@@ -55,131 +55,150 @@ export default function BusinessDashboardPage() {
   }
 
   return (
-    <DashboardLayout activeTab="businessdashboard">
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Business Dashboard</h1>
-          <p className="text-muted-foreground">Revenue analytics and business settings</p>
+    <DashboardLayout activeTab="business">
+      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-32 rounded-b-3xl">
+        <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Business Overview
+          </h1>
+          <p className="text-indigo-100 text-lg">
+            Welcome back, {user?.name}. Here's what's happening today.
+          </p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-10 pb-12 space-y-8">
 
         {/* Revenue stats */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {revenueStats.map((stat) => (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p
-                  className={`text-xs mt-1 ${stat.trend === "up" ? "text-green-600" : stat.trend === "down" ? "text-red-600" : "text-muted-foreground"}`}
-                >
-                  {stat.change} from last period
-                </p>
+            <Card key={stat.title} className="border-0 shadow-lg overflow-hidden relative group">
+              <div className="absolute inset-0 bg-white opacity-100 group-hover:bg-slate-50 transition-colors" />
+              <CardContent className="p-6 relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-2 rounded-lg ${stat.icon === DollarSign ? "bg-green-100 text-green-600" :
+                    stat.icon === TrendingUp ? "bg-blue-100 text-blue-600" :
+                      stat.icon === TrendingDown ? "bg-rose-100 text-rose-600" :
+                        "bg-slate-100 text-slate-600"
+                    }`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  {stat.trend === "up" ? (
+                    <span className="flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                      {stat.change} <TrendingUp className="w-3 h-3 ml-1" />
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
+                      {stat.change} <TrendingDown className="w-3 h-3 ml-1" />
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-sm font-medium text-slate-500 mb-1">{stat.title}</h3>
+                <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Business settings */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Business Info Card (Span 2 cols) */}
           {user.role === "admin" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Business Name</label>
-                  <p className="text-base">{user.hotelName}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Business ID</label>
-                  <p className="text-base font-mono text-sm">{user.businessId}</p>
-                </div>
-
-                <Link href="/dashboard/business/settings">
-                  <Button className="w-full">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Manage Business Settings
+            <Card className="lg:col-span-2 border-0 shadow-md overflow-hidden">
+              <CardHeader className="bg-white border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">Business Profile</CardTitle>
+                    <p className="text-sm text-slate-500 mt-1">Manage your business identity and details</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/dashboard/business/settings">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </Link>
                   </Button>
-                </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Business Name</label>
+                      <p className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">{user.hotelName}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Business ID</label>
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm bg-slate-100 px-3 py-1 rounded font-mono text-slate-700">{user.businessId}</code>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-slate-600">
+                          <Upload className="w-3 h-3" /> {/* Using Upload icon as placeholder for copy, ideally Copy icon */}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
 
-                <p className="text-xs text-muted-foreground text-center">
-                  Update business info, logo, images, and amenities
-                </p>
+                  <div className="bg-slate-50 rounded-xl p-6 flex flex-col items-center justify-center text-center border border-slate-100 border-dashed">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-300 mb-3">
+                      <ImageIcon className="w-8 h-8" />
+                    </div>
+                    <h4 className="font-medium text-slate-900 mb-1">Business Logo</h4>
+                    <p className="text-xs text-slate-500 mb-4">Displayed on invoices and app header</p>
+                    <Button variant="outline" size="sm" className="text-xs h-8">Update Logo</Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Settings</CardTitle>
+          {/* Quick Actions / Settings */}
+          <Card className="border-0 shadow-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start h-auto py-3 bg-transparent">
-                <Building2 className="w-5 h-5 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium">Room Configuration</p>
-                  <p className="text-xs text-muted-foreground">Manage rooms and pricing</p>
+              <Link href="/dashboard/rooms" className="block">
+                <div className="group flex items-center p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Room Configuration</p>
+                    <p className="text-xs text-slate-500">Manage rates & availability</p>
+                  </div>
                 </div>
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-auto py-3 bg-transparent">
-                <Users className="w-5 h-5 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium">Staff Management</p>
-                  <p className="text-xs text-muted-foreground">Add and manage staff accounts</p>
+              </Link>
+
+              <Link href="/dashboard/staff" className="block">
+                <div className="group flex items-center p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Staff Management</p>
+                    <p className="text-xs text-slate-500">Access control & roles</p>
+                  </div>
                 </div>
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-auto py-3 bg-transparent">
-                <TrendingUp className="w-5 h-5 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium">View Analytics</p>
-                  <p className="text-xs text-muted-foreground">Detailed reports and trends</p>
+              </Link>
+
+              <Link href="/dashboard/analytics" className="block">
+                <div className="group flex items-center p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                  <div className="p-2 bg-purple-100 text-purple-600 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">View Analytics</p>
+                    <p className="text-xs text-slate-500">Performance reports</p>
+                  </div>
                 </div>
-              </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
 
-        {/* Revenue breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b">
-                <div>
-                  <p className="font-medium">Room Bookings</p>
-                  <p className="text-sm text-muted-foreground">145 bookings</p>
-                </div>
-                <p className="text-lg font-bold">₦298,500</p>
-              </div>
-              <div className="flex items-center justify-between pb-3 border-b">
-                <div>
-                  <p className="font-medium">Additional Services</p>
-                  <p className="text-sm text-muted-foreground">Room service, amenities</p>
-                </div>
-                <p className="text-lg font-bold">₦32,400</p>
-              </div>
-              <div className="flex items-center justify-between pb-3 border-b">
-                <div>
-                  <p className="font-medium">Refunds & Cancellations</p>
-                  <p className="text-sm text-muted-foreground">12 cancellations</p>
-                </div>
-                <p className="text-lg font-bold text-red-600">-₦11,900</p>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <p className="font-semibold text-lg">Net Revenue</p>
-                <p className="text-2xl font-bold text-blue-600">₦319,000</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </DashboardLayout>
   )
