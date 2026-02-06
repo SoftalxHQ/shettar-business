@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { DollarSign, TrendingUp, TrendingDown, Users, Building2, Upload, ImageIcon, Settings } from "lucide-react"
 import Link from "next/link"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import api from "@/lib/api-client"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const revenueStats = [
   {
@@ -41,8 +43,10 @@ const revenueStats = [
 ]
 
 export default function BusinessDashboardPage() {
-  const { user } = useAuth()
+  const { user, businessId } = useAuth()
   const router = useRouter()
+  const [stats, setStats] = useState<any>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
 
   useEffect(() => {
     if (user && user.role !== "admin" && user.role !== "manager") {
@@ -50,9 +54,61 @@ export default function BusinessDashboardPage() {
     }
   }, [user, router])
 
+  useEffect(() => {
+    async function fetchStats() {
+      // Use businessId from context or user object
+      const id = businessId || user?.businessId
+      if (id) {
+        try {
+          const data = await api.getBusinessData<any>(`/api/v1/user_businesses/${id}/stats`)
+          setStats(data)
+        } catch (error) {
+          console.error("Failed to fetch stats:", error)
+        } finally {
+          setIsLoadingStats(false)
+        }
+      }
+    }
+
+    if (user && (user.role === "admin" || user.role === "manager")) {
+      fetchStats()
+    }
+  }, [user, businessId])
+
   if (user?.role !== "admin" && user?.role !== "manager") {
     return null
   }
+
+  const displayStats = stats ? [
+    {
+      title: "Revenue Today",
+      value: `₦${Number(stats.revenue_today.value).toLocaleString()}`,
+      change: stats.revenue_today.change.percentage,
+      trend: stats.revenue_today.change.trend,
+      icon: DollarSign,
+    },
+    {
+      title: "This Week",
+      value: `₦${Number(stats.revenue_this_week.value).toLocaleString()}`,
+      change: stats.revenue_this_week.change.percentage,
+      trend: stats.revenue_this_week.change.trend,
+      icon: TrendingUp,
+    },
+    {
+      title: "This Month",
+      value: `₦${Number(stats.revenue_this_month.value).toLocaleString()}`,
+      change: stats.revenue_this_month.change.percentage,
+      trend: stats.revenue_this_month.change.trend,
+      icon: TrendingUp,
+    },
+    {
+      title: "Cancellations",
+      value: stats.cancellations.value.toString(),
+      change: stats.cancellations.change.percentage,
+      trend: stats.cancellations.change.trend,
+      icon: TrendingDown,
+    },
+  ] : revenueStats
 
   return (
     <DashboardLayout activeTab="business">
@@ -73,34 +129,49 @@ export default function BusinessDashboardPage() {
 
         {/* Revenue stats */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {revenueStats.map((stat) => (
-            <Card key={stat.title} className="border-0 shadow-lg overflow-hidden relative group">
-              <div className="absolute inset-0 bg-white opacity-100 group-hover:bg-slate-50 transition-colors" />
-              <CardContent className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2 rounded-lg ${stat.icon === DollarSign ? "bg-green-100 text-green-600" :
-                    stat.icon === TrendingUp ? "bg-blue-100 text-blue-600" :
-                      stat.icon === TrendingDown ? "bg-rose-100 text-rose-600" :
-                        "bg-slate-100 text-slate-600"
-                    }`}>
-                    <stat.icon className="h-5 w-5" />
+          {isLoadingStats ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="border-0 shadow-lg overflow-hidden relative">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
                   </div>
-                  {stat.trend === "up" ? (
-                    <span className="flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      {stat.change} <TrendingUp className="w-3 h-3 ml-1" />
-                    </span>
-                  ) : (
-                    <span className="flex items-center text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
-                      {stat.change} <TrendingDown className="w-3 h-3 ml-1" />
-                    </span>
-                  )}
-                </div>
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-8 w-32" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            displayStats.map((stat) => (
+              <Card key={stat.title} className="border-0 shadow-lg overflow-hidden relative group">
+                <div className="absolute inset-0 bg-white opacity-100 group-hover:bg-slate-50 transition-colors" />
+                <CardContent className="p-6 relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2 rounded-lg ${stat.icon === DollarSign ? "bg-green-100 text-green-600" :
+                      stat.icon === TrendingUp ? "bg-blue-100 text-blue-600" :
+                        stat.icon === TrendingDown ? "bg-rose-100 text-rose-600" :
+                          "bg-slate-100 text-slate-600"
+                      }`}>
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    {stat.trend === "up" ? (
+                      <span className="flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                        {stat.change} <TrendingUp className="w-3 h-3 ml-1" />
+                      </span>
+                    ) : (
+                      <span className="flex items-center text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
+                        {stat.change} <TrendingDown className="w-3 h-3 ml-1" />
+                      </span>
+                    )}
+                  </div>
 
-                <h3 className="text-sm font-medium text-slate-500 mb-1">{stat.title}</h3>
-                <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-              </CardContent>
-            </Card>
-          ))}
+                  <h3 className="text-sm font-medium text-slate-500 mb-1">{stat.title}</h3>
+                  <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Business settings */}

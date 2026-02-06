@@ -111,11 +111,9 @@ export default function FinancePage() {
   useEffect(() => {
     // Only redirect if explicitly denied. If permission key doesn't exist yet (migration), allow or wait.
     if (user && user.role !== 'admin' && user.permissions) {
-      // Check for 'finance' permission, fall back to 'payments' if finance doesn't exist
       const hasFinance = user.permissions.finance?.view;
-      const hasPayments = user.permissions.payments?.view;
 
-      if (!hasFinance && !hasPayments) {
+      if (!hasFinance) {
         router.push("/dashboard/business")
       }
     }
