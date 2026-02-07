@@ -9,24 +9,27 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, ArrowLeft, Wallet, Building2, ChevronRight } from "lucide-react"
+import { AlertCircle, ArrowLeft, Wallet, Building2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
+import { getAuthToken } from "@/lib/storage"
 
-// Mock company accounts - this should ideally come from an API
-const MOCK_ACCOUNTS = [
-  { id: "1", bankName: "Access Bank", accountNumber: "0012345678", accountName: "Abri Hotel Ventures", type: "Corporate" },
-  { id: "2", bankName: "GTBank", accountNumber: "0123456789", accountName: "Abri Hotel Ventures", type: "Regular" },
-  { id: "3", bankName: "Zenith Bank", accountNumber: "2034567890", accountName: "Abri Hotel Ventures", type: "Savings" },
-]
+interface BankAccount {
+  id: string
+  bank_name: string
+  account_number: string
+  account_name: string
+  is_active: boolean
+}
 
 export default function WithdrawalPage() {
   const { user, businessId } = useAuth()
   const router = useRouter()
   const [selectedAccountId, setSelectedAccountId] = useState<string>("")
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [amount, setAmount] = useState<string>("")
   const [loading, setLoading] = useState(false)
-  const [balance, setBalance] = useState<number>(0) // Withdrawable balance
+  const [balance, setBalance] = useState<number>(0)
 
   // Permissions Check & Fetch current withdrawal balance
   useEffect(() => {
@@ -37,13 +40,40 @@ export default function WithdrawalPage() {
       return
     }
 
-    // In a real app, fetch from API. For now, mocking or passing via previous page state would be better, 
-    // but here we'll just simulate fetching or use a default since we don't have global state for this yet.
-    // Ideally this call is similar to the FinancePage fetch.
-    setBalance(500000) // Mock balance for demo if fetch fails or is not implemented here yet
-  }, [user, router])
+    const fetchData = async () => {
+      if (!businessId) return
 
-  const selectedAccount = MOCK_ACCOUNTS.find(acc => acc.id === selectedAccountId)
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Business-Id": businessId
+        }
+
+        // Fetch Business (for balance)
+        const businessRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, { headers })
+        if (businessRes.ok) {
+          const businessData = await businessRes.json()
+          setBalance(parseFloat(businessData.withdrawable_balance || "0"))
+        }
+
+        // Fetch Bank Accounts
+        const bankAccountsRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, { headers })
+        if (bankAccountsRes.ok) {
+          const bankAccountsData = await bankAccountsRes.json()
+          setBankAccounts(bankAccountsData)
+        }
+      } catch (error) {
+        console.error("Failed to fetch withdrawal data:", error)
+      }
+    }
+
+    fetchData()
+  }, [user, router, businessId])
+
+  const selectedAccount = bankAccounts.find(acc => String(acc.id) === selectedAccountId)
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,13 +96,36 @@ export default function WithdrawalPage() {
 
     setLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/withdraw`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Business-Id": businessId!
+        },
+        body: JSON.stringify({
+          amount: withdrawAmount,
+          bank_account_id: selectedAccountId
+        })
+      })
+
+      if (response.ok) {
+        toast.success("Withdrawal request submitted successfully")
+        router.push("/dashboard/finance")
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Withdrawal failed")
+      }
+    } catch (error) {
+      console.error("Withdrawal error:", error)
+      toast.error("An error occurred during withdrawal")
+    } finally {
       setLoading(false)
-      alert(`Withdrawal Request Successful!\n\nAmount: ₦${withdrawAmount.toLocaleString()}\nTo: ${selectedAccount.bankName} - ${selectedAccount.accountNumber}`)
-      router.push("/dashboard/finance")
-      toast.success("Withdrawal request submitted successfully")
-    }, 1500)
+    }
   }
 
   return (
@@ -83,11 +136,11 @@ export default function WithdrawalPage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Finance
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Withdraw Funds</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Withdraw Funds</h1>
           <p className="text-muted-foreground">Transfer funds to your verified company account</p>
         </div>
 
-        <Card>
+        <Card className="border-0 shadow-lg bg-white/95 backdrop-blur">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <Wallet className="w-5 h-5 text-indigo-600" />
@@ -95,13 +148,13 @@ export default function WithdrawalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">₦{balance.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-slate-900">₦{balance.toLocaleString()}</div>
             <p className="text-sm text-muted-foreground mt-1">Funds available for immediate withdrawal</p>
           </CardContent>
         </Card>
 
         <form onSubmit={handleWithdraw}>
-          <Card>
+          <Card className="border-0 shadow-lg bg-white/95 backdrop-blur">
             <CardHeader>
               <CardTitle>Withdrawal Details</CardTitle>
               <CardDescription>Select a destination account and amount</CardDescription>
@@ -115,15 +168,20 @@ export default function WithdrawalPage() {
                     <SelectValue placeholder="Select verified bank account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOCK_ACCOUNTS.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
+                    {bankAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id.toString()}>
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">{acc.bankName}</span>
-                          <span className="text-muted-foreground text-xs">• {acc.accountNumber.slice(-4)}</span>
+                          <span className="font-medium">{acc.bank_name}</span>
+                          <span className="text-muted-foreground text-xs">• {acc.account_number.slice(-4)}</span>
                         </div>
                       </SelectItem>
                     ))}
+                    {bankAccounts.length === 0 && (
+                      <div className="p-2 text-center text-xs text-muted-foreground">
+                        No bank accounts found
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
 
@@ -132,15 +190,15 @@ export default function WithdrawalPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Bank Name</p>
-                        <p className="font-medium">{selectedAccount.bankName}</p>
+                        <p className="font-medium">{selectedAccount.bank_name}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Account Number</p>
-                        <p className="font-medium font-mono">{selectedAccount.accountNumber}</p>
+                        <p className="font-medium font-mono">{selectedAccount.account_number}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-xs text-muted-foreground">Account Name</p>
-                        <p className="font-medium">{selectedAccount.accountName}</p>
+                        <p className="font-medium">{selectedAccount.account_name}</p>
                       </div>
                     </div>
                   </div>
@@ -148,7 +206,7 @@ export default function WithdrawalPage() {
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="amount">Amount (₦)</Label>
+                <Label htmlFor="amount text-slate-900">Amount (₦)</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -172,7 +230,7 @@ export default function WithdrawalPage() {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700"
+                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
                 disabled={loading || !selectedAccountId || !amount || Number(amount) > balance}
               >
                 {loading ? "Processing..." : "Withdraw Funds"}

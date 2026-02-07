@@ -40,6 +40,11 @@ export default function DashboardPage() {
     new Date(),
     addDays(new Date(), 1)
   ])
+  const [summary, setSummary] = useState({
+    check_ins_today: 0,
+    check_outs_today: 0,
+    active_guests: 0
+  })
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
@@ -159,6 +164,37 @@ export default function DashboardPage() {
     fetchRoomAvailability()
   }, [businessId, fetchedDates])
 
+  // Fetch dashboard summary
+  useEffect(() => {
+    const fetchDashboardSummary = async () => {
+      if (!businessId) return
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
+
+        const response = await fetch(
+          `${API_URL}/api/v1/user_businesses/${businessId}/dashboard_summary`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          setSummary(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard summary:", error)
+      }
+    }
+
+    fetchDashboardSummary()
+  }, [businessId])
+
   const flatpickrOptions = useMemo(() => ({
     mode: "range" as const,
     dateFormat: "Y-m-d",
@@ -255,7 +291,7 @@ export default function DashboardPage() {
                 <div className="space-y-1">
                   <h3 className="font-semibold text-lg text-slate-900">Active Guests</h3>
                   <p className="text-sm text-slate-500">
-                    View list of {activeBookings} currently checked-in guests
+                    View list of {summary.active_guests} currently checked-in guests
                   </p>
                 </div>
               </CardContent>

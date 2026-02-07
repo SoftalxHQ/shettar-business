@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { DollarSign, TrendingUp, TrendingDown, Users, Building2, Upload, ImageIcon, Settings } from "lucide-react"
+import { TrendingUp, TrendingDown, Users, Calendar, DollarSign, ArrowUpRight, ArrowDownRight, Building2, UserCircle, Settings, Upload, Copy, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import api from "@/lib/api-client"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 
 const revenueStats = [
   {
@@ -204,8 +205,16 @@ export default function BusinessDashboardPage() {
                       <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Business ID</label>
                       <div className="flex items-center gap-2">
                         <code className="text-sm bg-slate-100 px-3 py-1 rounded font-mono text-slate-700">{user.businessId}</code>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-slate-600">
-                          <Upload className="w-3 h-3" /> {/* Using Upload icon as placeholder for copy, ideally Copy icon */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            navigator.clipboard.writeText(user.businessId || "")
+                            toast.success("Business ID copied to clipboard")
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
