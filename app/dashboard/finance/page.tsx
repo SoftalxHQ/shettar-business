@@ -33,7 +33,8 @@ import {
   ChevronDown,
   Search,
   Copy,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react"
 import { getAuthToken } from "@/lib/storage"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -133,6 +134,7 @@ export default function FinancePage() {
   const [datePopoverOpen, setDatePopoverOpen] = useState(false)
   const [typePopoverOpen, setTypePopoverOpen] = useState(false)
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     if (user && user.role !== 'admin' && user.permissions) {
@@ -419,8 +421,60 @@ export default function FinancePage() {
     setBalanceRange("This month")
   }
 
-  const handleExport = () => {
-    toast.success(`Exporting ${getFilteredTransactions().length} transactions...`)
+  const handleExport = async () => {
+    if (!businessId) return
+    try {
+      setIsExporting(true)
+      toast.loading("Preparing your Excel export...", { id: "export" })
+      const token = getAuthToken()
+      const params = new URLSearchParams()
+      if (startDate) params.append("start_date", format(startDate, "yyyy-MM-dd"))
+      if (endDate) params.append("end_date", format(endDate, "yyyy-MM-dd"))
+      if (filterType !== "all") params.append("transaction_type", filterType)
+      if (filterStatus !== "all") params.append("status", filterStatus)
+
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/export_transactions?${params.toString()}`
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Business-Id": businessId
+        }
+      })
+
+      if (response.status === 401) {
+        logout(true)
+        return
+      }
+
+      if (!response.ok) throw new Error("Export failed")
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+
+      // Get filename from response header if possible, or use fallback
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = `Transactions-${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+      if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
+        const matches = /filename="?([^"]+)"?/.exec(contentDisposition)
+        if (matches && matches[1]) filename = matches[1]
+      }
+
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+
+      toast.success("Excel file downloaded successfully!", { id: "export" })
+    } catch (error) {
+      console.error("Export error:", error)
+      toast.error("Failed to export transactions. Please try again.", { id: "export" })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const balanceTotals = periodBalances
@@ -867,9 +921,18 @@ export default function FinancePage() {
                   </PopoverContent>
                 </Popover>
 
-                <Button variant="outline" className="h-11 px-6 flex items-center gap-2 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl text-slate-600 font-semibold" onClick={handleExport}>
-                  <Download className="w-4 h-4" />
-                  <span>Export</span>
+                <Button
+                  variant="outline"
+                  className="h-11 px-6 flex items-center gap-2 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl text-slate-600 font-semibold disabled:opacity-70"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span>{isExporting ? "Exporting..." : "Export"}</span>
                 </Button>
               </div>
             </div>
