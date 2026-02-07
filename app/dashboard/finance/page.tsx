@@ -92,7 +92,8 @@ export default function FinancePage() {
   const router = useRouter()
   const [balances, setBalances] = useState<BusinessDetails | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isTableLoading, setIsTableLoading] = useState(false)
 
   // Filters
   const [filterType, setFilterType] = useState<string>("all")
@@ -111,7 +112,9 @@ export default function FinancePage() {
   const [tempEndDate, setTempEndDate] = useState<Date | undefined>(endOfMonth(new Date()))
   const [isCustomMode, setIsCustomMode] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
-  const [analyticsPeriod, setAnalyticsPeriod] = useState("1y")
+  const [analyticsPeriod, setAnalyticsPeriod] = useState("6m")
+  const [analyticsData, setAnalyticsData] = useState<any[]>([])
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [periodBalances, setPeriodBalances] = useState<{
     pending: number;
     refund: number;
@@ -122,9 +125,14 @@ export default function FinancePage() {
   }>({ pending: 0, refund: 0, cash: 0, pos: 0, onsite: 0, withdrawable: 0 })
   const [loadingStats, setLoadingStats] = useState(false)
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
+
+  // Popover states to manage closing on selection
+  const [balancePopoverOpen, setBalancePopoverOpen] = useState(false)
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false)
+  const [typePopoverOpen, setTypePopoverOpen] = useState(false)
+  const [statusPopoverOpen, setStatusPopoverOpen] = useState(false)
 
   useEffect(() => {
     if (user && user.role !== 'admin' && user.permissions) {
@@ -139,7 +147,11 @@ export default function FinancePage() {
     const fetchData = async () => {
       if (!businessId) return
       try {
-        setLoading(true)
+        if (isInitialLoading) {
+          // Keep initial loading true
+        } else {
+          setIsTableLoading(true)
+        }
         const token = getAuthToken()
         const headers = {
           Authorization: `Bearer ${token}`,
@@ -187,11 +199,53 @@ export default function FinancePage() {
       } catch (error) {
         console.error("Failed to fetch finance data", error)
       } finally {
-        setLoading(false)
+        setIsInitialLoading(false)
+        setIsTableLoading(false)
       }
     }
     fetchData()
   }, [businessId, startDate, endDate, filterType, filterStatus])
+
+  const fetchFinancialGrowth = async (period: string) => {
+    if (!businessId) return
+    try {
+      setLoadingAnalytics(true)
+      const token = getAuthToken()
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/financial_growth?period=${period}`
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Business-Id": businessId
+        }
+      })
+
+      if (res.status === 401) {
+        logout(true)
+        return
+      }
+
+      if (res.ok) {
+        const data = await res.json()
+        setAnalyticsData(data)
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        console.error("Financial growth fetch failed:", errorData)
+        toast.error(errorData.error || "Failed to load analytics data")
+      }
+    } catch (error) {
+      console.error("Failed to fetch financial growth", error)
+    } finally {
+      setLoadingAnalytics(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showAnalytics) {
+      fetchFinancialGrowth(analyticsPeriod)
+    }
+  }, [analyticsPeriod, showAnalytics, businessId])
 
   const fetchBalanceStats = async (start?: Date, end?: Date) => {
     if (!businessId) return
@@ -254,6 +308,10 @@ export default function FinancePage() {
     setDateRangeSelection(range)
     setIsCustomMode(false)
 
+    if (range !== "Custom") {
+      setDatePopoverOpen(false)
+    }
+
     switch (range) {
       case "Today":
         setStartDate(startOfToday())
@@ -287,6 +345,10 @@ export default function FinancePage() {
     setBalanceRangeSelection(range)
     setIsBalanceCustomMode(false)
 
+    if (range !== "Custom") {
+      setBalancePopoverOpen(false)
+    }
+
     switch (range) {
       case "Today":
         setBalanceStartDate(startOfToday())
@@ -315,11 +377,14 @@ export default function FinancePage() {
     }
   }
 
-  const applyBalanceCustomFilter = () => {
-    if (balanceTempStartDate && balanceTempEndDate) {
-      setBalanceStartDate(balanceTempStartDate)
-      setBalanceEndDate(balanceTempEndDate)
+  const applyBalanceCustomFilter = (start?: Date, end?: Date) => {
+    const s = start || balanceTempStartDate
+    const e = end || balanceTempEndDate
+    if (s && e) {
+      setBalanceStartDate(s)
+      setBalanceEndDate(e)
       setBalanceRangeSelection("Custom")
+      setBalancePopoverOpen(false)
     }
   }
 
@@ -329,11 +394,14 @@ export default function FinancePage() {
     setIsBalanceCustomMode(false)
   }
 
-  const applyCustomFilter = () => {
-    if (tempStartDate && tempEndDate) {
-      setStartDate(tempStartDate)
-      setEndDate(tempEndDate)
+  const applyCustomFilter = (start?: Date, end?: Date) => {
+    const s = start || tempStartDate
+    const e = end || tempEndDate
+    if (s && e) {
+      setStartDate(s)
+      setEndDate(e)
       setDateRangeSelection("Custom")
+      setDatePopoverOpen(false)
     }
   }
 
@@ -373,7 +441,7 @@ export default function FinancePage() {
     if (currentPage > 1) setCurrentPage(currentPage - 1)
   }
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <DashboardLayout activeTab="finance">
         <div className="flex h-[50vh] items-center justify-center">
@@ -403,7 +471,7 @@ export default function FinancePage() {
                 <><TrendingUp className="w-4 h-4 mr-2" />Finance Analytics</>
               )}
             </Button>
-            <Popover>
+            <Popover open={balancePopoverOpen} onOpenChange={setBalancePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl justify-between min-w-[140px]">
                   <div className="flex flex-col items-start text-left">
@@ -475,7 +543,12 @@ export default function FinancePage() {
                             <Calendar
                               mode="single"
                               selected={balanceTempEndDate}
-                              onSelect={setBalanceTempEndDate}
+                              onSelect={(date) => {
+                                setBalanceTempEndDate(date)
+                                if (balanceTempStartDate && date) {
+                                  applyBalanceCustomFilter(balanceTempStartDate, date)
+                                }
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -483,7 +556,7 @@ export default function FinancePage() {
                       </div>
                       <div className="flex gap-2 pt-1">
                         <Button variant="outline" className="flex-1 text-xs h-9 rounded-xl" onClick={resetBalanceCustomFilter}>Reset</Button>
-                        <Button className="flex-1 text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl" onClick={applyBalanceCustomFilter}>Filter</Button>
+                        <Button className="flex-1 text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl" onClick={() => applyBalanceCustomFilter()}>Filter</Button>
                       </div>
                     </div>
                   )}
@@ -538,29 +611,39 @@ export default function FinancePage() {
                 </PopoverContent>
               </Popover>
             </CardHeader>
-            <CardContent className="h-[400px] pt-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MOCK_ANALYTICS_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorWithdrawal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₦${val / 1000}k`} />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Area type="monotone" dataKey="income" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                  <Area type="monotone" dataKey="withdrawal" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorWithdrawal)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[400px] pt-6 flex items-center justify-center">
+              {loadingAnalytics ? (
+                <LoadingSpinner size={32} />
+              ) : analyticsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={analyticsData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorWithdrawal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₦${val / 1000}k`} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <Tooltip
+                      formatter={(value: number) => `₦${value.toLocaleString()}`}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Area name="Income" type="monotone" dataKey="income" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                    <Area name="Withdrawal" type="monotone" dataKey="withdrawal" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorWithdrawal)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-slate-400">
+                  <TrendingUp className="w-12 h-12 mb-2 opacity-20" />
+                  <p className="text-sm">No transaction data yet for this period</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -629,7 +712,7 @@ export default function FinancePage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Popover>
+                <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl min-w-[140px] justify-between">
                       <div className="flex flex-col items-start">
@@ -701,7 +784,12 @@ export default function FinancePage() {
                                 <Calendar
                                   mode="single"
                                   selected={tempEndDate}
-                                  onSelect={setTempEndDate}
+                                  onSelect={(date) => {
+                                    setTempEndDate(date)
+                                    if (tempStartDate && date) {
+                                      applyCustomFilter(tempStartDate, date)
+                                    }
+                                  }}
                                   initialFocus
                                 />
                               </PopoverContent>
@@ -709,7 +797,7 @@ export default function FinancePage() {
                           </div>
                           <div className="flex gap-2 pt-1">
                             <Button variant="outline" className="flex-1 text-xs h-9 rounded-xl" onClick={resetCustomFilter}>Reset</Button>
-                            <Button className="flex-1 text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl" onClick={applyCustomFilter}>Filter</Button>
+                            <Button className="flex-1 text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl" onClick={() => applyCustomFilter()}>Filter</Button>
                           </div>
                         </div>
                       )}
@@ -717,7 +805,7 @@ export default function FinancePage() {
                   </PopoverContent>
                 </Popover>
 
-                <Popover>
+                <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl min-w-[120px] justify-between">
                       <div className="flex flex-col items-start">
@@ -732,7 +820,10 @@ export default function FinancePage() {
                       {["all", "income", "refund", "withdrawal"].map((type) => (
                         <button
                           key={type}
-                          onClick={() => setFilterType(type)}
+                          onClick={() => {
+                            setFilterType(type)
+                            setTypePopoverOpen(false)
+                          }}
                           className={cn(
                             "w-full flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all capitalize group",
                             filterType === type ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"
@@ -745,7 +836,7 @@ export default function FinancePage() {
                   </PopoverContent>
                 </Popover>
 
-                <Popover>
+                <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl min-w-[120px] justify-between">
                       <div className="flex flex-col items-start">
@@ -760,7 +851,10 @@ export default function FinancePage() {
                       {["all", "completed", "pending", "failed"].map((status) => (
                         <button
                           key={status}
-                          onClick={() => setFilterStatus(status)}
+                          onClick={() => {
+                            setFilterStatus(status)
+                            setStatusPopoverOpen(false)
+                          }}
                           className={cn(
                             "w-full flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all capitalize group",
                             filterStatus === status ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"
@@ -782,8 +876,13 @@ export default function FinancePage() {
           </div>
 
           <Card className="border-0 shadow-sm bg-white rounded-[32px] overflow-hidden">
-            <div className="rounded-[32px] border border-slate-100 overflow-hidden">
-              <Table>
+            <div className="rounded-[32px] border border-slate-100 overflow-hidden relative">
+              {isTableLoading && (
+                <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                  <LoadingSpinner size={32} />
+                </div>
+              )}
+              <Table className={cn(isTableLoading && "opacity-50 transition-opacity")}>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="border-b-slate-100 hover:bg-transparent">
                     <TableHead className="w-[200px] h-12">Date & Time</TableHead>
