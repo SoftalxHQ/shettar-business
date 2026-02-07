@@ -88,7 +88,7 @@ const MOCK_ANALYTICS_DATA = [
 ]
 
 export default function FinancePage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [balances, setBalances] = useState<BusinessDetails | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -148,6 +148,12 @@ export default function FinancePage() {
         }
 
         const businessRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}`, { headers })
+
+        if (businessRes.status === 401) {
+          logout(true)
+          return
+        }
+
         if (businessRes.ok) {
           const businessData = await businessRes.json()
           setBalances(businessData)
@@ -160,6 +166,10 @@ export default function FinancePage() {
         if (filterStatus !== "all") params.append("status", filterStatus)
 
         const transactionsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/transactions?${params.toString()}`, { headers })
+        if (transactionsRes.status === 401) {
+          logout(true)
+          return
+        }
         if (transactionsRes.ok) {
           const transactionsData = await transactionsRes.json()
           const mappedTransactions: Transaction[] = transactionsData.map((t: any) => ({
@@ -204,6 +214,12 @@ export default function FinancePage() {
           "X-Business-Id": businessId
         }
       })
+
+      if (res.status === 401) {
+        logout(true)
+        return
+      }
+
       if (res.ok) {
         const data = await res.json()
         setPeriodBalances(data)
