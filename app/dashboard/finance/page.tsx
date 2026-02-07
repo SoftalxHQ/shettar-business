@@ -112,6 +112,15 @@ export default function FinancePage() {
   const [isCustomMode, setIsCustomMode] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [analyticsPeriod, setAnalyticsPeriod] = useState("1y")
+  const [periodBalances, setPeriodBalances] = useState<{
+    pending: number;
+    refund: number;
+    cash: number;
+    pos: number;
+    onsite: number;
+    withdrawable: number;
+  }>({ pending: 0, refund: 0, cash: 0, pos: 0, onsite: 0, withdrawable: 0 })
+  const [loadingStats, setLoadingStats] = useState(false)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -144,7 +153,13 @@ export default function FinancePage() {
           setBalances(businessData)
         }
 
-        const transactionsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/transactions`, { headers })
+        const params = new URLSearchParams()
+        if (startDate) params.append("start_date", format(startDate, "yyyy-MM-dd"))
+        if (endDate) params.append("end_date", format(endDate, "yyyy-MM-dd"))
+        if (filterType !== "all") params.append("transaction_type", filterType)
+        if (filterStatus !== "all") params.append("status", filterStatus)
+
+        const transactionsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/transactions?${params.toString()}`, { headers })
         if (transactionsRes.ok) {
           const transactionsData = await transactionsRes.json()
           const mappedTransactions: Transaction[] = transactionsData.map((t: any) => ({
@@ -166,16 +181,46 @@ export default function FinancePage() {
       }
     }
     fetchData()
-  }, [businessId])
+  }, [businessId, startDate, endDate, filterType, filterStatus])
+
+  const fetchBalanceStats = async (start?: Date, end?: Date) => {
+    if (!businessId) return
+    try {
+      setLoadingStats(true)
+      const token = getAuthToken()
+      let url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user_businesses/${businessId}/balance_stats`
+
+      const params = new URLSearchParams()
+      if (start) params.append("start_date", format(start, "yyyy-MM-dd"))
+      if (end) params.append("end_date", format(end, "yyyy-MM-dd"))
+
+      const queryString = params.toString()
+      if (queryString) url += `?${queryString}`
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Business-Id": businessId
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPeriodBalances(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch balance stats", error)
+    } finally {
+      setLoadingStats(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchBalanceStats(balanceStartDate, balanceEndDate)
+  }, [balanceStartDate, balanceEndDate, businessId])
 
   const getFilteredTransactions = () => {
     let filtered = [...transactions]
-    if (filterType !== "all") {
-      filtered = filtered.filter(t => t.type === filterType)
-    }
-    if (filterStatus !== "all") {
-      filtered = filtered.filter(t => t.status === filterStatus)
-    }
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(t =>
@@ -184,12 +229,6 @@ export default function FinancePage() {
         (t.bookingCode && t.bookingCode.toLowerCase().includes(query)) ||
         t.amount.toString().includes(query)
       )
-    }
-    if (startDate && endDate) {
-      filtered = filtered.filter(t => {
-        const tDate = new Date(t.date)
-        return tDate >= startOfDay(startDate) && tDate <= endOfDay(endDate)
-      })
     }
     return filtered
   }
@@ -300,26 +339,7 @@ export default function FinancePage() {
     toast.success(`Exporting ${getFilteredTransactions().length} transactions...`)
   }
 
-  const getBalanceTotals = () => {
-    let filtered = [...transactions]
-    if (balanceStartDate && balanceEndDate) {
-      filtered = filtered.filter(t => {
-        const tDate = new Date(t.date)
-        return tDate >= startOfDay(balanceStartDate) && tDate <= endOfDay(balanceEndDate)
-      })
-    }
-
-    return {
-      pending: filtered.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0),
-      refund: filtered.filter(t => t.type === 'refund').reduce((sum, t) => sum + t.amount, 0),
-      cash: filtered.filter(t => t.method === 'cash').reduce((sum, t) => sum + (t.type === 'income' ? t.amount : 0), 0),
-      pos: filtered.filter(t => t.method === 'pos').reduce((sum, t) => sum + (t.type === 'income' ? t.amount : 0), 0),
-      onsite: filtered.filter(t => t.method === 'onsite').reduce((sum, t) => sum + (t.type === 'income' ? t.amount : 0), 0),
-      withdrawable: Number(balances?.withdrawable_balance || 0) // Keep as snapshot
-    }
-  }
-
-  const balanceTotals = getBalanceTotals()
+  const balanceTotals = periodBalances
 
   const filteredTransactions = getFilteredTransactions()
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
@@ -543,11 +563,11 @@ export default function FinancePage() {
             </Card>
 
             {[
-              { title: "Pending Balance", value: balanceTotals.pending, icon: RefreshCcw, color: "orange" },
-              { title: "Refund Balance", value: balanceTotals.refund, icon: ArrowDownLeft, color: "red" },
-              { title: "Cash Balance", value: balanceTotals.cash, icon: Banknote, color: "emerald" },
-              { title: "POS Balance", value: balanceTotals.pos, icon: CreditCard, color: "blue" },
-              { title: "Onsite Payment", value: balanceTotals.onsite, icon: DollarSign, color: "purple" },
+              { title: "Pending Balance", value: balanceTotals.pending, icon: RefreshCcw, color: "orange", desc: "Escrow (Wallet/Card)" },
+              { title: "Refund Balance", value: balanceTotals.refund, icon: ArrowDownLeft, color: "red", desc: "Total reversals" },
+              { title: "Cash Balance", value: balanceTotals.cash, icon: Banknote, color: "emerald", desc: "Physical cash on-site" },
+              { title: "POS / Transfer", value: balanceTotals.pos, icon: CreditCard, color: "blue", desc: "Terminal & Bank transfers" },
+              { title: "Total Onsite", value: balanceTotals.onsite, icon: DollarSign, color: "purple", desc: "Cash + POS + Transfer" },
             ].map((card, i) => (
               <Card key={i} className="border-0 shadow-sm rounded-3xl transition-all hover:scale-[1.02] bg-white">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -558,7 +578,7 @@ export default function FinancePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-slate-900">₦{Number(card.value || 0).toLocaleString()}</div>
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">{balanceRangeSelection === "All time" ? "Total all time" : `Total for ${balanceRangeSelection.toLowerCase()}`}</p>
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">{card.desc} • {balanceRangeSelection === "All time" ? "All time" : `For ${balanceRangeSelection.toLowerCase()}`}</p>
                 </CardContent>
               </Card>
             ))}
