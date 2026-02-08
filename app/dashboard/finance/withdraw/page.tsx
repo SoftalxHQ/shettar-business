@@ -71,7 +71,7 @@ export default function WithdrawalPage() {
         const bankAccountsRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, { headers })
         if (bankAccountsRes.ok) {
           const bankAccountsData = await bankAccountsRes.json()
-          setBankAccounts(bankAccountsData)
+          setBankAccounts(bankAccountsData.data || bankAccountsData)
         }
       } catch (error) {
         console.error("Failed to fetch withdrawal data:", error)
