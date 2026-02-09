@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { isTauri, nativeScan } from "@/lib/tauri"
 
 interface Reservation {
   id: number
@@ -166,6 +167,14 @@ export default function ScanPage() {
     }
 
     verifyBooking(code)
+  }
+
+  const handleNativeScan = async () => {
+    const scannnedCode = await nativeScan();
+    if (scannnedCode) {
+      setCode(scannnedCode);
+      verifyBooking(scannnedCode);
+    }
   }
 
   const handleReset = () => {
@@ -525,14 +534,21 @@ export default function ScanPage() {
             {result === null && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Visual Scanner Area */}
-                <div className="relative group cursor-pointer">
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={isTauri() ? handleNativeScan : undefined}
+                >
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-slate-50 border-2 border-dashed border-indigo-200 rounded-xl p-6 flex flex-col items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-all">
                     <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-sm mb-3">
                       <QrCode className="w-8 h-8" />
                     </div>
-                    <p className="font-medium text-sm">Ready to Scan</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Point scanner at QR code</p>
+                    <p className="font-medium text-sm">
+                      {isTauri() ? "Tap to Scan QR Code" : "Ready to Scan"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      {isTauri() ? "Use device camera" : "Point scanner at QR code"}
+                    </p>
                   </div>
                 </div>
 

@@ -37,6 +37,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { setupNativeWindow } from "@/lib/tauri"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -65,6 +66,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   useEffect(() => {
     setMounted(true)
+    setupNativeWindow()
   }, [])
 
   useEffect(() => {

@@ -485,50 +485,73 @@ export default function SignupPage() {
       </div>
 
       {/* Right side - Business cover image */}
-      <div className="hidden lg:block relative bg-gradient-to-br from-blue-600 to-blue-800">
+      <div className="hidden lg:block relative overflow-hidden">
+        {/* Background Image with Overlay */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-20"
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-10000 hover:scale-105"
           style={{
-            backgroundImage: "url(/placeholder.svg?height=1080&width=1920&query=luxury hotel lobby)",
+            backgroundImage: "url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920')",
           }}
         />
-        <div className="relative h-full flex flex-col items-center justify-center p-12 text-white">
-          <h2 className="text-4xl font-bold mb-4 text-balance">Start Your Hotel Management Journey</h2>
-          <p className="text-xl text-blue-100 max-w-md text-center text-balance mb-8">
-            Join Abri and streamline your hotel operations with our comprehensive management system
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 via-indigo-700/80 to-blue-900/90" />
+
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+          <div className="absolute top-10 left-10 w-64 h-64 border border-white rounded-full" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 border border-white rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:40px_40px]" />
+        </div>
+
+        <div className="relative h-full flex flex-col items-center justify-center p-16 text-white text-center">
+          <div className="mb-8 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl animate-in zoom-in duration-700">
+            <Hotel className="w-12 h-12 text-blue-200" />
+          </div>
+
+          <h2 className="text-4xl xl:text-5xl font-bold mb-6 tracking-tight text-balance">
+            Start Your Hotel <br />
+            <span className="text-blue-200">Management Journey</span>
+          </h2>
+
+          <p className="text-lg xl:text-xl text-blue-100/90 max-w-md mb-12 leading-relaxed text-balance">
+            Join Abri and streamline your hotel operations with our comprehensive management system.
           </p>
 
-          <div className="mt-12 space-y-6 max-w-md">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-6 h-6" />
+          <div className="space-y-6 w-full max-w-sm">
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 flex items-center gap-4 text-left">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-6 h-6 text-blue-200" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Easy Setup</h3>
-                <p className="text-sm text-blue-100">Get started in minutes with our simple 2-step registration</p>
+                <h3 className="font-semibold text-white">Easy Setup</h3>
+                <p className="text-xs text-blue-100/70">Simple 2-step registration</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-6 h-6" />
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 flex items-center gap-4 text-left">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-6 h-6 text-blue-200" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Business-First</h3>
-                <p className="text-sm text-blue-100">Each device is securely bound to your business</p>
+                <h3 className="font-semibold text-white">Business-First</h3>
+                <p className="text-xs text-blue-100/70">Securely bound to your property</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
-                <User className="w-6 h-6" />
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 flex items-center gap-4 text-left">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <User className="w-6 h-6 text-blue-200" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Team Ready</h3>
-                <p className="text-sm text-blue-100">Add staff members and manage roles easily</p>
+                <h3 className="font-semibold text-white">Team Ready</h3>
+                <p className="text-xs text-blue-100/70">Manage roles and permissions</p>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Footer branding */}
+        <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
+          <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
         </div>
       </div>
     </div>
