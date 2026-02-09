@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 
 import { toast } from "sonner"
+import { isTauri, printHtml } from "@/lib/tauri"
 
 interface Reservation {
   booking_id: string
@@ -206,6 +207,10 @@ export default function BookingSuccessPage() {
           }
         }, 1000)
       }
+    }
+
+    if (isTauri()) {
+      printHtml(receiptHtml)
     }
   }
 

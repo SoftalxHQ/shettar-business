@@ -28,6 +28,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { isTauri, printHtml } from "@/lib/tauri"
 
 interface Reservation {
   id: number
@@ -389,6 +390,10 @@ export default function BookingsPage() {
           }
         }, 1000)
       }
+    }
+
+    if (isTauri()) {
+      printHtml(receiptHtml)
     }
   }
 

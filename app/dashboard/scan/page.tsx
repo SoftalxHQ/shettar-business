@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { isTauri, nativeScan } from "@/lib/tauri"
+import { isTauri, nativeScan, printHtml } from "@/lib/tauri"
 
 interface Reservation {
   id: number
@@ -464,6 +464,10 @@ export default function ScanPage() {
           document.body.removeChild(iframe)
         }, 1000)
       }, 500)
+    }
+
+    if (isTauri()) {
+      printHtml(receiptHtml)
     }
   }
 

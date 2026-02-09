@@ -9,6 +9,7 @@
     "core:default",
     "notification:default",
     "shell:default",
-    "os:default"
+    "os:default",
+    "core:webview:allow-print"
   ]
 }

@@ -254,3 +254,53 @@
     .flatpickr-weekday { @apply text-slate-500 font-medium; }
     .flatpickr-calendar.arrowTop:before, .flatpickr-calendar.arrowTop:after { @apply border-b-white; }
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+
+  /* Isolated hide to prevent reflow on the original screen UI */
+  body > *:not(#abri-print-container) {
+    display: none !important;
+  }
+
+  #abri-print-container {
+    display: block !important;
+    visibility: visible !important;
+    width: 58mm !important;
+    padding: 4mm 2mm !important;
+    background: white !important;
+    text-align: left;
+    margin: 0 !important;
+  }
+
+  .receipt-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 9pt !important;
+    line-height: 1.2 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+  }
+
+  .receipt-content * {
+    color: black !important;
+    background: transparent !important;
+  }
+
+  .receipt-content img {
+    max-width: 35mm !important;
+    height: auto !important;
+    margin: 0 auto 5mm auto !important;
+    display: block !important;
+  }
+}
+
+/* Hidden container for print content - hidden from screen but available for printer */
+#abri-print-container {
+  display: none;
+}
