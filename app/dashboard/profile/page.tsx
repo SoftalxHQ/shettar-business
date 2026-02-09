@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [imgError, setImgError] = useState(false)
 
   const [formData, setFormData] = useState({
     first_name: user?.first_name || "",
@@ -126,7 +127,11 @@ export default function ProfilePage() {
 
         // Reload to get fresh data everywhere
         // Update user in context with new avatar
-        updateUser({ profilePicture: data.user.avatar_url || user?.profilePicture })
+        let profilePic = data.user.avatar_url || user?.profilePicture
+        if (profilePic && profilePic.startsWith('/')) {
+          profilePic = `${API_URL}${profilePic}`
+        }
+        updateUser({ profilePicture: profilePic })
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
@@ -234,14 +239,17 @@ export default function ProfilePage() {
                       width={80}
                       height={80}
                       className="rounded-full object-cover"
+                      unoptimized
                     />
-                  ) : user?.profilePicture ? (
+                  ) : (user?.profilePicture && !imgError) ? (
                     <Image
                       src={user.profilePicture}
                       alt={user.name}
                       width={80}
                       height={80}
                       className="rounded-full object-cover"
+                      onError={() => setImgError(true)}
+                      unoptimized={user.profilePicture.startsWith('data:')}
                     />
                   ) : (
                     <AvatarFallback className="bg-purple-100 text-purple-700 text-2xl font-semibold">

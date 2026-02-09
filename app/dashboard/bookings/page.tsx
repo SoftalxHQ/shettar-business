@@ -23,6 +23,11 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
+import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Reservation {
   id: number
@@ -61,6 +66,57 @@ export default function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [businessDetails, setBusinessDetails] = useState<{ logo_url?: string; check_in?: string; check_out?: string } | null>(null)
+
+  const [rangeSelection, setRangeSelection] = useState("This month")
+  const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()))
+  const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()))
+  const [tempStartDate, setTempStartDate] = useState<Date | undefined>(startOfMonth(new Date()))
+  const [tempEndDate, setTempEndDate] = useState<Date | undefined>(endOfMonth(new Date()))
+  const [isCustomMode, setIsCustomMode] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+
+  const setRange = (range: string) => {
+    const today = new Date()
+    setRangeSelection(range)
+    setIsCustomMode(false)
+
+    if (range !== "Custom") {
+      setPopoverOpen(false)
+    }
+
+    switch (range) {
+      case "Today":
+        setStartDate(startOfToday())
+        setEndDate(endOfToday())
+        break
+      case "Last 7 days":
+        setStartDate(subDays(today, 6))
+        setEndDate(today)
+        break
+      case "This month":
+        setStartDate(startOfMonth(today))
+        setEndDate(endOfMonth(today))
+        break
+      case "Last month":
+        const lastMonth = subMonths(today, 1)
+        setStartDate(startOfMonth(lastMonth))
+        setEndDate(endOfMonth(lastMonth))
+        break
+      case "All time":
+        setStartDate(undefined)
+        setEndDate(undefined)
+        break
+      case "Custom":
+        setIsCustomMode(true)
+        break
+    }
+  }
+
+  const applyCustomFilter = () => {
+    setStartDate(tempStartDate)
+    setEndDate(tempEndDate)
+    setPopoverOpen(false)
+  }
 
   // Check permissions
   useEffect(() => {
@@ -111,7 +167,11 @@ export default function BookingsPage() {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
         const token = getAuthToken()
 
-        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations`, {
+        const params = new URLSearchParams()
+        if (startDate) params.append("start_date", format(startDate, "yyyy-MM-dd"))
+        if (endDate) params.append("end_date", format(endDate, "yyyy-MM-dd"))
+
+        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -120,25 +180,12 @@ export default function BookingsPage() {
 
         if (response.ok) {
           const data = await response.json()
-          // console.log('Reservations data from API:', data)
-          // console.log('First reservation payment_method:', data[0]?.payment_method)
-          // console.log('Payment method labels:', paymentMethodLabels)
-          // Sort by latest created first
-          data.sort((a: Reservation, b: Reservation) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          )
+          // API now handles sorting in the updated controller
           setReservations(data)
         } else {
           if (response.status === 401) {
-            const errorData = await response.json().catch(() => ({}))
-            if (
-              errorData.errors?.[0]?.id === 'expiration' ||
-              errorData.errors?.[0]?.message === 'Token has expired' ||
-              errorData.message === 'Signature has expired'
-            ) {
-              logout(true)
-              return
-            }
+            logout(true)
+            return
           }
           console.error("Failed to fetch reservations")
           toast.error("Failed to fetch reservations")
@@ -151,7 +198,7 @@ export default function BookingsPage() {
     }
 
     fetchReservations()
-  }, [businessId, user])
+  }, [businessId, user, startDate, endDate])
 
   // Helper function to determine if a reservation is active, upcoming, or past
   const getReservationStatus = (reservation: Reservation) => {
@@ -527,17 +574,119 @@ export default function BookingsPage() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
+        {/* Filters and Date Range */}
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full md:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by guest name, room, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-11 rounded-xl"
             />
           </div>
+
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl justify-between min-w-[200px] w-full md:w-auto">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-indigo-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1 font-mono">Date Range</span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {rangeSelection === "Custom" ? (
+                        startDate && endDate ? `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}` : "Custom Range"
+                      ) : rangeSelection}
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-200", popoverOpen && "rotate-180")} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] p-0 rounded-2xl shadow-2xl border-slate-100 overflow-hidden" align="end">
+              <div className="p-2 border-b border-slate-50 bg-slate-50/50">
+                <div className="grid grid-cols-2 gap-1">
+                  {["Today", "Last 7 days", "This month", "Last month", "All time", "Custom"].map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setRange(range)}
+                      className={cn(
+                        "px-3 py-2 text-xs font-semibold rounded-lg transition-all text-left flex items-center justify-between group",
+                        rangeSelection === range
+                          ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200"
+                          : "text-slate-500 hover:bg-white hover:text-slate-900"
+                      )}
+                    >
+                      {range}
+                      {rangeSelection === range && <div className="w-1 h-1 bg-indigo-600 rounded-full" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-white">
+                {isCustomMode && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">Start date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                            {tempStartDate ? format(tempStartDate, "PPP") : "Select start date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={tempStartDate}
+                            onSelect={setTempStartDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">End date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                            {tempEndDate ? format(tempEndDate, "PPP") : "Select end date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={tempEndDate}
+                            onSelect={setTempEndDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white"
+                        onClick={applyCustomFilter}
+                      >
+                        Apply
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1 rounded-lg"
+                        onClick={() => setIsCustomMode(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Tabs for filtering */}

@@ -21,7 +21,7 @@ import { ChevronDown } from "lucide-react"
 import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
 
 export default function AnalyticsPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
 
   const [rangeSelection, setRangeSelection] = useState("This month")
@@ -100,6 +100,11 @@ export default function AnalyticsPage() {
           'X-Business-Id': businessId || ''
         }
       })
+      if (response.status === 401) {
+        logout(true)
+        return
+      }
+
       if (response.ok) {
         const data = await response.json()
         setAnalyticsData(data)

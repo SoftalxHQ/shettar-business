@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import type { RoomType } from "@/lib/room-types"
 import { AMENITY_CATEGORIES, AMENITY_KEYS, formatAmenityName } from "@/lib/room-types"
+import Image from "next/image"
 
 interface RoomTypeDialogProps {
   roomType: RoomType | null
@@ -222,15 +223,15 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                 <div className="space-y-2">
                   <Label htmlFor="price">Price (per night) *</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
                     <Input
                       id="price"
                       type="number"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      placeholder="250.00"
+                      placeholder="25000"
                       className="pl-7"
-                      step="0.01"
+                      step="1"
                       min="0"
                       required
                     />
@@ -240,15 +241,15 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                 <div className="space-y-2">
                   <Label htmlFor="oldPrice">Old Price (optional)</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
                     <Input
                       id="oldPrice"
                       type="number"
                       value={oldPrice}
                       onChange={(e) => setOldPrice(e.target.value)}
-                      placeholder="300.00"
+                      placeholder="30000"
                       className="pl-7"
-                      step="0.01"
+                      step="1"
                       min="0"
                     />
                   </div>
@@ -301,7 +302,13 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                     {imagePreviews.map((preview, index) => (
                       <div key={index} className="relative aspect-video border-2 border-gray-200 rounded-lg overflow-hidden group">
-                        <img src={preview} alt={`Image ${index + 1}`} className="w-full h-full object-cover" />
+                        <Image
+                          src={preview}
+                          alt={`Image ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, 33vw"
+                        />
                         <button
                           type="button"
                           onClick={() => removeImage(index)}

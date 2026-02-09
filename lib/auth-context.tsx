@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { createContext, useContext, useState, useEffect, useRef } from "react"
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "./mock-auth"
 import {
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const logout = async (skipApiCall = false) => {
+  const logout = useCallback(async (skipApiCall = false) => {
     if (isLoggingOutRef.current) return
     isLoggingOutRef.current = true
 
@@ -127,7 +127,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       router.push("/login")
     }
-  }
+  }, [businessName, router])
+
+  // Global fetch interceptor to handle 401 Unauthorized (expired tokens)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args);
+
+        if (response.status === 401) {
+          // Get the URL from search parameters or the first argument
+          const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url || '';
+
+          // Don't intercept 401s for login/logout requests to avoid infinite loops
+          if (!url.includes('/users/sign_in') && !url.includes('/users/sign_out')) {
+            console.warn("Unauthorized API call detected, logging out...", url);
+            logout(true);
+          }
+        }
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
 
   const changeBusiness = () => {
     setUser(null)
@@ -150,10 +180,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const contextValue = useMemo(() => ({
+    user,
+    businessId,
+    businessName,
+    deviceId,
+    login,
+    logout,
+    changeBusiness,
+    updateUser,
+    isLoading,
+    isFirstTimeSetup
+  }), [user, businessId, businessName, deviceId, login, logout, changeBusiness, updateUser, isLoading, isFirstTimeSetup])
+
   return (
-    <AuthContext.Provider
-      value={{ user, businessId, businessName, deviceId, login, logout, changeBusiness, updateUser, isLoading, isFirstTimeSetup }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

@@ -63,7 +63,6 @@ export default function BookingSuccessPage() {
       if (response.ok) {
         const data = await response.json()
         setReservation(data.data)
-        toast.success("Booking created successfully")
       }
     } catch (error) {
       console.error("Failed to fetch reservation:", error)

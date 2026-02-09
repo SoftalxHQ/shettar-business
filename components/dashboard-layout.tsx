@@ -61,6 +61,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const { user, logout, changeBusiness, businessId, isLoading } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -211,13 +212,15 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-2">
                   <Avatar className="h-8 w-8">
-                    {user.profilePicture && (
+                    {user.profilePicture && !imgError && (
                       <Image
                         src={user.profilePicture}
                         alt={user.name}
                         width={32}
                         height={32}
                         className="rounded-full object-cover"
+                        onError={() => setImgError(true)}
+                        unoptimized={user.profilePicture.startsWith('data:')}
                       />
                     )}
                     <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs">{initials}</AvatarFallback>

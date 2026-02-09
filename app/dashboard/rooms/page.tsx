@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Hotel, Plus, Loader2, Bed, CheckCircle, XCircle } from "lucide-react"
+import { Hotel, Plus, Loader2, Bed, CheckCircle, XCircle, DollarSign } from "lucide-react"
 import { toast } from "sonner"
 import type { RoomType } from "@/lib/room-types"
 import { RoomTypeCard } from "./components/RoomTypeCard"
@@ -230,10 +230,10 @@ export default function RoomsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg Price</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${avgPrice.toFixed(0)}</div>
+              <div className="text-2xl font-bold">₦{avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
               <p className="text-xs text-muted-foreground">
                 Per night
               </p>

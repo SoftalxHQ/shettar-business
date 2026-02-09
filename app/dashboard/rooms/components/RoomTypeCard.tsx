@@ -8,6 +8,7 @@ import type { RoomType } from "@/lib/room-types"
 import { getEnabledAmenities, formatAmenityName, countEnabledAmenities } from "@/lib/room-types"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
+import Image from "next/image"
 
 interface RoomTypeCardProps {
   roomType: RoomType
@@ -49,10 +50,12 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
         <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-blue-200">
           {hasImages ? (
             <>
-              <img
+              <Image
                 src={roomType.images_url![currentImageIndex]}
                 alt={`${roomType.name} - Image ${currentImageIndex + 1}`}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
               {roomType.images_url!.length > 1 && (
                 <>
@@ -106,11 +109,11 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
             </div>
             <div className="text-right shrink-0">
               <div className="text-2xl font-bold text-blue-600">
-                ${Number(roomType.price).toFixed(0)}
+                ₦{Number(roomType.price).toLocaleString()}
               </div>
               {roomType.old_price && (
                 <div className="text-sm text-muted-foreground line-through">
-                  ${Number(roomType.old_price).toFixed(0)}
+                  ₦{Number(roomType.old_price).toLocaleString()}
                 </div>
               )}
               <div className="text-xs text-muted-foreground">per night</div>

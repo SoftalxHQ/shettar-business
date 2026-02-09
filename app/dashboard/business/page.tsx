@@ -44,7 +44,7 @@ const revenueStats = [
 ]
 
 export default function BusinessDashboardPage() {
-  const { user, businessId } = useAuth()
+  const { user, businessId, logout } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<any>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(true)
@@ -63,7 +63,11 @@ export default function BusinessDashboardPage() {
         try {
           const data = await api.getBusinessData<any>(`/api/v1/user_businesses/${id}/stats`)
           setStats(data)
-        } catch (error) {
+        } catch (error: any) {
+          if (error.status === 401) {
+            logout(true)
+            return
+          }
           console.error("Failed to fetch stats:", error)
         } finally {
           setIsLoadingStats(false)

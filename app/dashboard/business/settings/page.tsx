@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import Image from "next/image"
 
 interface BusinessData {
   id: number
@@ -469,11 +470,11 @@ export default function BusinessSettingsPage() {
                 <CardContent className="space-y-4">
                   {logoPreview ? (
                     <div className="relative w-40 h-40 border-2 border-gray-200 rounded-lg overflow-hidden">
-                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                      <Image src={logoPreview} alt="Logo preview" fill className="object-cover" />
                       <button
                         type="button"
                         onClick={removeLogoPreview}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -520,11 +521,17 @@ export default function BusinessSettingsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative aspect-video border-2 border-gray-200 rounded-lg overflow-hidden">
-                          <img src={preview} alt={`Image ${index + 1}`} className="w-full h-full object-cover" />
+                          <Image
+                            src={preview}
+                            alt={`Image ${index + 1}`}
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                            className="object-cover"
+                          />
                           <button
                             type="button"
                             onClick={() => removeImagePreview(index)}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
                           >
                             <X className="w-4 h-4" />
                           </button>
