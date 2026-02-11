@@ -10,8 +10,9 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight } from "lucide-react"
+import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -57,6 +58,8 @@ interface BusinessData {
   bicycle_rental?: boolean
   car_rental?: boolean
   shuttle_service?: boolean
+  latitude?: string
+  longitude?: string
 }
 
 export default function BusinessSettingsPage() {
@@ -71,6 +74,9 @@ export default function BusinessSettingsPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [removeLogo, setRemoveLogo] = useState(false)
   const [removeImages, setRemoveImages] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [showMapModal, setShowMapModal] = useState(false)
+  const [mapLoading, setMapLoading] = useState(true)
 
   // Check admin access
   useEffect(() => {
@@ -124,6 +130,33 @@ export default function BusinessSettingsPage() {
 
     fetchBusinessData()
   }, [businessId])
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser")
+      return
+    }
+
+    setIsGettingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (businessData) {
+          setBusinessData({
+            ...businessData,
+            latitude: position.coords.latitude.toFixed(6),
+            longitude: position.coords.longitude.toFixed(6)
+          })
+          toast.success("Location captured successfully!")
+        }
+        setIsGettingLocation(false)
+      },
+      (error) => {
+        console.error("Error getting location:", error)
+        toast.error("Unable to retrieve your location. Please check your permissions.")
+        setIsGettingLocation(false)
+      }
+    )
+  }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -185,6 +218,8 @@ export default function BusinessSettingsPage() {
         formData.append("business[zip_code]", businessData.zip_code)
         formData.append("business[check_in]", businessData.check_in)
         formData.append("business[check_out]", businessData.check_out)
+        if (businessData.latitude) formData.append("business[latitude]", businessData.latitude)
+        if (businessData.longitude) formData.append("business[longitude]", businessData.longitude)
 
         // Amenities
         const amenities = [
@@ -415,6 +450,60 @@ export default function BusinessSettingsPage() {
                         required
                         placeholder="12345"
                       />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="latitude">Latitude</Label>
+                        <Input
+                          id="latitude"
+                          value={businessData.latitude || ""}
+                          onChange={(e) => setBusinessData({ ...businessData, latitude: e.target.value })}
+                          placeholder="6.5244"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="longitude">Longitude</Label>
+                        <Input
+                          id="longitude"
+                          value={businessData.longitude || ""}
+                          onChange={(e) => setBusinessData({ ...businessData, longitude: e.target.value })}
+                          placeholder="3.3792"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={getCurrentLocation}
+                        disabled={isGettingLocation}
+                        className="w-full md:w-auto"
+                      >
+                        {isGettingLocation ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Getting Location...
+                          </>
+                        ) : (
+                          <>
+                            <LocateFixed className="w-4 h-4 mr-2" />
+                            Use Current Location
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setShowMapModal(true)}
+                        disabled={!businessData.latitude || !businessData.longitude}
+                        className="w-full md:w-auto"
+                      >
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Preview on Map
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -648,6 +737,104 @@ export default function BusinessSettingsPage() {
           </div>
         </form>
       </div>
-    </DashboardLayout >
+
+      {/* Map Modal */}
+      {showMapModal && businessData && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => { setShowMapModal(false); setMapLoading(true); }}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">{(businessData as any)?.name} - Location Preview</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {(businessData as any)?.address}, {(businessData as any)?.city}, {(businessData as any)?.state} {(businessData as any)?.zip_code}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setShowMapModal(false); setMapLoading(true); }}
+                className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Latitude</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{(businessData as any)?.latitude}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Longitude</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{(businessData as any)?.longitude}</p>
+                  </div>
+                </div>
+
+                <div className="w-full h-[450px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative bg-slate-100 dark:bg-slate-800 shadow-inner">
+                  {mapLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 z-10 transition-opacity duration-300">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-indigo-200 dark:border-indigo-900/30 border-t-indigo-600 rounded-full animate-spin"></div>
+                        <p className="text-sm font-medium text-slate-500 animate-pulse">Loading interactive map...</p>
+                      </div>
+                    </div>
+                  )}
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.google.com/maps?q=${(businessData as any)?.latitude},${(businessData as any)?.longitude}&hl=en&z=15&output=embed`}
+                    allowFullScreen
+                    onLoad={() => setMapLoading(false)}
+                    className={cn("transition-opacity duration-500", mapLoading ? "opacity-0" : "opacity-100")}
+                  ></iframe>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button
+                    asChild
+                    className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                  >
+                    <a
+                      href={`https://www.google.com/maps?q=${(businessData as any)?.latitude},${(businessData as any)?.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Open in Google Maps
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="w-full h-12 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <a
+                      href={`https://maps.apple.com/?q=${(businessData as any)?.latitude},${(businessData as any)?.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <ArrowRight className="w-4 h-4 text-slate-400" />
+                      Open in Apple Maps
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   )
 }
