@@ -139,7 +139,7 @@ export default function RoomsPage() {
   }
 
   const handleManageRooms = (id: number) => {
-    router.push(`/dashboard/rooms/${id}/rooms`)
+    router.push(`/dashboard/rooms/manage?id=${id}`)
   }
 
   // Calculate statistics
@@ -149,8 +149,13 @@ export default function RoomsPage() {
   const totalAvailable = Array.isArray(roomTypes)
     ? roomTypes.reduce((sum, rt) => sum + (rt.available_rooms || 0), 0)
     : 0
-  const avgPrice = Array.isArray(roomTypes) && roomTypes.length > 0
-    ? roomTypes.reduce((sum, rt) => sum + rt.price, 0) / roomTypes.length
+
+  // Calculate average price only from room types with valid prices
+  const roomTypesWithPrice = Array.isArray(roomTypes)
+    ? roomTypes.filter(rt => rt.price && !isNaN(Number(rt.price)))
+    : []
+  const avgPrice = roomTypesWithPrice.length > 0
+    ? roomTypesWithPrice.reduce((sum, rt) => sum + Number(rt.price), 0) / roomTypesWithPrice.length
     : 0
 
   if (user?.role !== "admin" && !user?.permissions?.rooms?.view) {

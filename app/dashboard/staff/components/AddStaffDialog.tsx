@@ -86,6 +86,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
             last_name: lastName,
             title,
             permissions,
+            is_owner: selectedPreset === "full_access",
           }),
         }
       )
