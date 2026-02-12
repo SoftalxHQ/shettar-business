@@ -317,27 +317,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </Link>
-
-          {businessInfo?.latitude && businessInfo?.longitude && (
-            <button
-              onClick={() => setShowMapModal(true)}
-              className="text-left"
-            >
-              <Card className="hover:shadow-lg transition-all duration-300 border-0 shadow-md group cursor-pointer overflow-hidden">
-                <CardContent className="p-6 flex items-start space-x-4">
-                  <div className="p-3 bg-rose-100 text-rose-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                    <MapPin className="w-8 h-8" />
-                  </div>
-                  <div className="space-y-1 text-left">
-                    <h3 className="font-semibold text-lg text-slate-900">Business Location</h3>
-                    <p className="text-sm text-slate-500">
-                      View business location on Google Maps
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
-          )}
         </div>
 
         {/* Room Status */}
