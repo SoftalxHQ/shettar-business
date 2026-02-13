@@ -31,6 +31,7 @@ interface BusinessData {
   business_unique_id: string
   logo_url?: string
   images_url?: string[]
+  images?: { id: number, url: string }[]
   // Amenities
   swimming_pool?: boolean
   gym?: boolean
@@ -74,6 +75,7 @@ export default function BusinessSettingsPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [removeLogo, setRemoveLogo] = useState(false)
   const [removeImages, setRemoveImages] = useState(false)
+  const [deletedImageIds, setDeletedImageIds] = useState<number[]>([])
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [showMapModal, setShowMapModal] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
@@ -110,6 +112,7 @@ export default function BusinessSettingsPage() {
           if (data.images_url) {
             setImagePreviews(data.images_url)
           }
+          setDeletedImageIds([]) // Reset deleted IDs on load
         } else {
           if (response.status === 401) {
             const errorData = await response.json().catch(() => ({}))
@@ -194,8 +197,22 @@ export default function BusinessSettingsPage() {
   }
 
   const removeImagePreview = (index: number) => {
+    const previewToRemove = imagePreviews[index]
+    const isNewImage = previewToRemove.startsWith('data:') || previewToRemove.startsWith('blob:')
+
+    if (isNewImage) {
+      // Find the relative index in imageFiles
+      const newImagesBefore = imagePreviews.slice(0, index).filter(p => p.startsWith('data:') || p.startsWith('blob:')).length
+      setImageFiles((prev) => prev.filter((_, i) => i !== newImagesBefore))
+    } else {
+      // It's an existing image. Find its ID from the businessData
+      const existingImage = businessData?.images?.find(img => img.url === previewToRemove)
+      if (existingImage) {
+        setDeletedImageIds(prev => [...prev, existingImage.id])
+      }
+    }
+
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
-    setImageFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -247,7 +264,16 @@ export default function BusinessSettingsPage() {
         imageFiles.forEach((file) => {
           formData.append("business[images][]", file)
         })
-      } else if (removeImages) {
+      }
+
+      // Append deleted image IDs
+      if (deletedImageIds.length > 0) {
+        deletedImageIds.forEach(id => {
+          formData.append("business[delete_image_ids][]", id.toString())
+        })
+      }
+
+      if (removeImages) {
         formData.append("business[remove_images]", "true")
       }
 
@@ -275,9 +301,10 @@ export default function BusinessSettingsPage() {
           setImagePreviews(data.business.images_url)
         }
 
-        // Clear file inputs
+        // Clear file inputs and tracking
         setLogoFile(null)
         setImageFiles([])
+        setDeletedImageIds([])
         setRemoveLogo(false)
         setRemoveImages(false)
       } else {
