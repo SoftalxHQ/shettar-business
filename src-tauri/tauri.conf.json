@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "abri-business",
+  "productName": "Shettar Business",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.shettar.business",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3001",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Abri Business",
+        "title": "Shettar Business",
         "width": 800,
         "height": 600,
         "resizable": true,

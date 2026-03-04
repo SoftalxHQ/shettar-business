@@ -56,7 +56,9 @@ interface Reservation {
   checked_out_by_name?: string
 }
 
-export default function BookingsPage() {
+import { Suspense } from "react"
+
+function BookingsContent() {
   const { user, businessId, businessName, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -893,5 +895,13 @@ export default function BookingsPage() {
         </Dialog>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function BookingsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+      <BookingsContent />
+    </Suspense>
   )
 }

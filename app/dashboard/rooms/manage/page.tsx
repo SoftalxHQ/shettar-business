@@ -15,7 +15,9 @@ import { BulkCreateRoomsDialog } from "../components/BulkCreateRoomsDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Link from "next/link"
 
-export default function RoomManagementPage() {
+import { Suspense } from "react"
+
+function RoomManagementContent() {
   const { businessId, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -384,5 +386,13 @@ export default function RoomManagementPage() {
         />
       )}
     </DashboardLayout>
+  )
+}
+
+export default function RoomManagementPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+      <RoomManagementContent />
+    </Suspense>
   )
 }

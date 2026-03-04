@@ -29,7 +29,10 @@ interface Reservation {
   room_number?: string
 }
 
-export default function BookingSuccessPage() {
+import { Suspense, use } from "react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
+function BookingSuccessContent() {
   const searchParams = useSearchParams()
   const bookingId = searchParams.get("booking_id")
   const { businessId, businessName } = useAuth()
@@ -289,5 +292,13 @@ export default function BookingSuccessPage() {
         </Card>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function BookingSuccessPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+      <BookingSuccessContent />
+    </Suspense>
   )
 }

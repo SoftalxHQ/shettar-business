@@ -41,7 +41,9 @@ interface Reservation {
 
 import { useSearchParams } from "next/navigation"
 
-export default function ScanPage() {
+import { Suspense } from "react"
+
+function ScanContent() {
   const { user, businessId, businessName, logout } = useAuth()
   const { toast } = useToast()
   const searchParams = useSearchParams()
@@ -718,5 +720,13 @@ export default function ScanPage() {
       </div>
 
     </DashboardLayout>
+  )
+}
+
+export default function ScanPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+      <ScanContent />
+    </Suspense>
   )
 }
