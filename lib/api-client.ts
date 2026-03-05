@@ -3,6 +3,7 @@
 import { getAuthToken, getStoredBusinessId } from "./storage"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || "development"
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean
@@ -19,6 +20,8 @@ class ApiClient {
   private getHeaders(options: RequestOptions = {}): HeadersInit {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      "X-Client-Platform": "tauri-desktop", // Identify this as the Tauri desktop app
+      "X-App-Env": APP_ENV, // Identify the environment (staging, production, etc.)
     }
 
     // Add authentication token if required
@@ -93,6 +96,8 @@ class ApiClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Client-Platform": "tauri-desktop",
+        "X-App-Env": APP_ENV,
       },
       credentials: "include", // Include cookies for sessions
       body: JSON.stringify({
@@ -132,6 +137,8 @@ class ApiClient {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        "X-Client-Platform": "tauri-desktop",
+        "X-App-Env": APP_ENV,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "include",

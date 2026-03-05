@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Hotel, ArrowLeft, AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react"
+import { api } from "@/lib/api-client"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -42,36 +43,22 @@ export default function ResetPasswordPage() {
     setIsLoading(true)
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-      const response = await fetch(`${API_URL}/users/update_password`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      await api.put("/users/update_password", {
+        user: {
+          reset_password_token: resetToken,
+          password: password,
+          password_confirmation: passwordConfirmation,
         },
-        body: JSON.stringify({
-          user: {
-            reset_password_token: resetToken,
-            password: password,
-            password_confirmation: passwordConfirmation,
-          },
-        }),
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setIsSuccess(true)
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push("/login")
-        }, 3000)
-      } else {
-        setError(data.error?.[0]?.message || "Invalid or expired reset code. Please try again.")
-      }
-    } catch (err) {
+      setIsSuccess(true)
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push("/login")
+      }, 3000)
+    } catch (err: any) {
       console.error("Reset password error:", err)
-      setError("Unable to connect to server. Please try again.")
+      setError(err.message || "Invalid or expired reset code. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -288,7 +275,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
+          <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
         </div>
       </div>
     </div>

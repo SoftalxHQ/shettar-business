@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/lib/auth-context"
 import { Hotel, AlertCircle, Info } from "lucide-react"
+import { api } from "@/lib/api-client"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,68 +36,43 @@ export default function LoginPage() {
     }
 
     try {
-      // Real API call - adjust URL as needed
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-      const response = await fetch(`${API_URL}/users/sign_in`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: {
-            email,
-            password,
-            business_id: businessIdToUse,
-          },
-        }),
-      })
-
-      const data = await response.json()
+      const data: any = await api.login(email, password, businessIdToUse)
       console.log("Login API Response:", data)
 
-      if (response.ok && data.status.code === 200) {
-        // Extract JWT token from Authorization header
-        const authHeader = response.headers.get("Authorization")
-        const token = authHeader?.replace("Bearer ", "") || ""
+      // Login with real data
+      login(
+        {
+          id: data.data.id,
+          email: data.data.email,
+          name: `${data.data.first_name} ${data.data.last_name}`,
+          first_name: data.data.first_name,
+          last_name: data.data.last_name,
+          phone_number: data.data.phone_number,
+          address: data.data.address,
+          zip_code: data.data.zip_code,
+          profilePicture: data.data.avatar_url,
+          role: (() => {
+            const apiRole = (data.data.business?.role || "staff").toLowerCase()
+            const title = (data.data.business?.title || "").toLowerCase()
 
-        // Login with real data
-        login(
-          {
-            id: data.data.id,
-            email: data.data.email,
-            name: `${data.data.first_name} ${data.data.last_name}`,
-            first_name: data.data.first_name,
-            last_name: data.data.last_name,
-            phone_number: data.data.phone_number,
-            address: data.data.address,
-            zip_code: data.data.zip_code,
-            profilePicture: data.data.avatar_url,
-            role: (() => {
-              const apiRole = (data.data.business?.role || "staff").toLowerCase()
-              const title = (data.data.business?.title || "").toLowerCase()
+            if (apiRole === "admin") return "admin"
+            if (title.includes("manager")) return "manager"
+            return apiRole
+          })(),
+          hotelId: data.data.business?.id.toString() || "",
+          hotelName: data.data.business?.name || "",
+          businessId: data.data.business?.business_unique_id || businessIdToUse || "",
+          permissions: data.data.business?.permissions,
+        },
+        data.data.business?.business_unique_id || businessIdToUse || "", // Business ID (for API calls)
+        data.data.business?.name || "Your Business", // Business Name (for display)
+        data.token,
+      )
 
-              if (apiRole === "admin") return "admin"
-              if (title.includes("manager")) return "manager"
-              return apiRole
-            })(),
-            hotelId: data.data.business?.id.toString() || "",
-            hotelName: data.data.business?.name || "",
-            businessId: data.data.business?.business_unique_id || businessIdToUse || "",
-            permissions: data.data.business?.permissions,
-          },
-          data.data.business?.business_unique_id || businessIdToUse || "", // Business ID (for API calls)
-          data.data.business?.name || "Your Business", // Business Name (for display)
-          token,
-        )
-
-        router.push("/dashboard")
-      } else {
-        setError(data.status?.message || "Invalid credentials or business ID")
-      }
+      router.push("/dashboard")
     } catch (err: any) {
       console.error("Login error:", err)
-      setError("Unable to connect to server. Please try again.")
+      setError(err.message || "Unable to connect to server. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -112,7 +88,7 @@ export default function LoginPage() {
             {/* Optional: Add Logo here if needed, or keep it clean like the theme */}
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-800">
-                {isFirstTimeSetup ? "Welcome to Abri! ✨" : "Welcome back! ✨"}
+                {isFirstTimeSetup ? "Welcome to Shettar! ✨" : "Welcome back! ✨"}
               </h1>
               <p className="text-slate-500 mt-2">
                 {isFirstTimeSetup
@@ -195,7 +171,7 @@ export default function LoginPage() {
               <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
                 <p className="text-sm text-emerald-800 font-medium mb-1">Don't have a business account?</p>
                 <p className="text-xs text-emerald-600 mb-3">
-                  Create your business and administrator account to get started with Abri.
+                  Create your business and administrator account to get started with Shettar.
                 </p>
                 <Link href="/signup">
                   <Button type="button" variant="outline" className="w-full text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 bg-white">
@@ -237,7 +213,7 @@ export default function LoginPage() {
           </h2>
 
           <p className="text-lg xl:text-xl text-indigo-100/90 max-w-md mb-12 leading-relaxed text-balance">
-            Elevate your guest experience and streamline operations with Abri's intelligent hospitality cloud.
+            Elevate your guest experience and streamline operations with Shettar's intelligent hospitality cloud.
           </p>
 
           <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
@@ -266,7 +242,7 @@ export default function LoginPage() {
 
         {/* Footer branding */}
         <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
+          <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
         </div>
       </div>
     </div>

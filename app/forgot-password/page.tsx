@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Hotel, ArrowLeft, Mail, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { api } from "@/lib/api-client"
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -26,30 +27,13 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-      const response = await fetch(`${API_URL}/users/reset_password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: {
-            email,
-          },
-        }),
+      await api.post("/users/reset_password", {
+        user: { email },
       })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setStep('reset')
-      } else {
-        setError(data.error?.[0]?.message || "Failed to send reset instructions. Please try again.")
-      }
-    } catch (err) {
+      setStep("reset")
+    } catch (err: any) {
       console.error("Forgot password error:", err)
-      setError("Unable to connect to server. Please try again.")
+      setError(err.message || "Failed to send reset instructions. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -78,36 +62,22 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-      const response = await fetch(`${API_URL}/users/update_password`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      await api.put("/users/update_password", {
+        user: {
+          reset_password_token: resetToken,
+          password: password,
+          password_confirmation: passwordConfirmation,
         },
-        body: JSON.stringify({
-          user: {
-            reset_password_token: resetToken,
-            password: password,
-            password_confirmation: passwordConfirmation,
-          },
-        }),
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setStep('success')
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push("/login")
-        }, 3000)
-      } else {
-        setError(data.error?.[0]?.message || "Invalid or expired reset code. Please try again.")
-      }
-    } catch (err) {
+      setStep("success")
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push("/login")
+      }, 3000)
+    } catch (err: any) {
       console.error("Reset password error:", err)
-      setError("Unable to connect to server. Please try again.")
+      setError(err.message || "Invalid or expired reset code. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -340,7 +310,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-            <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
+            <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
           </div>
         </div>
       </div>
@@ -436,7 +406,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
+          <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
         </div>
       </div>
     </div>

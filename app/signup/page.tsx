@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { Hotel, AlertCircle, CheckCircle2, Building2, User, ArrowRight, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { api } from "@/lib/api-client"
 
 // Step indicator component
 function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
@@ -119,36 +120,22 @@ export default function SignupPage() {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-      const response = await fetch(`${API_URL}/users/business_signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          business: businessData,
-          user: userData,
-        }),
+      const data: any = await api.post("/users/business_signup", {
+        business: businessData,
+        user: userData,
       })
 
-      const data = await response.json()
+      setSuccess(
+        `Account created successfully! Your Business ID is: ${data.data.business_id}. Please save this ID for login.`,
+      )
 
-      if (response.ok) {
-        setSuccess(
-          `Account created successfully! Your Business ID is: ${data.data.business_id}. Please save this ID for login.`,
-        )
-
-        // Redirect to login after 4 seconds
-        setTimeout(() => {
-          router.push("/login")
-        }, 4000)
-      } else {
-        setError(data.status?.message || "Failed to create account. Please try again.")
-      }
+      // Redirect to login after 4 seconds
+      setTimeout(() => {
+        router.push("/login")
+      }, 4000)
     } catch (err: any) {
       console.error("Signup error:", err)
-      setError("Unable to connect to server. Please try again.")
+      setError(err.message || "Unable to connect to server. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -513,7 +500,7 @@ export default function SignupPage() {
           </h2>
 
           <p className="text-lg xl:text-xl text-blue-100/90 max-w-md mb-12 leading-relaxed text-balance">
-            Join Abri and streamline your hotel operations with our comprehensive management system.
+            Join Shettar and streamline your hotel operations with our comprehensive management system.
           </p>
 
           <div className="space-y-6 w-full max-w-sm">
@@ -551,7 +538,7 @@ export default function SignupPage() {
 
         {/* Footer branding */}
         <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-medium">Powered by Abri Intelligence</p>
+          <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
         </div>
       </div>
     </div>

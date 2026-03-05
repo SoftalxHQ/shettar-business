@@ -19,6 +19,7 @@ import {
   getOrCreateDeviceId,
 } from "./storage"
 import { toast } from "sonner"
+import { api } from "./api-client"
 
 interface AuthContextType {
   user: User | null
@@ -94,19 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       if (!skipApiCall) {
-        // Call backend to invalidate JWT token
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        const token = getAuthToken()
-
-        if (token) {
-          await fetch(`${API_URL}/users/sign_out`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          })
-        }
+        await api.logout()
       }
     } catch (error) {
       console.error("Logout API call failed:", error)
@@ -119,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (skipApiCall) {
         toast.error("Session expired. Please login again.")
       } else {
-        // Show success toast
         toast.success("Signed out successfully", {
           description: `You've been logged out of ${currentBusinessName || "your account"}`,
         })
