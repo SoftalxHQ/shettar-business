@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import type { RoomType, Room } from "@/lib/room-types"
 import { BulkCreateRoomsDialog } from "../components/BulkCreateRoomsDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import Link from "next/link"
 
 import { Suspense } from "react"
@@ -27,6 +28,7 @@ function RoomManagementContent() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showBulkCreate, setShowBulkCreate] = useState(false)
+  const [roomToDelete, setRoomToDelete] = useState<number | null>(null)
 
   useEffect(() => {
     if (roomTypeId) {
@@ -148,17 +150,19 @@ function RoomManagementContent() {
     }
   }
 
-  const handleDeleteRoom = async (roomId: number) => {
-    if (!confirm("Are you sure you want to delete this room?")) {
-      return
-    }
+  const handleDeleteRoom = (roomId: number) => {
+    setRoomToDelete(roomId)
+  }
+
+  const executeDeleteRoom = async () => {
+    if (!roomToDelete) return
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = localStorage.getItem("abri_auth_token")
 
       const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomTypeId}/rooms/${roomId}`,
+        `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomTypeId}/rooms/${roomToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -171,6 +175,7 @@ function RoomManagementContent() {
         const data = await response.json()
         toast.success(data.message || "Room deleted")
         fetchRoomTypeAndRooms()
+        setRoomToDelete(null)
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
@@ -189,6 +194,8 @@ function RoomManagementContent() {
     } catch (error) {
       console.error("Error deleting room:", error)
       toast.error("Unable to delete room")
+    } finally {
+      setRoomToDelete(null)
     }
   }
 
@@ -385,6 +392,15 @@ function RoomManagementContent() {
           onCancel={() => setShowBulkCreate(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={!!roomToDelete}
+        onOpenChange={(open) => !open && setRoomToDelete(null)}
+        title="Delete Room"
+        description="Are you sure you want to delete this room? This cannot be undone."
+        confirmText="Delete"
+        onConfirm={executeDeleteRoom}
+      />
     </DashboardLayout>
   )
 }

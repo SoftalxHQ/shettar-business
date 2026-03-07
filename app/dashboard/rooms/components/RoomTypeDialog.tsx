@@ -43,7 +43,9 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
 
   // Images state
   const [imageFiles, setImageFiles] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>(roomType?.images_url || [])
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState<{ id: number; url: string }[]>(roomType?.images || [])
+  const [imagesToRemove, setImagesToRemove] = useState<number[]>([])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -53,15 +55,20 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
       files.forEach((file) => {
         const reader = new FileReader()
         reader.onloadend = () => {
-          setImagePreviews((prev) => [...prev, reader.result as string])
+          setNewImagePreviews((prev) => [...prev, reader.result as string])
         }
         reader.readAsDataURL(file)
       })
     }
   }
 
-  const removeImage = (index: number) => {
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+  const removeExistingImage = (id: number) => {
+    setExistingImages((prev) => prev.filter((img) => img.id !== id))
+    setImagesToRemove((prev) => [...prev, id])
+  }
+
+  const removeNewImage = (index: number) => {
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index))
     setImageFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
@@ -106,6 +113,11 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
       imageFiles.forEach(file => {
         formData.append("room_type[images][]", file)
       })
+
+      // Append images to remove
+      if (imagesToRemove.length > 0) {
+        formData.append("room_type[delete_image_ids]", JSON.stringify(imagesToRemove))
+      }
 
       const url = roomType
         ? `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomType.id}`
@@ -298,20 +310,43 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                   Upload images of this room type. Recommended: 1920x1080px, JPG or PNG
                 </p>
 
-                {imagePreviews.length > 0 && (
+                {existingImages.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative aspect-video border-2 border-gray-200 rounded-lg overflow-hidden group">
+                    {existingImages.map((image) => (
+                      <div key={`existing-${image.id}`} className="relative aspect-video border-2 border-gray-200 rounded-lg overflow-hidden group">
                         <Image
-                          src={preview}
-                          alt={`Image ${index + 1}`}
+                          src={image.url}
+                          alt="Existing room image"
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 50vw, 33vw"
                         />
                         <button
                           type="button"
-                          onClick={() => removeImage(index)}
+                          onClick={() => removeExistingImage(image.id)}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {newImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {newImagePreviews.map((preview, index) => (
+                      <div key={`new-${index}`} className="relative aspect-video border-2 border-green-200 rounded-lg overflow-hidden group">
+                        <Image
+                          src={preview}
+                          alt="New room image"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, 33vw"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(index)}
                           className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4" />

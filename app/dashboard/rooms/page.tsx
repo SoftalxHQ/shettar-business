@@ -12,6 +12,7 @@ import type { RoomType } from "@/lib/room-types"
 import { RoomTypeCard } from "./components/RoomTypeCard"
 import { RoomTypeDialog } from "./components/RoomTypeDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 export default function RoomsPage() {
   const { user, businessId, logout } = useAuth()
@@ -20,6 +21,7 @@ export default function RoomsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null)
+  const [roomTypeToDelete, setRoomTypeToDelete] = useState<number | null>(null)
 
   // Check admin access
   useEffect(() => {
@@ -89,17 +91,19 @@ export default function RoomsPage() {
     setShowCreateDialog(true)
   }
 
-  const handleDeleteRoomType = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this room type? This will also delete all rooms of this type.")) {
-      return
-    }
+  const handleDeleteRoomType = (id: number) => {
+    setRoomTypeToDelete(id)
+  }
+
+  const executeDeleteRoomType = async () => {
+    if (!roomTypeToDelete) return
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = localStorage.getItem("abri_auth_token")
 
       const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${id}`,
+        `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomTypeToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -112,6 +116,7 @@ export default function RoomsPage() {
         const data = await response.json()
         toast.success(data.message)
         fetchRoomTypes()
+        setRoomTypeToDelete(null)
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
@@ -129,6 +134,8 @@ export default function RoomsPage() {
     } catch (error) {
       console.error("Error deleting room type:", error)
       toast.error("Unable to delete room type")
+    } finally {
+      setRoomTypeToDelete(null)
     }
   }
 
@@ -289,6 +296,15 @@ export default function RoomsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!roomTypeToDelete}
+        onOpenChange={(open) => !open && setRoomTypeToDelete(null)}
+        title="Delete Room Type"
+        description="Are you sure you want to delete this room type? This will also delete all rooms of this type."
+        confirmText="Delete"
+        onConfirm={executeDeleteRoomType}
+      />
     </DashboardLayout>
   )
 }

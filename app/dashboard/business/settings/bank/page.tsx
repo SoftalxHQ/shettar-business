@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus, CheckCirc
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { getAuthToken } from "@/lib/storage"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface BankAccount {
   id?: number
@@ -45,6 +46,7 @@ export default function BankSettingsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [banks, setBanks] = useState<Bank[]>([])
+  const [accountToDelete, setAccountToDelete] = useState<number | null>(null)
 
   const initialFormState: BankAccount = {
     bank_name: "",
@@ -221,21 +223,28 @@ export default function BankSettingsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this account?")) return;
+  const handleDelete = (id: number) => {
+    setAccountToDelete(id)
+  }
+
+  const executeDelete = async () => {
+    if (!accountToDelete) return
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
+      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${accountToDelete}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
 
       fetchBankAccounts()
       toast({ title: "Deleted", description: "Bank account removed." })
+      setAccountToDelete(null)
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Failed to delete account." })
+    } finally {
+      setAccountToDelete(null)
     }
   }
 
@@ -455,6 +464,15 @@ export default function BankSettingsPage() {
           </Card>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!accountToDelete}
+        onOpenChange={(open) => !open && setAccountToDelete(null)}
+        title="Delete Bank Account"
+        description="Are you sure you want to delete this account? This will remove it from your available payout methods."
+        confirmText="Delete"
+        onConfirm={executeDelete}
+      />
     </DashboardLayout>
   )
 }

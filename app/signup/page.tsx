@@ -187,7 +187,7 @@ export default function SignupPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="business_name">
                       Business Name <span className="text-red-500">*</span>
                     </Label>
@@ -202,7 +202,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="description">Business Description</Label>
                     <Textarea
                       id="description"
@@ -213,7 +213,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="address">
                       Street Address <span className="text-red-500">*</span>
                     </Label>
@@ -228,7 +228,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="city">
                       City <span className="text-red-500">*</span>
                     </Label>
@@ -243,7 +243,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="state">
                       State <span className="text-red-500">*</span>
                     </Label>
@@ -258,7 +258,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="zip_code">ZIP Code</Label>
                     <Input
                       id="zip_code"
@@ -270,7 +270,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="check_in">Check-in Time</Label>
                     <Input
                       id="check_in"
@@ -281,7 +281,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="check_out">Check-out Time</Label>
                     <Input
                       id="check_out"
@@ -334,7 +334,7 @@ export default function SignupPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="first_name">
                       First Name <span className="text-red-500">*</span>
                     </Label>
@@ -349,7 +349,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="last_name">
                       Last Name <span className="text-red-500">*</span>
                     </Label>
@@ -364,7 +364,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="email">
                       Email <span className="text-red-500">*</span>
                     </Label>
@@ -379,7 +379,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="phone_number">Phone Number</Label>
                     <Input
                       id="phone_number"
@@ -391,7 +391,7 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="password">
                       Password <span className="text-red-500">*</span>
                     </Label>
@@ -407,7 +407,7 @@ export default function SignupPage() {
                     <p className="text-xs text-muted-foreground mt-1">Must be at least 6 characters</p>
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="password_confirmation">
                       Confirm Password <span className="text-red-500">*</span>
                     </Label>

@@ -8,6 +8,7 @@ export interface RoomType {
   old_price?: number
   business_id: number
   images_url?: string[]
+  images?: { id: number; url: string }[]
 
   // 41 amenities
   fan?: boolean

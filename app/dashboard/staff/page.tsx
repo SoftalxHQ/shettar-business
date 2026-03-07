@@ -15,6 +15,7 @@ import { StaffCard } from "./components/StaffCard"
 import { AddStaffDialog } from "./components/AddStaffDialog"
 import { EditPermissionsDialog } from "./components/EditPermissionsDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 export default function StaffPage() {
   const { user, businessId, logout } = useAuth()
@@ -25,6 +26,7 @@ export default function StaffPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [memberToDelete, setMemberToDelete] = useState<number | null>(null)
 
   // Check access permissions
   useEffect(() => {
@@ -89,17 +91,19 @@ export default function StaffPage() {
     fetchStaffMembers()
   }
 
-  const handleRemoveStaff = async (memberId: number) => {
-    if (!confirm("Are you sure you want to remove this staff member? They will lose access to this business.")) {
-      return
-    }
+  const handleRemoveStaff = (memberId: number) => {
+    setMemberToDelete(memberId)
+  }
+
+  const executeRemoveStaff = async () => {
+    if (!memberToDelete) return
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = localStorage.getItem("abri_auth_token")
 
       const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/staff/${memberId}`,
+        `${API_URL}/api/v1/user_businesses/${businessId}/staff/${memberToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -110,6 +114,7 @@ export default function StaffPage() {
 
       if (response.ok) {
         toast.success("Staff member removed")
+        setMemberToDelete(null)
         fetchStaffMembers()
       } else {
         if (response.status === 401) {
@@ -128,6 +133,8 @@ export default function StaffPage() {
     } catch (error) {
       console.error("Error removing staff:", error)
       toast.error("Unable to remove staff member")
+    } finally {
+      setMemberToDelete(null)
     }
   }
 
@@ -283,6 +290,15 @@ export default function StaffPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!memberToDelete}
+        onOpenChange={(open) => !open && setMemberToDelete(null)}
+        title="Remove Staff Member"
+        description="Are you sure you want to remove this staff member? They will lose access to this business."
+        confirmText="Remove"
+        onConfirm={executeRemoveStaff}
+      />
     </DashboardLayout>
   )
 }
