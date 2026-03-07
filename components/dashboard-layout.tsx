@@ -38,6 +38,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { setupNativeWindow } from "@/lib/tauri"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -63,6 +64,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [showChangeBusinessDialog, setShowChangeBusinessDialog] = useState(false)
+  const [isChangingBusiness, setIsChangingBusiness] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -89,9 +92,16 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   }
 
   const handleChangeBusiness = () => {
-    if (confirm("Are you sure you want to change business? This will log you out and clear this device's business registration.")) {
-      changeBusiness()
+    setShowChangeBusinessDialog(true)
+  }
+
+  const executeChangeBusiness = async () => {
+    setIsChangingBusiness(true)
+    try {
+      await changeBusiness()
       router.push("/login")
+    } finally {
+      setIsChangingBusiness(false)
     }
   }
 
@@ -260,6 +270,16 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <div className="pl-64">
           <main className="p-8">{children}</main>
         </div>
+
+        <ConfirmDialog
+          open={showChangeBusinessDialog}
+          onOpenChange={setShowChangeBusinessDialog}
+          title="Change Business"
+          description="Are you sure you want to change business? This will log you out and clear this device's business registration."
+          confirmText="Change Business"
+          onConfirm={executeChangeBusiness}
+          loading={isChangingBusiness}
+        />
       </div>
     )
   }

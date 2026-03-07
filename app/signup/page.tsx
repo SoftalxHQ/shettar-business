@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 import Link from "next/link"
 import { Hotel, AlertCircle, CheckCircle2, Building2, User, ArrowRight, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -45,6 +52,9 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
 export default function SignupPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"))
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
+
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -57,7 +67,7 @@ export default function SignupPage() {
     city: "",
     state: "",
     zip_code: "",
-    category: "Hotel",
+    category: "Hotels",
     check_in: "15:00",
     check_out: "11:00",
     // Amenities
@@ -203,6 +213,30 @@ export default function SignupPage() {
                   </div>
 
                   <div className="col-span-2 space-y-2">
+                    <Label htmlFor="category">
+                      Property Type <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={businessData.category}
+                      onValueChange={(value) => setBusinessData({ ...businessData, category: value })}
+                    >
+                      <SelectTrigger id="category" className="h-11 w-full">
+                        <SelectValue placeholder="Select property type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Hotels">Hotels</SelectItem>
+                        <SelectItem value="Apartments">Apartments</SelectItem>
+                        <SelectItem value="Guest House">Guest House</SelectItem>
+                        <SelectItem value="Rentals">Rentals</SelectItem>
+                        <SelectItem value="Resort">Resort</SelectItem>
+                        <SelectItem value="Villa">Villa</SelectItem>
+                        <SelectItem value="Lodge">Lodge</SelectItem>
+                        <SelectItem value="Cottage">Cottage</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="description">Business Description</Label>
                     <Textarea
                       id="description"
@@ -271,25 +305,69 @@ export default function SignupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="check_in">Check-in Time</Label>
-                    <Input
-                      id="check_in"
-                      type="time"
-                      value={businessData.check_in}
-                      onChange={(e) => setBusinessData({ ...businessData, check_in: e.target.value })}
-                      className="h-11"
-                    />
+                    <Label>Check-in Time</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={businessData.check_in.split(":")[0]}
+                        onValueChange={(h) => setBusinessData({ ...businessData, check_in: `${h}:${businessData.check_in.split(":")[1]}` })}
+                      >
+                        <SelectTrigger className="h-11 flex-1">
+                          <SelectValue placeholder="HH" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hours.map((h) => (
+                            <SelectItem key={`in-h-${h}`} value={h}>{h}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center text-gray-400">:</div>
+                      <Select
+                        value={businessData.check_in.split(":")[1]}
+                        onValueChange={(m) => setBusinessData({ ...businessData, check_in: `${businessData.check_in.split(":")[0]}:${m}` })}
+                      >
+                        <SelectTrigger className="h-11 flex-1">
+                          <SelectValue placeholder="MM" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {minutes.map((m) => (
+                            <SelectItem key={`in-m-${m}`} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="check_out">Check-out Time</Label>
-                    <Input
-                      id="check_out"
-                      type="time"
-                      value={businessData.check_out}
-                      onChange={(e) => setBusinessData({ ...businessData, check_out: e.target.value })}
-                      className="h-11"
-                    />
+                    <Label>Check-out Time</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={businessData.check_out.split(":")[0]}
+                        onValueChange={(h) => setBusinessData({ ...businessData, check_out: `${h}:${businessData.check_out.split(":")[1]}` })}
+                      >
+                        <SelectTrigger className="h-11 flex-1">
+                          <SelectValue placeholder="HH" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hours.map((h) => (
+                            <SelectItem key={`out-h-${h}`} value={h}>{h}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center text-gray-400">:</div>
+                      <Select
+                        value={businessData.check_out.split(":")[1]}
+                        onValueChange={(m) => setBusinessData({ ...businessData, check_out: `${businessData.check_out.split(":")[0]}:${m}` })}
+                      >
+                        <SelectTrigger className="h-11 flex-1">
+                          <SelectValue placeholder="MM" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {minutes.map((m) => (
+                            <SelectItem key={`out-m-${m}`} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 

@@ -28,7 +28,7 @@ interface AuthContextType {
   deviceId: string
   login: (user: User, businessId: string, businessName: string, token: string) => void
   logout: (skipApiCall?: boolean) => void
-  changeBusiness: () => void
+  changeBusiness: () => Promise<void>
   updateUser: (updates: Partial<User>) => void
   isLoading: boolean
   isFirstTimeSetup: boolean
@@ -147,7 +147,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [logout]);
 
-  const changeBusiness = () => {
+  const changeBusiness = async () => {
+    try {
+      await api.logout()
+    } catch (error) {
+      console.error("Logout API call failed during change business:", error)
+    }
+
     setUser(null)
     setBusinessId(null)
     setBusinessName(null)
