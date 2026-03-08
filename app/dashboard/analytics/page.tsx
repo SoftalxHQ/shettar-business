@@ -145,6 +145,8 @@ export default function AnalyticsPage() {
   })) || []
 
   const roomTypeData = charts.room_type_performance || []
+  const topRevenueSourcesData = charts.top_revenue_sources || []
+  const guestDemographicsData = charts.guest_demographics || []
 
   return (
     <DashboardLayout activeTab="analytics">
@@ -532,12 +534,7 @@ export default function AnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-1">
-                        {[
-                          { name: "Direct Bookings", val: "45%", color: "bg-emerald-500" },
-                          { name: "Online Travel Agencies", val: "32%", color: "bg-blue-500" },
-                          { name: "Corporate", val: "15%", color: "bg-amber-500" },
-                          { name: "Walk-in", val: "8%", color: "bg-slate-400" },
-                        ].map((item, i) => (
+                        {topRevenueSourcesData.length > 0 ? topRevenueSourcesData.map((item: any, i: number) => (
                           <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors">
                             <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${item.color}`} />
@@ -545,7 +542,9 @@ export default function AnalyticsPage() {
                             </div>
                             <span className="font-bold text-slate-900">{item.val}</span>
                           </div>
-                        ))}
+                        )) : (
+                          <div className="p-3 text-sm text-slate-500 text-center">No data available</div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -556,12 +555,7 @@ export default function AnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-1">
-                        {[
-                          { name: "Business Travelers", val: "38%", color: "bg-indigo-500" },
-                          { name: "Leisure", val: "42%", color: "bg-rose-500" },
-                          { name: "Groups/Events", val: "12%", color: "bg-purple-500" },
-                          { name: "Other", val: "8%", color: "bg-slate-400" },
-                        ].map((item, i) => (
+                        {guestDemographicsData.length > 0 ? guestDemographicsData.map((item: any, i: number) => (
                           <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors">
                             <div className="flex items-center gap-3">
                               <div className={`w-2 h-2 rounded-full ${item.color}`} />
@@ -569,7 +563,9 @@ export default function AnalyticsPage() {
                             </div>
                             <span className="font-bold text-slate-900">{item.val}</span>
                           </div>
-                        ))}
+                        )) : (
+                          <div className="p-3 text-sm text-slate-500 text-center">No data available</div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
