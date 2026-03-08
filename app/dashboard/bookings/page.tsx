@@ -55,6 +55,9 @@ interface Reservation {
   checked_in_by_name?: string
   checked_out_by_name?: string
   status?: string
+  client_name?: string
+  client_email?: string
+  client_phone?: string
 }
 
 import { Suspense } from "react"
@@ -220,11 +223,11 @@ function BookingsContent() {
 
   const filteredReservations = reservations.filter((reservation) => {
     const searchLower = searchQuery.toLowerCase()
-    const fullName = `${reservation.other_first_name || ""} ${reservation.other_last_name || ""}`.toLowerCase()
+    const fullName = String(reservation.client_name || `${reservation.other_first_name || ""} ${reservation.other_last_name || ""}`).toLowerCase()
 
     // Safety checks for other fields
     const roomNum = String(reservation.room_number || "").toLowerCase()
-    const email = String(reservation.other_email_address || "").toLowerCase()
+    const email = String(reservation.client_email || reservation.other_email_address || "").toLowerCase()
     const bookingId = String(reservation.booking_id || "").toLowerCase()
     const status = getReservationStatus(reservation)
 
@@ -357,9 +360,9 @@ function BookingsContent() {
           </div>
           <div class="section">
             <h3>Guest Information</h3>
-            <div class="row"><span class="label">Name:</span><span>${reservation.other_first_name} ${reservation.other_last_name}</span></div>
-            <div class="row"><span class="label">Email:</span><span>${reservation.other_email_address}</span></div>
-            <div class="row"><span class="label">Phone:</span><span>${reservation.other_phone_number}</span></div>
+            <div class="row"><span class="label">Name:</span><span>${reservation.client_name || reservation.other_first_name + ' ' + reservation.other_last_name}</span></div>
+            <div class="row"><span class="label">Email:</span><span>${reservation.client_email || reservation.other_email_address}</span></div>
+            <div class="row"><span class="label">Phone:</span><span>${reservation.client_phone || reservation.other_phone_number}</span></div>
           </div>
           <div class="section">
             <h3>Booking Details</h3>
@@ -457,8 +460,8 @@ function BookingsContent() {
               {paginatedData.map((reservation) => (
                 <TableRow key={reservation.id}>
                   <TableCell className="font-medium">
-                    <div>{reservation.other_first_name} {reservation.other_last_name}</div>
-                    <div className="text-xs text-muted-foreground">{reservation.other_email_address}</div>
+                    <div>{reservation.client_name || `${reservation.other_first_name || ''} ${reservation.other_last_name || ''}`}</div>
+                    <div className="text-xs text-muted-foreground">{reservation.client_email || reservation.other_email_address || 'N/A'}</div>
                   </TableCell>
                   <TableCell className="text-indigo-500 font-medium">{reservation.booking_id}</TableCell>
                   <TableCell className="font-medium">₦{reservation.total_amount?.toLocaleString()}</TableCell>
@@ -790,8 +793,8 @@ function BookingsContent() {
                         <CheckCircle2 className="w-6 h-6 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">{selectedReservation.other_first_name} {selectedReservation.other_last_name}</h3>
-                        <p className="text-muted-foreground text-sm">{selectedReservation.other_email_address}</p>
+                        <h3 className="font-bold text-lg">{selectedReservation.client_name || `${selectedReservation.other_first_name || ''} ${selectedReservation.other_last_name || ''}`}</h3>
+                        <p className="text-muted-foreground text-sm">{selectedReservation.client_email || selectedReservation.other_email_address || 'N/A'}</p>
                       </div>
                     </div>
                     <Badge className={getStatusColor(getReservationStatus(selectedReservation))}>
@@ -818,7 +821,7 @@ function BookingsContent() {
                     </div>
                     <div>
                       <p className="text-muted-foreground mb-1">Phone</p>
-                      <p className="font-semibold text-slate-900">{selectedReservation.other_phone_number}</p>
+                      <p className="font-semibold text-slate-900">{selectedReservation.client_phone || selectedReservation.other_phone_number || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
