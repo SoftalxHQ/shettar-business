@@ -54,6 +54,7 @@ interface Reservation {
   checked_out_at?: string
   checked_in_by_name?: string
   checked_out_by_name?: string
+  status?: string
 }
 
 import { Suspense } from "react"
@@ -205,6 +206,8 @@ function BookingsContent() {
 
   // Helper function to determine if a reservation is active, upcoming, or past
   const getReservationStatus = (reservation: Reservation) => {
+    if (reservation.status) return reservation.status
+
     const now = new Date()
     const startDate = new Date(reservation.start_date)
     const endDate = new Date(reservation.end_date)
