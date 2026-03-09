@@ -34,6 +34,7 @@ import {
   Settings,
   Landmark,
   Activity,
+  MessageSquare,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -54,6 +55,7 @@ const adminNavigation = [
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
+  { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { name: "Activity", href: "/dashboard/activity", icon: Activity },
   { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
   { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
