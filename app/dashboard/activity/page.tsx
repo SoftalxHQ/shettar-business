@@ -4,10 +4,12 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { useAuth } from "@/lib/auth-context"
 import { useEffect, useState, useCallback } from "react"
 import { getAuthToken } from "@/lib/storage"
-import { format, formatDistanceToNow } from "date-fns"
+import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMonth, startOfToday, endOfToday } from "date-fns"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import {
   Select,
   SelectContent,
@@ -20,7 +22,9 @@ import {
   UserPlus, ShieldCheck, UserMinus, BedDouble, Wrench,
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
+  ChevronDown, X,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface ActivityItem {
   id: number
@@ -82,7 +86,74 @@ export default function ActivityPage() {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
 
-  const fetchActivities = useCallback(async (pageNum = 1, actionType = filter, isRefresh = false) => {
+  // ── Analytics-style date filter state ──
+  const [rangeSelection, setRangeSelection] = useState("All time")
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined)
+  const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined)
+  const [isCustomMode, setIsCustomMode] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+
+  const setRange = (range: string) => {
+    const today = new Date()
+    setRangeSelection(range)
+    setIsCustomMode(false)
+    setPage(1)
+
+    if (range !== "Custom") setPopoverOpen(false)
+
+    switch (range) {
+      case "Today":
+        setStartDate(startOfToday())
+        setEndDate(endOfToday())
+        break
+      case "Yesterday": {
+        const y = subDays(today, 1)
+        setStartDate(new Date(y.setHours(0, 0, 0, 0)))
+        setEndDate(new Date(y.setHours(23, 59, 59, 999)))
+        break
+      }
+      case "Last 7 days":
+        setStartDate(subDays(today, 6))
+        setEndDate(today)
+        break
+      case "This month":
+        setStartDate(startOfMonth(today))
+        setEndDate(endOfMonth(today))
+        break
+      case "Last month": {
+        const lm = subMonths(today, 1)
+        setStartDate(startOfMonth(lm))
+        setEndDate(endOfMonth(lm))
+        break
+      }
+      case "All time":
+        setStartDate(undefined)
+        setEndDate(undefined)
+        break
+      case "Custom":
+        setIsCustomMode(true)
+        break
+    }
+  }
+
+  const applyCustomFilter = () => {
+    if (tempStartDate && tempEndDate) {
+      setStartDate(tempStartDate)
+      setEndDate(tempEndDate)
+      setRangeSelection("Custom")
+      setPopoverOpen(false)
+      setPage(1)
+    }
+  }
+
+  // ─────────────────────────────────────────
+  const fetchActivities = useCallback(async (
+    pageNum = 1,
+    actionType = filter,
+    isRefresh = false,
+  ) => {
     if (!businessId) return
     if (isRefresh) setRefreshing(true)
     else setLoading(true)
@@ -92,6 +163,8 @@ export default function ActivityPage() {
       const token = getAuthToken()
       const params = new URLSearchParams({ page: String(pageNum), limit: "25" })
       if (actionType) params.set("action_type", actionType)
+      if (startDate) params.set("date_from", format(startDate, "yyyy-MM-dd"))
+      if (endDate) params.set("date_to", format(endDate, "yyyy-MM-dd"))
 
       const res = await fetch(
         `${API_URL}/api/v1/user_businesses/${businessId}/activities?${params}`,
@@ -109,24 +182,29 @@ export default function ActivityPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [businessId, filter])
+  }, [businessId, filter, startDate, endDate])
 
-  useEffect(() => { fetchActivities(1) }, [businessId, filter])
+  useEffect(() => { fetchActivities(1) }, [businessId, filter, startDate, endDate])
 
   const handleFilterChange = (value: string) => {
     setFilter(value === "all" ? "" : value)
     setPage(1)
   }
 
-  const getIcon = (type: string) => {
-    const Icon = ICON_MAP[type] ?? Circle
-    return Icon
-  }
+  const getIcon = (type: string) => ICON_MAP[type] ?? Circle
+
+  const hasDateFilter = rangeSelection !== "All time"
+
+  // Label shown on the trigger button
+  const dateLabel = rangeSelection === "Custom" && startDate && endDate
+    ? `${format(startDate, "d MMM")} – ${format(endDate, "d MMM")}`
+    : rangeSelection
 
   return (
     <DashboardLayout activeTab="activity">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -138,9 +216,10 @@ export default function ActivityPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* ── Activity type filter ── */}
             <Select defaultValue="all" onValueChange={handleFilterChange}>
-              <SelectTrigger className="w-48 h-9 text-sm">
+              <SelectTrigger className="w-44 h-11 text-sm border-slate-200 shadow-sm rounded-xl">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
@@ -152,12 +231,136 @@ export default function ActivityPage() {
               </SelectContent>
             </Select>
 
+            {/* ── Analytics-style date filter ── */}
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl justify-between min-w-[160px]"
+                >
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                      Time Period
+                    </span>
+                    <span className="font-semibold text-slate-700 text-sm">{dateLabel}</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </Button>
+              </PopoverTrigger>
+
+              <PopoverContent className="w-80 p-1.5 rounded-2xl shadow-sm border-slate-100" align="end">
+                <div className="space-y-1">
+                  {[
+                    { label: "Today", value: format(new Date(), "d MMM") },
+                    { label: "Yesterday", value: format(subDays(new Date(), 1), "d MMM") },
+                    { label: "Last 7 days", value: `${format(subDays(new Date(), 6), "d MMM")} – ${format(new Date(), "d MMM")}` },
+                    { label: "This month", value: format(new Date(), "MMM") },
+                    { label: "Last month", value: format(subMonths(new Date(), 1), "MMM") },
+                    { label: "All time", value: "" },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => setRange(item.label)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all group",
+                        rangeSelection === item.label && !isCustomMode
+                          ? "bg-indigo-50 text-indigo-700"
+                          : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="group-hover:translate-x-0.5 transition-transform">{item.label}</span>
+                      <span className="text-xs text-slate-400 font-normal">{item.value}</span>
+                    </button>
+                  ))}
+
+                  {/* Custom range */}
+                  <button
+                    onClick={() => setRange("Custom")}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all group",
+                      isCustomMode || rangeSelection === "Custom"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <span className="group-hover:translate-x-0.5 transition-transform">Custom Range</span>
+                  </button>
+
+                  {(isCustomMode || rangeSelection === "Custom") && (
+                    <div className="p-4 mt-2 bg-slate-50 rounded-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in-95 duration-200 shadow-inner">
+                      {/* Start date */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">
+                          Start date
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                              {tempStartDate ? format(tempStartDate, "PPP") : "Select start date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={tempStartDate}
+                              onSelect={setTempStartDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* End date */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">
+                          End date
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                              {tempEndDate ? format(tempEndDate, "PPP") : "Select end date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={tempEndDate}
+                              onSelect={setTempEndDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-lg"
+                          onClick={applyCustomFilter}
+                        >
+                          Apply
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 rounded-lg"
+                          onClick={() => setIsCustomMode(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchActivities(page, filter, true)}
               disabled={refreshing}
-              className="h-9 gap-1.5"
+              className="h-11 gap-1.5 rounded-xl border-slate-200 shadow-sm"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
@@ -165,19 +368,28 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Stats strip */}
+        {/* ── Stats strip ── */}
         {pagination && (
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-slate-500 flex items-center gap-2 flex-wrap">
             Showing{" "}
             <span className="font-semibold text-slate-800">{activities.length}</span> of{" "}
             <span className="font-semibold text-slate-800">{pagination.count}</span> events
             {filter && (
-              <> — filtered by <Badge variant="outline" className="ml-1 text-indigo-600 border-indigo-200">{ACTION_LABELS[filter]}</Badge></>
+              <><span className="text-slate-300">·</span><Badge variant="outline" className="text-indigo-600 border-indigo-200">{ACTION_LABELS[filter]}</Badge></>
+            )}
+            {hasDateFilter && (
+              <><span className="text-slate-300">·</span>
+                <Badge variant="outline" className="text-slate-600 border-slate-200 gap-1">
+                  {dateLabel}
+                  <button onClick={() => setRange("All time")} className="ml-1 hover:text-red-500 transition-colors">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </Badge></>
             )}
           </div>
         )}
 
-        {/* Activity timeline */}
+        {/* ── Activity timeline ── */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <LoadingSpinner size={36} />
@@ -187,10 +399,17 @@ export default function ActivityPage() {
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
               <Activity className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-1">No activity yet</h3>
+            <h3 className="text-lg font-semibold text-slate-700 mb-1">No activity found</h3>
             <p className="text-sm text-slate-500">
-              Activity will appear here as staff perform operations.
+              {hasDateFilter
+                ? `No events in the "${dateLabel}" period.`
+                : "Activity will appear here as staff perform operations."}
             </p>
+            {hasDateFilter && (
+              <Button variant="outline" size="sm" onClick={() => setRange("All time")} className="mt-4 gap-1.5">
+                <X className="w-3.5 h-3.5" /> Clear date filter
+              </Button>
+            )}
           </div>
         ) : (
           <div className="relative">
@@ -204,7 +423,6 @@ export default function ActivityPage() {
                 const timeAgo = formatDistanceToNow(new Date(activity.occurred_at), { addSuffix: true })
                 const fullTime = format(new Date(activity.occurred_at), "dd MMM yyyy, HH:mm")
 
-                // Date separator
                 const showDateSeparator =
                   idx === 0 ||
                   new Date(activity.occurred_at).toDateString() !==
@@ -215,9 +433,7 @@ export default function ActivityPage() {
                     {showDateSeparator && (
                       <div className="flex items-center gap-3 py-3 pl-14">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                          {isToday
-                            ? "Today"
-                            : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
+                          {isToday ? "Today" : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
                         </span>
                         <div className="flex-1 h-px bg-slate-100" />
                       </div>
@@ -234,9 +450,7 @@ export default function ActivityPage() {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-sm text-slate-800 leading-snug">
-                          {activity.description}
-                        </p>
+                        <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
                         <div className="flex items-center flex-wrap gap-2 mt-1">
                           {activity.actor && (
                             <span className="text-xs text-slate-500">
@@ -244,9 +458,7 @@ export default function ActivityPage() {
                             </span>
                           )}
                           <span className="text-[10px] text-slate-400">•</span>
-                          <span className="text-xs text-slate-400" title={fullTime}>
-                            {timeAgo}
-                          </span>
+                          <span className="text-xs text-slate-400" title={fullTime}>{timeAgo}</span>
                         </div>
                       </div>
 
@@ -270,7 +482,7 @@ export default function ActivityPage() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         {pagination && pagination.last > 1 && (
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <Button

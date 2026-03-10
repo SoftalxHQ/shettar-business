@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/lib/auth-context"
 import { Toaster } from "sonner"
+import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
 import "./globals.css"
 
 const inter = Inter({
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
         <AuthProvider>{children}</AuthProvider>
         <Toaster position="top-center" richColors />
+        <ServiceWorkerRegistrar />
         <Analytics />
       </body>
     </html>
