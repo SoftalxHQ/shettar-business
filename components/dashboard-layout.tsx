@@ -161,9 +161,15 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col">
           {/* Logo */}
           <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Hotel className="w-5 h-5 text-white" />
-            </div>
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <Image 
+                src="/shettar-logo.png" 
+                alt="Shettar Logo" 
+                width={32} 
+                height={32} 
+                className="rounded-lg object-contain"
+              />
+            </Link>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
               <p className="text-xs text-muted-foreground truncate">{businessId || 'N/A'}</p>
@@ -296,9 +302,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <div className="h-full px-6 flex items-center justify-between">
           {/* Logo and hotel name */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Hotel className="w-5 h-5 text-white" />
-            </div>
+            <Image 
+              src="/shettar-logo.png" 
+              alt="Shettar Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-lg object-contain"
+            />
             <div>
               <h1 className="font-semibold text-base">{user.hotelName}</h1>
               <p className="text-xs text-muted-foreground">{businessId || 'N/A'}</p>

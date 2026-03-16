@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/lib/auth-context"
 import { Hotel, AlertCircle, Info } from "lucide-react"
 import { api } from "@/lib/api-client"
+import Image from "next/image"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -85,7 +86,13 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           {/* Logo and branding */}
           <div className="space-y-4">
-            {/* Optional: Add Logo here if needed, or keep it clean like the theme */}
+            <Image 
+              src="/shettar-logo.png" 
+              alt="Shettar Logo" 
+              width={48} 
+              height={48} 
+              className="mb-4"
+            />
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-800">
                 {isFirstTimeSetup ? "Welcome to Shettar! ✨" : "Welcome back! ✨"}
@@ -204,7 +211,13 @@ export default function LoginPage() {
 
         <div className="relative h-full flex flex-col items-center justify-center p-16 text-white text-center">
           <div className="mb-8 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl animate-in zoom-in duration-700">
-            <Hotel className="w-12 h-12 text-indigo-200" />
+            <Image 
+              src="/shettar-logo.png" 
+              alt="Shettar Logo" 
+              width={64} 
+              height={64} 
+              className="brightness-0 invert"
+            />
           </div>
 
           <h2 className="text-4xl xl:text-5xl font-bold mb-6 tracking-tight text-balance">
