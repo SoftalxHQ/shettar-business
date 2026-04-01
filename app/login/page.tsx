@@ -8,14 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from "@/lib/auth-context"
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
+import { login as loginAction, selectBusinessId as selectStoredBusinessId, selectBusinessName as selectStoredBusinessName, selectIsFirstTimeSetup } from "@/lib/store/slices/authSlice"
+import {
+  setAuthToken,
+  setUserData,
+  setStoredBusinessId,
+  setStoredBusinessName,
+} from "@/lib/storage"
 import { Hotel, AlertCircle, Info } from "lucide-react"
 import { api } from "@/lib/api-client"
 import Image from "next/image"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, businessId: storedBusinessId, businessName: storedBusinessName, isFirstTimeSetup } = useAuth()
+  const dispatch = useAppDispatch()
+  const storedBusinessId = useAppSelector(selectStoredBusinessId)
+  const storedBusinessName = useAppSelector(selectStoredBusinessName)
+  const isFirstTimeSetup = useAppSelector(selectIsFirstTimeSetup)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [businessId, setBusinessId] = useState("")
@@ -40,9 +50,7 @@ export default function LoginPage() {
       const data: any = await api.login(email, password, businessIdToUse)
       console.log("Login API Response:", data)
 
-      // Login with real data
-      login(
-        {
+      const user = {
           id: data.data.id,
           email: data.data.email,
           name: `${data.data.first_name} ${data.data.last_name}`,
@@ -55,20 +63,26 @@ export default function LoginPage() {
           role: (() => {
             const apiRole = (data.data.business?.role || "staff").toLowerCase()
             const title = (data.data.business?.title || "").toLowerCase()
-
             if (apiRole === "admin") return "admin"
             if (title.includes("manager")) return "manager"
             return apiRole
-          })(),
+          })() as "admin" | "manager" | "staff",
           hotelId: data.data.business?.id.toString() || "",
           hotelName: data.data.business?.name || "",
           businessId: data.data.business?.business_unique_id || businessIdToUse || "",
           permissions: data.data.business?.permissions,
-        },
-        data.data.business?.business_unique_id || businessIdToUse || "", // Business ID (for API calls)
-        data.data.business?.name || "Your Business", // Business Name (for display)
-        data.token,
-      )
+        }
+      const resolvedBusinessId = data.data.business?.business_unique_id || businessIdToUse || ""
+      const resolvedBusinessName = data.data.business?.name || "Your Business"
+
+      // Dispatch to Redux store
+      dispatch(loginAction({ user, token: data.token, businessId: resolvedBusinessId, businessName: resolvedBusinessName }))
+
+      // Keep api-client.ts working (reads directly from localStorage)
+      setAuthToken(data.token)
+      setUserData(user)
+      setStoredBusinessId(resolvedBusinessId)
+      setStoredBusinessName(resolvedBusinessName)
 
       router.push("/dashboard")
     } catch (err: any) {

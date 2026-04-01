@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
+import { logout as logoutAction, selectUser, selectBusinessId } from "@/lib/store/slices/authSlice"
+import { logout as storageLogout } from "@/lib/storage"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -89,7 +91,10 @@ const MOCK_ANALYTICS_DATA = [
 ]
 
 export default function FinancePage() {
-  const { user, businessId, logout } = useAuth()
+  const dispatch = useAppDispatch()
+  const user = useAppSelector(selectUser)
+  const businessId = useAppSelector(selectBusinessId)
+  const logout = () => { dispatch(logoutAction()); storageLogout(); router.push("/login") }
   const router = useRouter()
   const [balances, setBalances] = useState<BusinessDetails | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])

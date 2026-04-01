@@ -2,12 +2,14 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+import { useAppSelector } from "@/lib/store/hooks"
+import { selectUser, selectIsLoading } from "@/lib/store/slices/authSlice"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function Home() {
   const router = useRouter()
-  const { user, isLoading } = useAuth()
+  const user = useAppSelector(selectUser)
+  const isLoading = useAppSelector(selectIsLoading)
 
   useEffect(() => {
     if (!isLoading) {

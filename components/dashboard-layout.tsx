@@ -2,7 +2,9 @@
 
 import type React from "react"
 
-import { useAuth } from "@/lib/auth-context"
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
+import { logout, changeBusiness as changeBusinessAction, selectUser, selectBusinessId, selectIsLoading } from "@/lib/store/slices/authSlice"
+import { logout as storageLogout, changeBusiness as storageChangeBusiness } from "@/lib/storage"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { EmailVerificationBanner } from "@/components/email-verification-banner"
@@ -63,7 +65,10 @@ const adminNavigation = [
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
-  const { user, logout, changeBusiness, businessId, isLoading } = useAuth()
+  const dispatch = useAppDispatch()
+  const user = useAppSelector(selectUser)
+  const businessId = useAppSelector(selectBusinessId)
+  const isLoading = useAppSelector(selectIsLoading)
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -90,7 +95,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   }
 
   const handleLogout = () => {
-    logout()
+    dispatch(logout())
+    storageLogout()
     router.push("/login")
   }
 
@@ -101,7 +107,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const executeChangeBusiness = async () => {
     setIsChangingBusiness(true)
     try {
-      await changeBusiness()
+      dispatch(changeBusinessAction())
+      storageChangeBusiness()
       router.push("/login")
     } finally {
       setIsChangingBusiness(false)

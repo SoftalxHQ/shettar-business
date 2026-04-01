@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from "@/lib/auth-context"
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
+import { logout as logoutAction, selectBusinessId } from "@/lib/store/slices/authSlice"
+import { logout as storageLogout } from "@/lib/storage"
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import {
   Star, MessageSquareReply, Trash2, ChevronLeft, ChevronRight,
   RefreshCw, MessageSquare, CheckCircle2, Clock, BarChart3,
@@ -226,7 +229,10 @@ function ReviewCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReviewsPage() {
-  const { businessId, logout } = useAuth()
+  const dispatch = useAppDispatch()
+  const businessId = useAppSelector(selectBusinessId)
+  const router = useRouter()
+  const logout = () => { dispatch(logoutAction()); storageLogout(); router.push("/login") }
   const [reviews, setReviews] = useState<Review[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
