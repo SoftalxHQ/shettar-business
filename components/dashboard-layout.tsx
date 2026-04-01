@@ -35,6 +35,7 @@ import {
   Landmark,
   Activity,
   MessageSquare,
+  HelpCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -49,7 +50,6 @@ interface DashboardLayoutProps {
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
-  // { name: "Staff Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
@@ -57,10 +57,9 @@ const adminNavigation = [
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
   { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { name: "Activity", href: "/dashboard/activity", icon: Activity },
+  { name: "Support", href: "/dashboard/support", icon: HelpCircle },
   { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
   { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
-  // { name: "Check-in/out", href: "/dashboard/checkin", icon: DoorOpen },
-  // { name: "Scan Code", href: "/dashboard/scan", icon: QrCode },
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
