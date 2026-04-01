@@ -11,7 +11,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { isTauri, nativeScan, printHtml } from "@/lib/tauri"
 
@@ -45,7 +45,6 @@ import { Suspense } from "react"
 
 function ScanContent() {
   const { user, businessId, businessName, logout } = useAuth()
-  const { toast } = useToast()
   const searchParams = useSearchParams()
   const [code, setCode] = useState(searchParams.get("code") || "")
   const [isLoading, setIsLoading] = useState(false)
@@ -103,10 +102,7 @@ function ScanContent() {
       if (response.ok && data.status?.code === 200) {
         setResult("success")
         setReservation(data.data)
-        toast({
-          title: "Success",
-          description: "Booking found successfully!",
-        })
+        toast.success("Booking found successfully!")
       } else {
         if (response.status === 401) {
           if (
@@ -121,21 +117,13 @@ function ScanContent() {
         }
         setResult("error")
         setReservation(null)
-        toast({
-          variant: "destructive",
-          title: "Not Found",
-          description: data.status?.message || "Booking not found",
-        })
+        toast.error(data.status?.message || "Booking not found")
       }
     } catch (error) {
       console.error("Failed to fetch booking:", error)
       setResult("error")
       setReservation(null)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to verify booking code",
-      })
+      toast.error("Failed to verify booking code")
     } finally {
       setIsLoading(false)
     }
@@ -151,20 +139,12 @@ function ScanContent() {
 
   const handleScan = () => {
     if (!businessId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Business information not found. Please try logging in again.",
-      })
+      toast.error("Business information not found. Please try logging in again.")
       return
     }
 
     if (!code.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter a booking code",
-      })
+      toast.error("Please enter a booking code")
       return
     }
 
@@ -208,24 +188,13 @@ function ScanContent() {
 
       if (response.ok && data.status?.code === 200) {
         setReservation(data.data) // Update with new data including check-in timestamp
-        toast({
-          title: "Success",
-          description: data.status.message || "Guest checked in successfully!",
-        })
+        toast.success(data.status.message || "Guest checked in successfully!")
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.status?.message || "Failed to check in guest",
-        })
+        toast.error(data.status?.message || "Failed to check in guest")
       }
     } catch (error) {
       console.error("Failed to check in:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred during check-in",
-      })
+      toast.error("An unexpected error occurred during check-in")
     } finally {
       setIsLoading(false)
     }
@@ -254,24 +223,13 @@ function ScanContent() {
 
       if (response.ok && data.status?.code === 200) {
         setReservation(data.data) // Update with new data including check-out timestamp
-        toast({
-          title: "Success",
-          description: data.status.message || "Guest checked out successfully!",
-        })
+        toast.success(data.status.message || "Guest checked out successfully!")
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.status?.message || "Failed to check out guest",
-        })
+        toast.error(data.status?.message || "Failed to check out guest")
       }
     } catch (error) {
       console.error("Failed to check out:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred during check-out",
-      })
+      toast.error("An unexpected error occurred during check-out")
     } finally {
       setIsLoading(false)
     }

@@ -33,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
-        <ReduxProvider>{children}</ReduxProvider>
-        <Toaster position="top-center" richColors />
+        <ReduxProvider>
+          {children}
+          <Toaster position="top-center" richColors />
+        </ReduxProvider>
         <ServiceWorkerRegistrar />
         <Analytics />
       </body>

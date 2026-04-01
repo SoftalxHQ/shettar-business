@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import React, { useState, useEffect } from "react"
 import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus, CheckCircle2, AlertCircle, Trash2, Star } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getAuthToken } from "@/lib/storage"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
@@ -24,6 +24,7 @@ interface BankAccount {
   bank_code?: string
   currency: string
   is_active?: boolean
+  recipient_code?: string | null
 }
 
 interface Bank {
@@ -34,7 +35,6 @@ interface Bank {
 }
 
 export default function BankSettingsPage() {
-  const { toast } = useToast()
   const { user, businessId, logout } = useAuth()
   const router = useRouter()
 
@@ -47,6 +47,7 @@ export default function BankSettingsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [banks, setBanks] = useState<Bank[]>([])
   const [accountToDelete, setAccountToDelete] = useState<number | null>(null)
+  const [deleteReason, setDeleteReason] = useState("")
 
   const initialFormState: BankAccount = {
     bank_name: "",
@@ -117,7 +118,7 @@ export default function BankSettingsPage() {
 
   const handleVerifyAccount = async () => {
     if (formData.account_number.length < 10 || !formData.bank_code) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please select a bank and enter a valid 10-digit account number." })
+      toast.error("Please select a bank and enter a valid 10-digit account number.")
       return
     }
 
@@ -130,13 +131,13 @@ export default function BankSettingsPage() {
 
       if (data.success) {
         setFormData(prev => ({ ...prev, account_name: data.data.account_name }))
-        toast({ title: "Account Verified", description: `Account Name: ${data.data.account_name}` })
+        toast.success(`Account verified: ${data.data.account_name}`)
       } else {
         setFormData(prev => ({ ...prev, account_name: "" }))
-        toast({ variant: "destructive", title: "Verification Failed", description: data.message || "Could not verify account details." })
+        toast.error(data.message || "Could not verify account details.")
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Verification service unreachable." })
+      toast.error("Verification service unreachable.")
     } finally {
       setIsVerifying(false)
     }
@@ -145,7 +146,7 @@ export default function BankSettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.account_name) {
-      toast({ variant: "destructive", title: "Verification Required", description: "Please verify the account details before saving." })
+      toast.error("Please verify the account details before saving.")
       return
     }
 
@@ -173,10 +174,7 @@ export default function BankSettingsPage() {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        toast({
-          title: "Success",
-          description: `Bank account ${isEditing ? 'updated' : 'added'} successfully.`,
-        })
+        toast.success(`Bank account ${isEditing ? 'updated' : 'added'} successfully.`)
         fetchBankAccounts() // Refresh list
         handleCancel()
       } else {
@@ -184,19 +182,11 @@ export default function BankSettingsPage() {
           logout(true)
           return
         }
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.message || "Failed to save bank details.",
-        })
+        toast.error(data.message || "Failed to save bank details.")
       }
     } catch (error) {
       console.error("Error saving bank details:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred.",
-      })
+      toast.error("An unexpected error occurred.")
     } finally {
       setIsSaving(false)
     }
@@ -207,24 +197,27 @@ export default function BankSettingsPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ is_active: true })
+        body: JSON.stringify({ bank_account: { is_active: true } })
       })
 
+      if (!response.ok) throw new Error("API returned failure")
+
       fetchBankAccounts()
-      toast({ title: "Updated", description: "Primary payout account updated." })
+      toast.success("Primary payout account updated.")
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to update active account." })
+      toast.error("Failed to update active account.")
     }
   }
 
   const handleDelete = (id: number) => {
     setAccountToDelete(id)
+    setDeleteReason("")
   }
 
   const executeDelete = async () => {
@@ -233,16 +226,18 @@ export default function BankSettingsPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${accountToDelete}`, {
+      const queryParams = deleteReason ? `?reason=${encodeURIComponent(deleteReason)}` : ""
+
+      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${accountToDelete}${queryParams}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
 
       fetchBankAccounts()
-      toast({ title: "Deleted", description: "Bank account removed." })
+      toast.success("Bank account removed.")
       setAccountToDelete(null)
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to delete account." })
+      toast.error("Failed to delete account.")
     } finally {
       setAccountToDelete(null)
     }
@@ -339,9 +334,15 @@ export default function BankSettingsPage() {
                           <Star className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
                         </Button>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
-                        <Pencil className="w-4 h-4 mr-2" /> Edit
-                      </Button>
+                      {!acc.recipient_code ? (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Edit
+                        </Button>
+                      ) : (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 flex items-center justify-center">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Verified
+                        </Badge>
+                      )}
                       <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -472,7 +473,19 @@ export default function BankSettingsPage() {
         description="Are you sure you want to delete this account? This will remove it from your available payout methods."
         confirmText="Delete"
         onConfirm={executeDelete}
-      />
+        confirmDisabled={!deleteReason.trim()}
+      >
+        <div className="py-2">
+          <Label htmlFor="delete-reason" className="text-sm font-medium">Reason for deletion <span className="text-rose-500">*</span></Label>
+          <Input 
+            id="delete-reason" 
+            placeholder="Please provide a reason to continue..." 
+            value={deleteReason} 
+            onChange={(e) => setDeleteReason(e.target.value)} 
+            className="mt-2"
+          />
+        </div>
+      </ConfirmDialog>
     </DashboardLayout>
   )
 }
