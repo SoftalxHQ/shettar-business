@@ -1,180 +1,83 @@
 "use client"
 
-import type React from "react"
-
-import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useAppDispatch, useAppSelector } from "./store/hooks"
+import { 
+  selectUser, selectBusinessId, selectBusinessName, selectDeviceId, selectIsLoading, selectIsFirstTimeSetup,
+  login as loginAction, logout as logoutAction, changeBusiness as changeBusinessAction, updateUser as updateUserAction
+} from "./store/slices/authSlice"
+import { logout as storageLogout, changeBusiness as storageChangeBusiness, setAuthToken, setUserData, setStoredBusinessId, setStoredBusinessName } from "./storage"
 import { useRouter } from "next/navigation"
-import type { User } from "./mock-auth"
-import {
-  getStoredBusinessId,
-  setStoredBusinessId,
-  getStoredBusinessName,
-  setStoredBusinessName,
-  getAuthToken,
-  setAuthToken,
-  getUserData,
-  setUserData,
-  logout as storageLogout,
-  changeBusiness as storageChangeBusiness,
-  getOrCreateDeviceId,
-} from "./storage"
 import { toast } from "sonner"
 import { api } from "./api-client"
+import type { User } from "./mock-auth"
 
-interface AuthContextType {
-  user: User | null
-  businessId: string | null
-  businessName: string | null
-  deviceId: string
-  login: (user: User, businessId: string, businessName: string, token: string) => void
-  logout: (skipApiCall?: boolean) => void
-  changeBusiness: () => Promise<void>
-  updateUser: (updates: Partial<User>) => void
-  isLoading: boolean
-  isFirstTimeSetup: boolean
-}
+export function useAuth() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [businessId, setBusinessId] = useState<string | null>(null)
-  const [businessName, setBusinessName] = useState<string | null>(null)
-  const [deviceId] = useState<string>(() => getOrCreateDeviceId())
-  const [isLoading, setIsLoading] = useState(true)
-  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false)
-  const router = useRouter()
-  const isLoggingOutRef = useRef(false)
-
-  useEffect(() => {
-    // Check for stored data on mount
-    const storedBusinessId = getStoredBusinessId()
-    const storedBusinessName = getStoredBusinessName()
-    const storedToken = getAuthToken()
-    const storedUser = getUserData()
-
-    if (storedBusinessId) {
-      setBusinessId(storedBusinessId)
-      setBusinessName(storedBusinessName)
-      setIsFirstTimeSetup(false)
-    } else {
-      setIsFirstTimeSetup(true)
-    }
-
-    if (storedUser && storedToken) {
-      setUser(storedUser)
-    }
-
-    setIsLoading(false)
-  }, [])
+  const user = useAppSelector(selectUser);
+  const businessId = useAppSelector(selectBusinessId);
+  const businessName = useAppSelector(selectBusinessName);
+  const deviceId = useAppSelector(selectDeviceId);
+  const isLoading = useAppSelector(selectIsLoading);
+  const isFirstTimeSetup = useAppSelector(selectIsFirstTimeSetup);
 
   const login = (userData: User, userBusinessId: string, userBusinessName: string, token: string) => {
-    isLoggingOutRef.current = false // Reset logout lock
-    setUser(userData)
-    setUserData(userData)
-    setAuthToken(token)
-
-    // Store business ID and name for this device
-    setBusinessId(userBusinessId)
-    setStoredBusinessId(userBusinessId)
-    setBusinessName(userBusinessName)
-    setStoredBusinessName(userBusinessName)
-    setIsFirstTimeSetup(false)
-
-    // Show success toast
+    dispatch(loginAction({ user: userData, token, businessId: userBusinessId, businessName: userBusinessName }));
+    setUserData(userData);
+    setAuthToken(token);
+    setStoredBusinessId(userBusinessId);
+    setStoredBusinessName(userBusinessName);
     toast.success(`Welcome back, ${userData.name}!`, {
       description: `Signed in to ${userBusinessName}`,
-    })
-  }
+    });
+  };
 
-  const logout = useCallback(async (skipApiCall = false) => {
-    if (isLoggingOutRef.current) return
-    isLoggingOutRef.current = true
-
-    const currentBusinessName = businessName
-
+  const logout = async (skipApiCall = false) => {
+    const currentBusinessName = businessName;
     try {
       if (!skipApiCall) {
-        await api.logout()
+        await api.logout();
       }
     } catch (error) {
-      console.error("Logout API call failed:", error)
-      // Continue with local logout even if API fails
+      console.error("Logout API call failed:", error);
     } finally {
-      // Clear local state and storage
-      setUser(null)
-      storageLogout()
+      dispatch(logoutAction());
+      storageLogout();
 
       if (skipApiCall) {
-        toast.error("Session expired. Please login again.")
+        toast.error("Session expired. Please login again.");
       } else {
         toast.success("Signed out successfully", {
           description: `You've been logged out of ${currentBusinessName || "your account"}`,
-        })
+        });
       }
-
-      router.push("/login")
+      router.push("/login");
     }
-  }, [businessName, router])
-
-  // Global fetch interceptor to handle 401 Unauthorized (expired tokens)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      try {
-        const response = await originalFetch(...args);
-
-        if (response.status === 401) {
-          // Get the URL from search parameters or the first argument
-          const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url || '';
-
-          // Don't intercept 401s for login/logout requests to avoid infinite loops
-          if (!url.includes('/users/sign_in') && !url.includes('/users/sign_out')) {
-            console.warn("Unauthorized API call detected, logging out...", url);
-            logout(true);
-          }
-        }
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    };
-
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [logout]);
+  };
 
   const changeBusiness = async () => {
     try {
-      await api.logout()
+      await api.logout();
     } catch (error) {
-      console.error("Logout API call failed during change business:", error)
+      console.error("Logout API call failed during change business:", error);
     }
-
-    setUser(null)
-    setBusinessId(null)
-    setBusinessName(null)
-    storageChangeBusiness()
-    setIsFirstTimeSetup(true)
-
-    // Show info toast
+    dispatch(changeBusinessAction());
+    storageChangeBusiness();
     toast.info("Business cleared", {
       description: "You can now sign in to a different business",
-    })
-  }
+    });
+    router.push("/login");
+  };
 
   const updateUser = (updates: Partial<User>) => {
+    dispatch(updateUserAction(updates));
     if (user) {
-      const updatedUser = { ...user, ...updates }
-      setUser(updatedUser)
-      setUserData(updatedUser)
+      setUserData({ ...user, ...updates });
     }
-  }
+  };
 
-  const contextValue = useMemo(() => ({
+  return {
     user,
     businessId,
     businessName,
@@ -185,19 +88,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUser,
     isLoading,
     isFirstTimeSetup
-  }), [user, businessId, businessName, deviceId, login, logout, changeBusiness, updateUser, isLoading, isFirstTimeSetup])
-
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
+  };
 }
