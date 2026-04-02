@@ -155,7 +155,7 @@ export default function SignupPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left side - Signup form */}
       <div className="flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-2xl space-y-6">
+        <div className="w-full max-w-md space-y-6">
           {/* Logo and branding */}
           <div className="space-y-4">
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">

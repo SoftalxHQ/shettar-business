@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
   onConfirm: () => void | Promise<void>
   isDestructive?: boolean
   loading?: boolean
+  confirmDisabled?: boolean
+  children?: React.ReactNode
 }
 
 export function ConfirmDialog({
@@ -24,6 +26,8 @@ export function ConfirmDialog({
   onConfirm,
   isDestructive = true,
   loading = false,
+  confirmDisabled = false,
+  children,
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -32,6 +36,7 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription className="py-2">{description}</DialogDescription>}
         </DialogHeader>
+        {children}
         <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
           <Button
             variant="outline"
@@ -46,7 +51,7 @@ export function ConfirmDialog({
               await onConfirm()
               if (!loading) onOpenChange(false)
             }}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
           >
             {confirmText}
           </Button>

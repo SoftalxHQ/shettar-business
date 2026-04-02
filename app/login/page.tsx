@@ -19,6 +19,7 @@ import {
 import { Hotel, AlertCircle, Info } from "lucide-react"
 import { api } from "@/lib/api-client"
 import Image from "next/image"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -83,6 +84,12 @@ export default function LoginPage() {
       setUserData(user)
       setStoredBusinessId(resolvedBusinessId)
       setStoredBusinessName(resolvedBusinessName)
+
+      // Use backend message if available
+      const backendMessage = data?.status?.message || "Signed in successfully"
+      toast.success(backendMessage, {
+        description: `Welcome back to ${resolvedBusinessName}, ${user.name}!`,
+      })
 
       router.push("/dashboard")
     } catch (err: any) {

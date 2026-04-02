@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { User } from "@/lib/mock-auth";
 import type { RootState } from "../store";
+import { REHYDRATE } from "redux-persist";
 
 interface AuthState {
   user: User | null;
@@ -68,6 +69,11 @@ const authSlice = createSlice({
     setDeviceId: (state, action: PayloadAction<string>) => {
       state.deviceId = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(REHYDRATE, (state) => {
+      state.isLoading = false;
+    });
   },
 });
 

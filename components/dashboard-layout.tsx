@@ -11,6 +11,8 @@ import { EmailVerificationBanner } from "@/components/email-verification-banner"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { toast } from "sonner"
+import { api } from "@/lib/api-client"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import {
   DropdownMenu,
@@ -94,9 +96,23 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     )
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    let backendMessage = "Signed out successfully"
+    try {
+      const res = await api.logout()
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({}))
+        if (data?.message) backendMessage = data.message
+        if (data?.status?.message) backendMessage = data.status.message
+      }
+    } catch (e) {
+      console.error("Logout API call failed:", e)
+    }
     dispatch(logout())
     storageLogout()
+    toast.success(backendMessage, {
+      description: "You've been logged out from your account",
+    })
     router.push("/login")
   }
 
@@ -106,9 +122,23 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   const executeChangeBusiness = async () => {
     setIsChangingBusiness(true)
+    let backendMessage = "Business cleared"
+    try {
+      const res = await api.logout()
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({}))
+        if (data?.message) backendMessage = data.message
+        if (data?.status?.message) backendMessage = data.status.message
+      }
+    } catch (e) {
+      console.error("Logout API call failed during change business:", e)
+    }
     try {
       dispatch(changeBusinessAction())
       storageChangeBusiness()
+      toast.info(backendMessage, {
+        description: "You can now sign in to a different business",
+      })
       router.push("/login")
     } finally {
       setIsChangingBusiness(false)

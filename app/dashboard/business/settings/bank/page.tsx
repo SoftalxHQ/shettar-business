@@ -228,10 +228,12 @@ export default function BankSettingsPage() {
 
       const queryParams = deleteReason ? `?reason=${encodeURIComponent(deleteReason)}` : ""
 
-      await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${accountToDelete}${queryParams}`, {
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${accountToDelete}${queryParams}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
+
+      if (!response.ok) throw new Error("API returned failure")
 
       fetchBankAccounts()
       toast.success("Bank account removed.")
