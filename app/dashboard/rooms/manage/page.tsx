@@ -198,7 +198,8 @@ function RoomManagementContent() {
         fetchRoomTypeAndRooms()
         fetchActivities()
       } else {
-        toast.error("Failed to delete room")
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || data.message || "Failed to delete room")
       }
     } catch {
       toast.error("Unable to delete room")

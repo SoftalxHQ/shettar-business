@@ -21,6 +21,7 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
   const [startingNumber, setStartingNumber] = useState(101)
   const [quantity, setQuantity] = useState(10)
   const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const roomNumbers = useMemo(() => {
     if (quantity <= 0 || quantity > 100) return []
@@ -43,6 +44,7 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
     }
 
     setIsCreating(true)
+    setErrorMessage(null)
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
@@ -78,7 +80,13 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
           }
         }
         const error = await response.json().catch(() => ({}))
-        toast.error(error.message || "Failed to create rooms")
+        const message = error.errors?.number?.[0]
+          || error.errors?.message
+          || (typeof error.errors === "string" ? error.errors : null)
+          || error.message
+          || "Failed to create rooms"
+        setErrorMessage(message)
+        toast.error(message)
       }
     } catch (error) {
       console.error("Error creating rooms:", error)
@@ -102,7 +110,7 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
               id="startingNumber"
               type="number"
               value={startingNumber}
-              onChange={(e) => setStartingNumber(Number(e.target.value))}
+              onChange={(e) => { setStartingNumber(Number(e.target.value)); setErrorMessage(null); }}
               min={1}
               placeholder="101"
             />
@@ -117,7 +125,7 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e) => { setQuantity(Number(e.target.value)); setErrorMessage(null); }}
               min={1}
               max={100}
               placeholder="10"
@@ -147,6 +155,15 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
               <p className="text-sm text-red-700">
                 Please enter a valid quantity (1-100)
               </p>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
+              <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-700">{errorMessage}</p>
             </div>
           )}
         </div>
