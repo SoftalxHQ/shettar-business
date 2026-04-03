@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus, CheckCircle2, AlertCircle, Trash2, Star } from "lucide-react"
+import { ArrowLeft, Save, Loader2, CreditCard, Building, Pencil, Plus, CheckCircle2, AlertCircle, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { getAuthToken } from "@/lib/storage"
@@ -24,7 +24,12 @@ interface BankAccount {
   bank_code?: string
   currency: string
   is_active?: boolean
+  rejected?: boolean
+  rejection_reason?: string | null
   recipient_code?: string | null
+  status: string
+  ban_reason?: string | null
+  banned_at?: string | null
 }
 
 interface Bank {
@@ -48,6 +53,7 @@ export default function BankSettingsPage() {
   const [banks, setBanks] = useState<Bank[]>([])
   const [accountToDelete, setAccountToDelete] = useState<number | null>(null)
   const [deleteReason, setDeleteReason] = useState("")
+  const [isActioning, setIsActioning] = useState(false)
 
   const initialFormState: BankAccount = {
     bank_name: "",
@@ -55,7 +61,6 @@ export default function BankSettingsPage() {
     account_number: "",
     bank_code: "",
     currency: "NGN",
-    is_active: true
   }
 
   const [formData, setFormData] = useState<BankAccount>(initialFormState)
@@ -168,7 +173,15 @@ export default function BankSettingsPage() {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          bank_account: {
+            bank_name: formData.bank_name,
+            account_number: formData.account_number,
+            account_name: formData.account_name,
+            bank_code: formData.bank_code,
+            currency: formData.currency,
+          }
+        })
       })
 
       const data = await response.json()
@@ -189,29 +202,6 @@ export default function BankSettingsPage() {
       toast.error("An unexpected error occurred.")
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleSetActive = async (id: number) => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = getAuthToken()
-
-      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ bank_account: { is_active: true } })
-      })
-
-      if (!response.ok) throw new Error("API returned failure")
-
-      fetchBankAccounts()
-      toast.success("Primary payout account updated.")
-    } catch (error) {
-      toast.error("Failed to update active account.")
     }
   }
 
@@ -242,6 +232,83 @@ export default function BankSettingsPage() {
       toast.error("Failed to delete account.")
     } finally {
       setAccountToDelete(null)
+    }
+  }
+
+  const handleSubmitForVerification = async (id: number) => {
+    setIsActioning(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${id}/submit_for_verification`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        toast.success("Bank account submitted for verification.")
+        fetchBankAccounts()
+      } else {
+        toast.error(data.message || "Failed to submit for verification.")
+      }
+    } catch {
+      toast.error("An unexpected error occurred.")
+    } finally {
+      setIsActioning(false)
+    }
+  }
+
+  const executeBan = async () => {
+    if (!banModalId || !banReason.trim()) return
+    setIsActioning(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${banModalId}/ban`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: banReason.trim() })
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        toast.success("Bank account banned.")
+        fetchBankAccounts()
+        setBanModalId(null)
+        setBanReason("")
+      } else {
+        toast.error(data.message || "Failed to ban account.")
+      }
+    } catch {
+      toast.error("An unexpected error occurred.")
+    } finally {
+      setIsActioning(false)
+    }
+  }
+
+  const executeUnban = async () => {
+    if (!unbanModalId || !unbanReason.trim()) return
+    setIsActioning(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts/${unbanModalId}/unban`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: unbanReason.trim() })
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        toast.success("Bank account unbanned.")
+        fetchBankAccounts()
+        setUnbanModalId(null)
+        setUnbanReason("")
+      } else {
+        toast.error(data.message || "Failed to unban account.")
+      }
+    } catch {
+      toast.error("An unexpected error occurred.")
+    } finally {
+      setIsActioning(false)
     }
   }
 
@@ -320,34 +387,92 @@ export default function BankSettingsPage() {
               </Card>
             ) : (
               accounts.map((acc) => (
-                <Card key={acc.id} className={`border transition-all ${acc.is_active ? 'border-indigo-600 shadow-md ring-1 ring-indigo-600' : 'border-slate-200 hover:border-indigo-300'}`}>
+                <Card key={acc.id} className={`border transition-all ${
+                  acc.status === "rejected" ? 'border-red-300 bg-red-50/30' :
+                  acc.status === "verified" ? 'border-indigo-600 shadow-md ring-1 ring-indigo-600' :
+                  acc.status === "banned"   ? 'border-slate-400 bg-slate-50/50' :
+                  acc.status === "pending"  ? 'border-orange-300 bg-orange-50/20' :
+                  'border-slate-200 hover:border-indigo-300'
+                }`}>
                   <CardContent className="p-6 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-lg text-slate-900">{acc.bank_name}</h3>
-                        {acc.is_active && <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-0">Primary</Badge>}
+                        {acc.status === "rejected" && (
+                          <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-0 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Rejected
+                          </Badge>
+                        )}
+                        {acc.status === "verified" && (
+                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Verified
+                          </Badge>
+                        )}
+                        {acc.status === "pending" && (
+                          <Badge className="bg-orange-100 text-orange-600 hover:bg-orange-200 border-0 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Pending Verification
+                          </Badge>
+                        )}
+                        {acc.status === "banned" && (
+                          <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-300 border-0 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> Banned
+                          </Badge>
+                        )}
+                        {acc.status === "draft" && (
+                          <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-200 border-0">
+                            Draft
+                          </Badge>
+                        )}
                       </div>
                       <p className="font-mono text-slate-600">{acc.account_number}</p>
                       <p className="text-sm text-slate-500">{acc.account_name}</p>
+                      {acc.status === "rejected" && acc.rejection_reason && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">Reason: {acc.rejection_reason}</p>
+                      )}
+                      {acc.status === "pending" && (
+                        <p className="text-xs text-orange-600 mt-1">Under review by admin</p>
+                      )}
+                      {acc.status === "banned" && acc.ban_reason && (
+                        <p className="text-xs text-slate-500 mt-1 font-medium">Ban reason: {acc.ban_reason}</p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      {!acc.is_active && (
-                        <Button size="sm" variant="ghost" onClick={() => handleSetActive(acc.id!)} title="Set as Primary">
-                          <Star className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
-                        </Button>
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                      {/* draft: Edit + Delete + Submit */}
+                      {acc.status === "draft" && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
+                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-indigo-400 text-indigo-600 hover:bg-indigo-50"
+                            onClick={() => handleSubmitForVerification(acc.id!)} disabled={isActioning}>
+                            Submit for Verification
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
-                      {!acc.recipient_code ? (
-                        <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
-                          <Pencil className="w-4 h-4 mr-2" /> Edit
-                        </Button>
-                      ) : (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 flex items-center justify-center">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Verified
-                        </Badge>
+                      {/* pending: no actions */}
+                      {/* verified: no actions for business (admin manages ban/unban) */}
+                      {/* rejected: Edit + Resubmit + Delete */}
+                      {acc.status === "rejected" && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
+                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-indigo-400 text-indigo-600 hover:bg-indigo-50"
+                            onClick={() => handleSubmitForVerification(acc.id!)} disabled={isActioning}>
+                            Resubmit for Verification
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
-                      <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {/* banned: contact admin message */}
+                      {acc.status === "banned" && (
+                        <p className="text-xs text-slate-500">Contact admin to unban</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -415,8 +540,7 @@ export default function BankSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="account_name">Account Name</Label>
-                    <div className={`flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 ${formData.account_name ? "border-green-200 bg-green-50" : "border-slate-200"}`}>
+                    <Label htmlFor="account_name">Account Name</Label>                    <div className={`flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 ${formData.account_name ? "border-green-200 bg-green-50" : "border-slate-200"}`}>
                       {formData.account_name ? (
                         <>
                           <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -428,16 +552,13 @@ export default function BankSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
-                    />
-                    <Label htmlFor="is_active" className="cursor-pointer">Set as primary payout account</Label>
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-md">
+                    <p className="text-sm text-orange-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      Bank accounts require admin verification before they can be used for payouts.
+                    </p>
                   </div>
+
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
@@ -488,6 +609,7 @@ export default function BankSettingsPage() {
           />
         </div>
       </ConfirmDialog>
+
     </DashboardLayout>
   )
 }
