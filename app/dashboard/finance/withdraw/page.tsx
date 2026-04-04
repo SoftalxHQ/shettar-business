@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
 import { logout as logoutAction, selectUser, selectBusinessId } from "@/lib/store/slices/authSlice"
@@ -24,6 +24,13 @@ interface BankAccount {
   is_active: boolean
 }
 
+interface CommissionPreview {
+  amount: number
+  commission_rate: number
+  commission_amount: number
+  net_amount: number
+}
+
 export default function WithdrawalPage() {
   const dispatch = useAppDispatch()
   const user = useAppSelector(selectUser)
@@ -37,10 +44,18 @@ export default function WithdrawalPage() {
   const [balance, setBalance] = useState<number>(0)
   const [isOtpStep, setIsOtpStep] = useState(false)
   const [otp, setOtp] = useState("")
+  const [preview, setPreview] = useState<CommissionPreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
-  // Permissions Check & Fetch current withdrawal balance
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+
+  const getHeaders = useCallback(() => ({
+    Authorization: `Bearer ${getAuthToken()}`,
+    "Content-Type": "application/json",
+    "X-Business-Id": businessId!
+  }), [businessId])
+
   useEffect(() => {
-    // Permission Check
     if (user && user.role !== 'admin' && !user.permissions?.finance?.withdraw) {
       toast.error("You do not have permission to withdraw funds.")
       router.push("/dashboard/finance")
@@ -49,34 +64,17 @@ export default function WithdrawalPage() {
 
     const fetchData = async () => {
       if (!businessId) return
-
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        const token = getAuthToken()
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Business-Id": businessId
-        }
-
-        // Fetch Business (for balance)
-        const businessRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, { headers })
-
-        if (businessRes.status === 401) {
-          logout(true)
-          return
-        }
-
+        const businessRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, { headers: getHeaders() })
+        if (businessRes.status === 401) { logout(); return }
         if (businessRes.ok) {
-          const businessData = await businessRes.json()
-          setBalance(parseFloat(businessData.withdrawable_balance || "0"))
+          const data = await businessRes.json()
+          setBalance(parseFloat(data.withdrawable_balance || "0"))
         }
-
-        // Fetch Bank Accounts
-        const bankAccountsRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, { headers })
-        if (bankAccountsRes.ok) {
-          const bankAccountsData = await bankAccountsRes.json()
-          setBankAccounts(bankAccountsData.data || bankAccountsData)
+        const bankRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, { headers: getHeaders() })
+        if (bankRes.ok) {
+          const data = await bankRes.json()
+          setBankAccounts(data.data || data)
         }
       } catch (error) {
         console.error("Failed to fetch withdrawal data:", error)
@@ -86,63 +84,49 @@ export default function WithdrawalPage() {
     fetchData()
   }, [user, router, businessId])
 
+  // Live commission preview as user types
+  useEffect(() => {
+    const num = parseFloat(amount)
+    if (!businessId || isNaN(num) || num <= 0) { setPreview(null); return }
+
+    const timer = setTimeout(async () => {
+      try {
+        setPreviewLoading(true)
+        const res = await fetch(
+          `${API_URL}/api/v1/user_businesses/${businessId}/commission_preview?amount=${num}`,
+          { headers: getHeaders() }
+        )
+        if (res.ok) setPreview(await res.json())
+      } catch { /* silent */ } finally {
+        setPreviewLoading(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [amount, businessId])
+
   const selectedAccount = bankAccounts.find(acc => String(acc.id) === selectedAccountId)
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!selectedAccount || !amount) {
-      toast.error("Please select an account and enter an amount")
-      return
-    }
-
+    if (!selectedAccount || !amount) { toast.error("Please select an account and enter an amount"); return }
     const withdrawAmount = parseFloat(amount)
-    if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
-      toast.error("Please enter a valid amount")
-      return
-    }
-
-    if (withdrawAmount > balance) {
-      toast.error("Insufficient funds")
-      return
-    }
+    if (isNaN(withdrawAmount) || withdrawAmount <= 0) { toast.error("Please enter a valid amount"); return }
+    if (withdrawAmount > balance) { toast.error("Insufficient funds"); return }
 
     setLoading(true)
-
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = getAuthToken()
-
       const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/withdraw`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Business-Id": businessId!
-        },
-        body: JSON.stringify({
-          amount: withdrawAmount,
-          bank_account_id: selectedAccountId,
-          otp: isOtpStep ? otp : undefined
-        })
+        headers: getHeaders(),
+        body: JSON.stringify({ amount: withdrawAmount, bank_account_id: selectedAccountId, otp: isOtpStep ? otp : undefined })
       })
-
-      if (response.status === 401) {
-        logout(true) // Session expired, clear storage and redirect
-        return
-      }
-
+      if (response.status === 401) { logout(); return }
+      const data = await response.json()
       if (response.ok) {
-        const data = await response.json()
-        if (data.status === "otp_required") {
-          setIsOtpStep(true)
-          toast.success(data.message)
-        } else {
-          toast.success(data.message || "Withdrawal request submitted successfully")
-          router.push("/dashboard/finance")
-        }
+        if (data.status === "otp_required") { setIsOtpStep(true); toast.success(data.message) }
+        else { toast.success(data.message || "Withdrawal successful"); router.push("/dashboard/finance") }
       } else {
-        const data = await response.json()
         toast.error(data.error || "Withdrawal failed")
       }
     } catch (error) {
@@ -152,6 +136,8 @@ export default function WithdrawalPage() {
       setLoading(false)
     }
   }
+
+  const fmt = (n: number) => `₦${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   return (
     <DashboardLayout activeTab="finance">
@@ -173,7 +159,7 @@ export default function WithdrawalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900">₦{balance.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-slate-900">{fmt(balance)}</div>
             <p className="text-sm text-muted-foreground mt-1">Funds available for immediate withdrawal</p>
           </CardContent>
         </Card>
@@ -183,9 +169,7 @@ export default function WithdrawalPage() {
             <CardHeader>
               <CardTitle>{isOtpStep ? "Verify Withdrawal" : "Withdrawal Details"}</CardTitle>
               <CardDescription>
-                {isOtpStep
-                  ? "Enter the 6-digit code sent to your email to confirm this transaction."
-                  : "Select a destination account and amount"}
+                {isOtpStep ? "Enter the 6-digit code sent to your email to confirm this transaction." : "Select a destination account and amount"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -208,13 +192,10 @@ export default function WithdrawalPage() {
                           </SelectItem>
                         ))}
                         {bankAccounts.length === 0 && (
-                          <div className="p-2 text-center text-xs text-muted-foreground">
-                            No bank accounts found
-                          </div>
+                          <div className="p-2 text-center text-xs text-muted-foreground">No bank accounts found</div>
                         )}
                       </SelectContent>
                     </Select>
-
                     {selectedAccount && (
                       <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -249,6 +230,34 @@ export default function WithdrawalPage() {
                       <p className="text-xs text-red-600 font-medium">Amount exceeds available balance</p>
                     )}
                   </div>
+
+                  {/* Live commission breakdown */}
+                  {(preview || previewLoading) && parseFloat(amount) > 0 && (
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-2">
+                      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3">Transaction Breakdown</p>
+                      {previewLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-indigo-500">
+                          <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                          Calculating...
+                        </div>
+                      ) : preview && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600">Withdrawal amount</span>
+                            <span className="font-semibold">{fmt(preview.amount)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600">Commission ({preview.commission_rate}%)</span>
+                            <span className="font-semibold text-red-600">− {fmt(preview.commission_amount)}</span>
+                          </div>
+                          <div className="border-t border-indigo-200 pt-2 flex justify-between text-sm">
+                            <span className="font-bold text-slate-800">You will receive</span>
+                            <span className="font-bold text-green-700 text-base">{fmt(preview.net_amount)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="space-y-4 py-4">
@@ -265,17 +274,27 @@ export default function WithdrawalPage() {
                       autoFocus
                     />
                   </div>
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-sm text-indigo-700">
-                    <p className="font-semibold text-center mt-1">
-                      Confirming ₦{parseFloat(amount).toLocaleString()} withdrawal to {selectedAccount?.bank_name}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full text-xs text-slate-400 hover:text-indigo-600"
-                    onClick={() => { setIsOtpStep(false); setOtp(""); }}
-                  >
+                  {preview && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Withdrawal amount</span>
+                        <span className="font-semibold">{fmt(preview.amount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
+                        <span className="font-semibold text-red-600">− {fmt(preview.commission_amount)}</span>
+                      </div>
+                      <div className="border-t border-slate-200 pt-2 flex justify-between text-sm">
+                        <span className="font-bold">You will receive</span>
+                        <span className="font-bold text-green-700">{fmt(preview.net_amount)}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 text-center pt-1">
+                        Sending to {selectedAccount?.bank_name} — {selectedAccount?.account_number}
+                      </p>
+                    </div>
+                  )}
+                  <Button type="button" variant="ghost" className="w-full text-xs text-slate-400 hover:text-indigo-600"
+                    onClick={() => { setIsOtpStep(false); setOtp("") }}>
                     Wait, go back and edit details
                   </Button>
                 </div>

@@ -78,6 +78,8 @@ interface Transaction {
   amount: number
   status: "completed" | "pending" | "failed"
   method?: string
+  net_amount?: number
+  commission_amount?: number
 }
 
 const MOCK_ANALYTICS_DATA = [
@@ -199,7 +201,9 @@ export default function FinancePage() {
             type: t.transaction_type,
             amount: parseFloat(t.amount || "0"),
             status: t.status,
-            method: t.metadata?.payment_method
+            method: t.metadata?.payment_method,
+            net_amount: t.metadata?.net_amount != null ? parseFloat(t.metadata.net_amount) : undefined,
+            commission_amount: t.metadata?.commission_amount != null ? parseFloat(t.metadata.commission_amount) : undefined,
           }))
           setTransactions(mappedTransactions)
         }
@@ -1004,6 +1008,12 @@ export default function FinancePage() {
                           <span className={t.type === "income" ? "text-emerald-600" : "text-slate-900"}>
                             {t.type === "income" ? "+" : "-"}₦{t.amount.toLocaleString()}
                           </span>
+                          {t.type === "withdrawal" && t.net_amount != null && (
+                            <div className="text-xs font-normal text-muted-foreground mt-0.5 space-y-0.5">
+                              <div className="text-green-700">Net: ₦{t.net_amount.toLocaleString()}</div>
+                              <div className="text-red-500">Fee: ₦{(t.commission_amount ?? 0).toLocaleString()}</div>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
