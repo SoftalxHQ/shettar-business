@@ -46,6 +46,7 @@ export default function BankSettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "verified" | "manual">("idle")
 
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -128,21 +129,25 @@ export default function BankSettingsPage() {
     }
 
     setIsVerifying(true)
+    setVerifyStatus("idle")
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
       const response = await fetch(`${API_URL}/api/v1/banks/resolve_account?account_number=${formData.account_number}&bank_code=${formData.bank_code}`)
       const data = await response.json()
 
-      if (data.success) {
+      if (data.success && data.data?.account_name) {
         setFormData(prev => ({ ...prev, account_name: data.data.account_name }))
+        setVerifyStatus("verified")
         toast.success(`Account verified: ${data.data.account_name}`)
       } else {
+        // Paystack couldn't resolve — common for business/fintech accounts
         setFormData(prev => ({ ...prev, account_name: "" }))
-        toast.error(data.message || "Could not verify account details.")
+        setVerifyStatus("manual")
+        toast.info("Auto-verification unavailable for this account. Please enter the account name manually.")
       }
-    } catch (error) {
-      toast.error("Verification service unreachable.")
+    } catch {
+      setVerifyStatus("manual")
+      toast.info("Verification service unavailable. Please enter the account name manually.")
     } finally {
       setIsVerifying(false)
     }
@@ -150,8 +155,8 @@ export default function BankSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.account_name) {
-      toast.error("Please verify the account details before saving.")
+    if (!formData.account_name.trim()) {
+      toast.error("Please enter or verify the account name before saving.")
       return
     }
 
@@ -328,6 +333,7 @@ export default function BankSettingsPage() {
     setShowForm(false)
     setEditingId(null)
     setFormData(initialFormState)
+    setVerifyStatus("idle")
   }
 
   const handleBankChange = (code: string) => {
@@ -338,6 +344,7 @@ export default function BankSettingsPage() {
       bank_name: bank ? bank.name : "",
       account_name: ""
     }))
+    setVerifyStatus("idle")
   }
 
   return (
@@ -522,6 +529,7 @@ export default function BankSettingsPage() {
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                           setFormData({ ...formData, account_number: val, account_name: "" });
+                          setVerifyStatus("idle")
                         }}
                         required
                         type="text"
@@ -540,16 +548,33 @@ export default function BankSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="account_name">Account Name</Label>                    <div className={`flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 ${formData.account_name ? "border-green-200 bg-green-50" : "border-slate-200"}`}>
-                      {formData.account_name ? (
-                        <>
-                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                          <span className="text-sm font-medium text-green-900">{formData.account_name}</span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-slate-400 italic">Verified account name will appear here</span>
+                    <Label htmlFor="account_name">
+                      Account Name
+                      {verifyStatus === "manual" && (
+                        <span className="ml-2 text-xs text-orange-500 font-normal">
+                          Auto-verify unavailable — enter manually
+                        </span>
                       )}
-                    </div>
+                    </Label>
+                    {verifyStatus === "verified" ? (
+                      <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-green-50 border-green-200">
+                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        <span className="text-sm font-medium text-green-900">{formData.account_name}</span>
+                      </div>
+                    ) : verifyStatus === "manual" ? (
+                      <Input
+                        id="account_name"
+                        placeholder="Enter account name as it appears on the account"
+                        value={formData.account_name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, account_name: e.target.value }))}
+                        required
+                        className="border-orange-200 focus:border-orange-400"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 border-slate-200">
+                        <span className="text-sm text-slate-400 italic">Verified account name will appear here</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-md">
@@ -567,7 +592,7 @@ export default function BankSettingsPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSaving || !formData.account_name}
+                    disabled={isSaving || !formData.account_name.trim()}
                     className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]"
                   >
                     {isSaving ? (
