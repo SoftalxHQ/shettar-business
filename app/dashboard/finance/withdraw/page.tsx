@@ -27,6 +27,7 @@ interface BankAccount {
 interface CommissionPreview {
   amount: number
   commission_rate: number
+  flat_fee: number
   commission_amount: number
   net_amount: number
 }
@@ -248,8 +249,14 @@ export default function WithdrawalPage() {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-slate-600">Commission ({preview.commission_rate}%)</span>
-                            <span className="font-semibold text-red-600">− {fmt(preview.commission_amount)}</span>
+                            <span className="font-semibold text-red-600">− {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}</span>
                           </div>
+                          {(preview.flat_fee ?? 0) > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-600">Paystack transfer fee</span>
+                              <span className="font-semibold text-red-600">− {fmt(preview.flat_fee)}</span>
+                            </div>
+                          )}
                           <div className="border-t border-indigo-200 pt-2 flex justify-between text-sm">
                             <span className="font-bold text-slate-800">You will receive</span>
                             <span className="font-bold text-green-700 text-base">{fmt(preview.net_amount)}</span>
@@ -282,8 +289,14 @@ export default function WithdrawalPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
-                        <span className="font-semibold text-red-600">− {fmt(preview.commission_amount)}</span>
+                        <span className="font-semibold text-red-600">− {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}</span>
                       </div>
+                      {(preview.flat_fee ?? 0) > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Paystack transfer fee</span>
+                          <span className="font-semibold text-red-600">− {fmt(preview.flat_fee)}</span>
+                        </div>
+                      )}
                       <div className="border-t border-slate-200 pt-2 flex justify-between text-sm">
                         <span className="font-bold">You will receive</span>
                         <span className="font-bold text-green-700">{fmt(preview.net_amount)}</span>
