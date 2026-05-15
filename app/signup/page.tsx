@@ -62,6 +62,7 @@ export default function SignupPage() {
   // Business data (Step 1)
   const [businessData, setBusinessData] = useState({
     business_name: "",
+    referrer_code: "",
     description: "",
     address: "",
     city: "",
@@ -302,6 +303,19 @@ export default function SignupPage() {
                       onChange={(e) => setBusinessData({ ...businessData, zip_code: e.target.value })}
                       className="h-11"
                     />
+                  </div>
+
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="referrer_code">Referrer code (optional)</Label>
+                    <Input
+                      id="referrer_code"
+                      type="text"
+                      placeholder="STRXXXXXX"
+                      value={businessData.referrer_code}
+                      onChange={(e) => setBusinessData({ ...businessData, referrer_code: e.target.value })}
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">If a marketer referred you, enter their code.</p>
                   </div>
 
                   <div className="space-y-2">
