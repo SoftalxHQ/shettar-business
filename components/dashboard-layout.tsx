@@ -8,6 +8,9 @@ import { logout as storageLogout, changeBusiness as storageChangeBusiness } from
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { EmailVerificationBanner } from "@/components/email-verification-banner"
+import { BusinessVerificationBanner } from "@/components/business-verification-banner"
+import { BusinessVerificationBadge } from "@/components/business-verification-badge"
+import type { VerificationDisplayStatus } from "@/lib/business-verification"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -40,6 +43,7 @@ import {
   Activity,
   MessageSquare,
   HelpCircle,
+  Tag,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -56,6 +60,7 @@ const adminNavigation = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
+  { name: "Promos", href: "/dashboard/promos", icon: Tag },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
@@ -76,6 +81,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const [imgError, setImgError] = useState(false)
   const [showChangeBusinessDialog, setShowChangeBusinessDialog] = useState(false)
   const [isChangingBusiness, setIsChangingBusiness] = useState(false)
+  const [verificationStatus, setVerificationStatus] = useState<VerificationDisplayStatus | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -208,7 +214,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             </Link>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground truncate">{businessId || 'N/A'}</p>
+              <p className="text-xs text-muted-foreground truncate">{businessId || "N/A"}</p>
             </div>
           </div>
 
@@ -235,6 +241,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   return user.permissions.rooms?.view;
                 case "Staffs":
                   return user.permissions.staff?.view;
+                case "Promos":
+                  return user.permissions.promos?.view;
                 default:
                   return true;
               }
@@ -310,11 +318,23 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {verificationStatus && (
+            <div className="px-4 pb-4 pt-0">
+              <BusinessVerificationBadge
+                status={verificationStatus}
+                className="w-full justify-center py-1.5 text-[11px]"
+              />
+            </div>
+          )}
         </aside>
 
         {/* Main content */}
         <div className="pl-64">
-          <main className="p-8">{children}</main>
+          <main className="p-8">
+            <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
+            {children}
+          </main>
         </div>
 
         <ConfirmDialog

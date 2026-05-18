@@ -27,6 +27,7 @@ export interface Permissions {
   staff?: StaffPermissions
   finance?: FinancePermissions
   settings?: SettingsPermissions
+  promos?: PromosPermissions
 }
 
 export interface DashboardPermissions {
@@ -74,6 +75,12 @@ export interface SettingsPermissions {
   edit_amenities?: boolean
 }
 
+export interface PromosPermissions {
+  view?: boolean
+  create?: boolean
+  edit?: boolean
+}
+
 // Permission Presets
 export const PERMISSION_PRESETS = {
   full_access: {
@@ -85,7 +92,8 @@ export const PERMISSION_PRESETS = {
       bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
       staff: { view: true, add: true, edit: true, remove: true, manage_permissions: true },
       finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
-      settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true }
+      settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
+      promos: { view: true, create: true, edit: true }
     }
   },
   manager: {
@@ -97,7 +105,8 @@ export const PERMISSION_PRESETS = {
       bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
       staff: { view: true, add: false, edit: false, remove: false, manage_permissions: false },
       finance: { view: true, withdraw: false, add: false, update_account: false, process_refunds: false, manage_payment_methods: false },
-      settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false }
+      settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false },
+      promos: { view: true, create: true, edit: true }
     }
   },
   front_desk: {
@@ -109,7 +118,8 @@ export const PERMISSION_PRESETS = {
       bookings: { view: true, create: true, edit: true, cancel: false, view_payments: false, checkin_checkout: true },
       staff: { view: false },
       finance: { view: false },
-      settings: { view: false }
+      settings: { view: false },
+      promos: { view: false, create: false, edit: false }
     }
   },
   custom: {
@@ -176,6 +186,14 @@ export const PERMISSION_LABELS = {
       edit_details: "Edit Business Details",
       edit_branding: "Edit Branding",
       edit_amenities: "Edit Amenities"
+    }
+  },
+  promos: {
+    title: "Promo Codes",
+    permissions: {
+      view: "View Promo Codes",
+      create: "Create Promo Codes",
+      edit: "Edit Promo Codes"
     }
   }
 } as const

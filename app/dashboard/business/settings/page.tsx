@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Image from "next/image"
+import { BusinessVerificationBadge } from "@/components/business-verification-badge"
+import type { VerificationDisplayStatus } from "@/lib/business-verification"
 
 interface BusinessData {
   id: number
@@ -64,6 +66,10 @@ interface BusinessData {
   referrer_locked?: boolean
   marketer_referrer_code?: string | null
   created_at?: string
+  verification_display_status?: VerificationDisplayStatus
+  verification_status?: string
+  verification_notes?: string | null
+  can_request_verification?: boolean
 }
 
 const REFERRER_WINDOW_DAYS = 7
@@ -392,7 +398,12 @@ export default function BusinessSettingsPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Business Settings</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-bold tracking-tight">Business Settings</h1>
+              {businessData.verification_display_status && (
+                <BusinessVerificationBadge status={businessData.verification_display_status} />
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
               Manage your business information, branding, and amenities
             </p>

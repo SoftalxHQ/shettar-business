@@ -22,9 +22,10 @@ import {
   UserPlus, ShieldCheck, UserMinus, BedDouble, Wrench,
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
-  ChevronDown, X,
+  ChevronDown, X, Tag, CreditCard, Send, Download,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 interface ActivityItem {
   id: number
@@ -57,6 +58,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "withdrawal_requested": Banknote,
   "withdrawal_completed": CheckCircle2,
   "business_updated": Building2,
+  "verification_requested": ShieldCheck,
+  "bank_account_added": CreditCard,
+  "bank_account_deleted": CreditCard,
+  "bank_account_submitted": Send,
+  "promo_code_created": Tag,
+  "promo_code_updated": Tag,
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -75,6 +82,12 @@ const ACTION_LABELS: Record<string, string> = {
   "withdrawal_requested": "Withdrawals",
   "withdrawal_completed": "Withdrawal Completed",
   "business_updated": "Business Updated",
+  "verification_requested": "Verification Requested",
+  "bank_account_added": "Bank Account Added",
+  "bank_account_deleted": "Bank Account Removed",
+  "bank_account_submitted": "Bank Account Submitted",
+  "promo_code_created": "Promo Created",
+  "promo_code_updated": "Promo Updated",
 }
 
 export default function ActivityPage() {
@@ -82,6 +95,7 @@ export default function ActivityPage() {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [filter, setFilter] = useState("")
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
@@ -189,6 +203,57 @@ export default function ActivityPage() {
   const handleFilterChange = (value: string) => {
     setFilter(value === "all" ? "" : value)
     setPage(1)
+  }
+
+  const handleExport = async () => {
+    if (!businessId) return
+    try {
+      setIsExporting(true)
+      toast.loading("Preparing export...", { id: "activity-export" })
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+      const params = new URLSearchParams()
+      if (filter) params.set("action_type", filter)
+      if (startDate) params.set("date_from", format(startDate, "yyyy-MM-dd"))
+      if (endDate) params.set("date_to", format(endDate, "yyyy-MM-dd"))
+
+      const response = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/activities/export?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Business-Id": businessId,
+          },
+        },
+      )
+
+      if (!response.ok) throw new Error("Export failed")
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = downloadUrl
+
+      const contentDisposition = response.headers.get("Content-Disposition")
+      let filename = `business-activity-${format(new Date(), "yyyy-MM-dd")}.xlsx`
+      if (contentDisposition) {
+        const match = /filename="?([^"]+)"?/.exec(contentDisposition)
+        if (match?.[1]) filename = match[1]
+      }
+
+      link.setAttribute("download", filename)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+
+      toast.success("Activity log exported successfully", { id: "activity-export" })
+    } catch {
+      toast.error("Failed to export activity log", { id: "activity-export" })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const getIcon = (type: string) => ICON_MAP[type] ?? Circle
@@ -354,6 +419,17 @@ export default function ActivityPage() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="h-11 gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {isExporting ? "Exporting..." : "Export Excel"}
+            </Button>
 
             <Button
               variant="outline"
