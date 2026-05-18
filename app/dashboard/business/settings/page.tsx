@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed } from "lucide-react"
+import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -61,6 +61,20 @@ interface BusinessData {
   shuttle_service?: boolean
   latitude?: string
   longitude?: string
+  referrer_locked?: boolean
+  marketer_referrer_code?: string | null
+  created_at?: string
+}
+
+const REFERRER_WINDOW_DAYS = 7
+
+function isWithinReferrerWindow(createdAt: string | undefined): boolean {
+  if (!createdAt) return false
+  const created = new Date(createdAt)
+  if (Number.isNaN(created.getTime())) return false
+  const deadline = new Date(created)
+  deadline.setDate(deadline.getDate() + REFERRER_WINDOW_DAYS)
+  return Date.now() <= deadline.getTime()
 }
 
 export default function BusinessSettingsPage() {
@@ -79,6 +93,7 @@ export default function BusinessSettingsPage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [showMapModal, setShowMapModal] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
+  const [referrerCode, setReferrerCode] = useState("")
 
   // Check admin access
   useEffect(() => {
@@ -238,6 +253,14 @@ export default function BusinessSettingsPage() {
         if (businessData.latitude) formData.append("business[latitude]", businessData.latitude)
         if (businessData.longitude) formData.append("business[longitude]", businessData.longitude)
 
+        if (
+          referrerCode.trim() &&
+          !businessData.marketer_referrer_code &&
+          isWithinReferrerWindow(businessData.created_at)
+        ) {
+          formData.append("business[referrer_code]", referrerCode.trim())
+        }
+
         // Amenities
         const amenities = [
           'swimming_pool', 'gym', 'wifi', 'spa', 'restaurant', 'parking', 'breakfast',
@@ -307,6 +330,7 @@ export default function BusinessSettingsPage() {
         setDeletedImageIds([])
         setRemoveLogo(false)
         setRemoveImages(false)
+        setReferrerCode("")
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
@@ -315,8 +339,11 @@ export default function BusinessSettingsPage() {
             return
           }
         }
+        const errMsg = Array.isArray(data.error)
+          ? data.error[0]?.message
+          : (typeof data.error === "string" ? data.error : data.error?.message)
         toast.error("Failed to update business settings", {
-          description: data.error?.message || "Please try again",
+          description: errMsg || "Please try again",
         })
       }
     } catch (error) {
@@ -352,6 +379,12 @@ export default function BusinessSettingsPage() {
       </DashboardLayout>
     )
   }
+
+  const hasReferrer = Boolean(businessData.marketer_referrer_code)
+  const canEnterReferrer =
+    !hasReferrer &&
+    !businessData.referrer_locked &&
+    isWithinReferrerWindow(businessData.created_at)
 
   return (
     <DashboardLayout activeTab="settings">
@@ -426,6 +459,34 @@ export default function BusinessSettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {canEnterReferrer && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserPlus className="w-5 h-5" />
+                      Marketer Referral
+                    </CardTitle>
+                    <CardDescription>
+                      If a Shettar marketer referred you, enter their code within {REFERRER_WINDOW_DAYS} days of registration. This can only be set once.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Label htmlFor="referrer_code">Referrer code</Label>
+                    <Input
+                      id="referrer_code"
+                      type="text"
+                      placeholder="STRXXXXXX"
+                      value={referrerCode}
+                      onChange={(e) => setReferrerCode(e.target.value.toUpperCase())}
+                      className="font-mono uppercase"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Save settings to apply. Once linked, the referrer code cannot be changed.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>
