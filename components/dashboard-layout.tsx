@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { setupNativeWindow } from "@/lib/tauri"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -204,13 +205,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           {/* Logo */}
           <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <Image 
-                src="/shettar-logo.png" 
-                alt="Shettar Logo" 
-                width={32} 
-                height={32} 
-                className="rounded-lg object-contain"
-              />
+              <SidebarBrandLogo businessId={businessId} />
             </Link>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
@@ -358,13 +353,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <div className="h-full px-6 flex items-center justify-between">
           {/* Logo and hotel name */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Image 
-              src="/shettar-logo.png" 
-              alt="Shettar Logo" 
-              width={32} 
-              height={32} 
-              className="rounded-lg object-contain"
-            />
+            <SidebarBrandLogo businessId={businessId} />
             <div>
               <h1 className="font-semibold text-base">{user.hotelName}</h1>
               <p className="text-xs text-muted-foreground">{businessId || 'N/A'}</p>
