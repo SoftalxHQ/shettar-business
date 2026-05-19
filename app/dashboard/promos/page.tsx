@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
-import { getAuthToken } from "@/lib/storage";
+import { getAuthToken, getStoredBusinessId } from "@/lib/storage";
 import { toast } from "sonner";
 import { Loader2, Pencil, Plus, Tag, ToggleLeft, ToggleRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -108,39 +108,64 @@ export default function PromosPage() {
     }
   }, [user, router]);
 
+  const resolvedBusinessId = businessId || getStoredBusinessId() || "";
+
   const headers = useCallback(() => {
     const token = getAuthToken();
     return {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "X-Business-Id": businessId || "",
+      "X-Business-Id": resolvedBusinessId,
     };
-  }, [businessId]);
+  }, [resolvedBusinessId]);
 
-  const loadPromos = useCallback(async () => {
-    if (!businessId) return;
+  const loadPromos = useCallback(async (signal?: AbortSignal) => {
+    if (!resolvedBusinessId || !canView) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/promo_codes`, {
-        headers: headers(),
-      });
-      const data = await res.json();
+      const res = await fetch(
+        `${API_URL}/api/v1/user_businesses/${resolvedBusinessId}/promo_codes`,
+        { headers: headers(), signal },
+      );
+      let data: { error?: string; errors?: string[]; promo_codes?: PromoCode[]; stats?: PromoStats } = {};
+      try {
+        data = await res.json();
+      } catch {
+        if (!signal?.aborted) {
+          toast.error("Failed to load promo codes", { id: "promo-load-error" });
+        }
+        return;
+      }
       if (!res.ok) {
-        toast.error(data.error || "Failed to load promo codes");
+        if (!signal?.aborted) {
+          const message =
+            data.error ||
+            data.errors?.join(", ") ||
+            (res.status === 403 ? "You don't have permission to view promo codes" : "Failed to load promo codes");
+          toast.error(message, { id: "promo-load-error" });
+        }
         return;
       }
       setPromos(data.promo_codes || []);
       setStats(data.stats || null);
-    } catch {
-      toast.error("Unable to load promo codes");
+    } catch (err) {
+      if (!signal?.aborted && err instanceof Error && err.name !== "AbortError") {
+        toast.error("Unable to load promo codes", { id: "promo-load-error" });
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [businessId, headers]);
+  }, [resolvedBusinessId, canView, headers]);
 
   useEffect(() => {
-    if (canView) loadPromos();
-  }, [loadPromos, canView]);
+    if (!canView || !resolvedBusinessId) {
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    loadPromos(controller.signal);
+    return () => controller.abort();
+  }, [loadPromos, canView, resolvedBusinessId]);
 
   const openCreate = () => {
     setEditing(null);
@@ -165,7 +190,7 @@ export default function PromosPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessId) return;
+    if (!resolvedBusinessId) return;
 
     const payload: Record<string, unknown> = {
       code: form.code.toUpperCase().trim(),
@@ -181,8 +206,8 @@ export default function PromosPage() {
     setSaving(true);
     try {
       const url = editing
-        ? `${API_URL}/api/v1/user_businesses/${businessId}/promo_codes/${editing.id}`
-        : `${API_URL}/api/v1/user_businesses/${businessId}/promo_codes`;
+        ? `${API_URL}/api/v1/user_businesses/${resolvedBusinessId}/promo_codes/${editing.id}`
+        : `${API_URL}/api/v1/user_businesses/${resolvedBusinessId}/promo_codes`;
       const res = await fetch(url, {
         method: editing ? "PATCH" : "POST",
         headers: headers(),
@@ -204,11 +229,11 @@ export default function PromosPage() {
   };
 
   const toggleStatus = async (p: PromoCode) => {
-    if (!businessId) return;
+    if (!resolvedBusinessId) return;
     const newStatus = p.status === "active" ? "inactive" : "active";
     try {
       const res = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/promo_codes/${p.id}`,
+        `${API_URL}/api/v1/user_businesses/${resolvedBusinessId}/promo_codes/${p.id}`,
         {
           method: "PATCH",
           headers: headers(),

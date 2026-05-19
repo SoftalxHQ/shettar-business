@@ -80,6 +80,24 @@ interface Transaction {
   method?: string
   net_amount?: number
   commission_amount?: number
+  promo_code?: string
+  promo_discount_amount?: number
+  subtotal_before_discount?: number
+}
+
+function getPromoBreakdown(t: Transaction) {
+  if (!t.promo_code) return null
+  const discount = t.promo_discount_amount ?? 0
+  if (!discount || discount <= 0) return null
+  const subtotal = t.subtotal_before_discount && t.subtotal_before_discount > 0
+    ? t.subtotal_before_discount
+    : t.amount + discount
+  return {
+    code: t.promo_code,
+    subtotal,
+    discount,
+    received: t.amount,
+  }
 }
 
 const MOCK_ANALYTICS_DATA = [
@@ -204,6 +222,9 @@ export default function FinancePage() {
             method: t.metadata?.payment_method,
             net_amount: t.metadata?.net_amount != null ? parseFloat(t.metadata.net_amount) : undefined,
             commission_amount: t.metadata?.commission_amount != null ? parseFloat(t.metadata.commission_amount) : undefined,
+            promo_code: t.metadata?.promo_code,
+            promo_discount_amount: t.metadata?.promo_discount_amount != null ? parseFloat(t.metadata.promo_discount_amount) : undefined,
+            subtotal_before_discount: t.metadata?.subtotal_before_discount != null ? parseFloat(t.metadata.subtotal_before_discount) : undefined,
           }))
           setTransactions(mappedTransactions)
         }
@@ -966,7 +987,9 @@ export default function FinancePage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedTransactions.length > 0 ? (
-                    paginatedTransactions.map((t) => (
+                    paginatedTransactions.map((t) => {
+                      const promo = getPromoBreakdown(t)
+                      return (
                       <TableRow key={t.id} className="border-b-slate-50 hover:bg-slate-50/30 transition-colors">
                         <TableCell className="font-medium text-muted-foreground whitespace-nowrap">
                           <div className="flex flex-col">
@@ -975,16 +998,29 @@ export default function FinancePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="font-semibold text-slate-900">{t.description}</div>
-                            {t.bookingCode && (
-                              <div
-                                className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-mono text-slate-500 group cursor-pointer hover:border-indigo-200 hover:bg-white transition-all shadow-sm"
-                                onClick={() => handleCopy(t.bookingCode)}
-                                title="Click to copy reservation code"
-                              >
-                                {t.bookingCode}
-                                <Copy className="w-2.5 h-2.5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="font-semibold text-slate-900">{t.description}</div>
+                              {t.bookingCode && (
+                                <div
+                                  className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-mono text-slate-500 group cursor-pointer hover:border-indigo-200 hover:bg-white transition-all shadow-sm"
+                                  onClick={() => handleCopy(t.bookingCode)}
+                                  title="Click to copy reservation code"
+                                >
+                                  {t.bookingCode}
+                                  <Copy className="w-2.5 h-2.5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                                </div>
+                              )}
+                            </div>
+                            {promo && (
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span className="line-through">
+                                  ₦{promo.subtotal.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                                </span>
+                                <Badge className="bg-emerald-50 text-emerald-700 border-0 shadow-none font-semibold">
+                                  −₦{promo.discount.toLocaleString("en-NG", { minimumFractionDigits: 2 })} · {promo.code}
+                                </Badge>
+                                <span>Received ₦{promo.received.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</span>
                               </div>
                             )}
                           </div>
@@ -1016,7 +1052,8 @@ export default function FinancePage() {
                           )}
                         </TableCell>
                       </TableRow>
-                    ))
+                      )
+                    })
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-64 p-0 text-center">
