@@ -2,3 +2,6 @@
 # will have compiled files and executables
 /target/
 /gen/schemas
+
+# Accidental nested target if CARGO_TARGET_DIR=src-tauri/target is set from inside src-tauri/
+/src-tauri/
