@@ -28,6 +28,15 @@ export interface Permissions {
   finance?: FinancePermissions
   settings?: SettingsPermissions
   promos?: PromosPermissions
+  restaurant?: RestaurantPermissions
+  guest_policies?: GuestPoliciesPermissions
+}
+
+export interface GuestPoliciesPermissions {
+  view?: boolean
+  create?: boolean
+  edit?: boolean
+  delete?: boolean
 }
 
 export interface DashboardPermissions {
@@ -81,6 +90,16 @@ export interface PromosPermissions {
   edit?: boolean
 }
 
+export interface RestaurantPermissions {
+  view?: boolean
+  manage_menu?: boolean
+  create_orders?: boolean
+  kitchen?: boolean
+  cancel_orders?: boolean
+  mark_paid?: boolean
+  refund?: boolean
+}
+
 // Permission Presets
 export const PERMISSION_PRESETS = {
   full_access: {
@@ -93,7 +112,9 @@ export const PERMISSION_PRESETS = {
       staff: { view: true, add: true, edit: true, remove: true, manage_permissions: true },
       finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
       settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
-      promos: { view: true, create: true, edit: true }
+      promos: { view: true, create: true, edit: true },
+      restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
+      guest_policies: { view: true, create: true, edit: true, delete: true }
     }
   },
   manager: {
@@ -106,7 +127,23 @@ export const PERMISSION_PRESETS = {
       staff: { view: true, add: false, edit: false, remove: false, manage_permissions: false },
       finance: { view: true, withdraw: false, add: false, update_account: false, process_refunds: false, manage_payment_methods: false },
       settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false },
-      promos: { view: true, create: true, edit: true }
+      promos: { view: true, create: true, edit: true },
+      restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: false, cancel_orders: true, mark_paid: true, refund: false },
+      guest_policies: { view: true, create: false, edit: false, delete: false }
+    }
+  },
+  kitchen: {
+    name: "Kitchen",
+    description: "Kitchen display and order status updates",
+    permissions: {
+      restaurant: { view: true, manage_menu: false, create_orders: false, kitchen: true, cancel_orders: false, mark_paid: false, refund: true }
+    }
+  },
+  restaurant_staff: {
+    name: "Restaurant / F&B",
+    description: "Take orders and manage guest dining",
+    permissions: {
+      restaurant: { view: true, manage_menu: false, create_orders: true, kitchen: false, cancel_orders: true, mark_paid: true, refund: false }
     }
   },
   front_desk: {
@@ -194,6 +231,27 @@ export const PERMISSION_LABELS = {
       view: "View Promo Codes",
       create: "Create Promo Codes",
       edit: "Edit Promo Codes"
+    }
+  },
+  restaurant: {
+    title: "Restaurant & Kitchen",
+    permissions: {
+      view: "View Restaurant",
+      manage_menu: "Manage Menu",
+      create_orders: "Take Orders",
+      kitchen: "Kitchen Display",
+      cancel_orders: "Cancel Orders",
+      mark_paid: "Mark Payment Received",
+      refund: "Refund Orders"
+    }
+  },
+  guest_policies: {
+    title: "Guest Notices & Policies",
+    permissions: {
+      view: "View Notices & Policies",
+      create: "Add Notices & Policy Lines",
+      edit: "Edit Notices & Policies",
+      delete: "Remove Notices & Policy Lines"
     }
   }
 } as const

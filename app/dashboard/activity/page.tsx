@@ -22,7 +22,7 @@ import {
   UserPlus, ShieldCheck, UserMinus, BedDouble, Wrench,
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
-  ChevronDown, X, Tag, CreditCard, Send, Download,
+  ChevronDown, X, Tag, CreditCard, Send, Download, Megaphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -64,6 +64,11 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "bank_account_submitted": Send,
   "promo_code_created": Tag,
   "promo_code_updated": Tag,
+  "guest_policies_updated": Megaphone,
+  "restaurant_order_created": Activity,
+  "restaurant_order_status_changed": Activity,
+  "restaurant_order_paid": CreditCard,
+  "restaurant_order_refunded": ArrowLeftRight,
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -88,6 +93,11 @@ const ACTION_LABELS: Record<string, string> = {
   "bank_account_submitted": "Bank Account Submitted",
   "promo_code_created": "Promo Created",
   "promo_code_updated": "Promo Updated",
+  "guest_policies_updated": "Guest Notices & Policies",
+  "restaurant_order_created": "Restaurant Orders",
+  "restaurant_order_status_changed": "Order Status",
+  "restaurant_order_paid": "Order Paid",
+  "restaurant_order_refunded": "Order Refunded",
 }
 
 export default function ActivityPage() {
@@ -527,6 +537,11 @@ export default function ActivityPage() {
                       {/* Content */}
                       <div className="flex-1 min-w-0 pt-0.5">
                         <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
+                        {activity.metadata?.notes && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Notes: {String(activity.metadata.notes)}
+                          </p>
+                        )}
                         <div className="flex items-center flex-wrap gap-2 mt-1">
                           {activity.actor && (
                             <span className="text-xs text-slate-500">

@@ -2,16 +2,19 @@
 
 import { Label } from "@/components/ui/label"
 import { PERMISSION_PRESETS } from "@/lib/staff-types"
-import { Crown, Users, Briefcase, Settings } from "lucide-react"
+import { Briefcase, ChefHat, Crown, Settings, Users, UtensilsCrossed } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 interface PermissionPresetSelectorProps {
   selected: keyof typeof PERMISSION_PRESETS
   onSelect: (preset: keyof typeof PERMISSION_PRESETS) => void
 }
 
-const PRESET_ICONS = {
+const PRESET_ICONS: Record<keyof typeof PERMISSION_PRESETS, LucideIcon> = {
   full_access: Crown,
   manager: Briefcase,
+  kitchen: ChefHat,
+  restaurant_staff: UtensilsCrossed,
   front_desk: Users,
   custom: Settings,
 }
@@ -20,7 +23,7 @@ export function PermissionPresetSelector({ selected, onSelect }: PermissionPrese
   return (
     <div className="grid gap-3">
       {Object.entries(PERMISSION_PRESETS).map(([key, preset]) => {
-        const Icon = PRESET_ICONS[key as keyof typeof PRESET_ICONS]
+        const Icon = PRESET_ICONS[key as keyof typeof PERMISSION_PRESETS] ?? Settings
         const isSelected = selected === key
 
         return (

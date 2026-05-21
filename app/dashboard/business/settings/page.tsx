@@ -10,7 +10,9 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed, UserPlus } from "lucide-react"
+import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed, UserPlus, UtensilsCrossed, Megaphone, Plus, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,6 +21,17 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Image from "next/image"
 import { BusinessVerificationBadge } from "@/components/business-verification-badge"
 import type { VerificationDisplayStatus } from "@/lib/business-verification"
+import {
+  canAccessBusinessSettings,
+  canCreateGuestPolicies,
+  canDeleteGuestPolicies,
+  canEditAmenities,
+  canEditBranding,
+  canEditBusinessDetails,
+  canEditGuestPolicies,
+  canViewGuestPolicies,
+  canWriteGuestPolicies,
+} from "@/lib/guest-policies-access"
 
 interface BusinessData {
   id: number
@@ -70,7 +83,14 @@ interface BusinessData {
   verification_status?: string
   verification_notes?: string | null
   can_request_verification?: boolean
+  restaurant_enabled?: boolean
+  guest_notices?: string[]
+  policy_highlights?: { kind: "allow" | "deny"; text: string }[]
+  policy_bullets?: string[]
+  policy_footer?: string | null
 }
+
+type PolicyHighlight = { kind: "allow" | "deny"; text: string }
 
 const REFERRER_WINDOW_DAYS = 7
 
@@ -84,7 +104,7 @@ function isWithinReferrerWindow(createdAt: string | undefined): boolean {
 }
 
 export default function BusinessSettingsPage() {
-  const { user, businessId, logout } = useAuth()
+  const { user, businessId, logout, updateUser } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -101,9 +121,8 @@ export default function BusinessSettingsPage() {
   const [mapLoading, setMapLoading] = useState(true)
   const [referrerCode, setReferrerCode] = useState("")
 
-  // Check admin access
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && !canAccessBusinessSettings(user)) {
       router.push("/dashboard")
     }
   }, [user, router])
@@ -126,7 +145,19 @@ export default function BusinessSettingsPage() {
 
         if (response.ok) {
           const data = await response.json()
-          setBusinessData(data)
+          setBusinessData({
+            ...data,
+            guest_notices: Array.isArray(data.guest_notices) ? data.guest_notices : [],
+            policy_highlights: Array.isArray(data.policy_highlights)
+              ? data.policy_highlights.map((h: PolicyHighlight & { kind?: string }) => ({
+                  kind: (h.kind === "deny" ? "deny" : "allow") as "allow" | "deny",
+                  text: h.text || "",
+                }))
+              : [],
+            policy_bullets: Array.isArray(data.policy_bullets) ? data.policy_bullets : [],
+            policy_footer: data.policy_footer || "",
+          })
+          updateUser({ restaurantEnabled: !!data.restaurant_enabled })
           if (data.logo_url) {
             setLogoPreview(data.logo_url)
           }
@@ -245,65 +276,96 @@ export default function BusinessSettingsPage() {
       const token = localStorage.getItem("abri_auth_token")
 
       const formData = new FormData()
+      const editDetails = canEditBusinessDetails(user)
+      const writeGuestPolicies = canWriteGuestPolicies(user)
+      const editBranding = canEditBranding(user)
+      const editAmenities = canEditAmenities(user)
 
-      // Append business data
+      if (!editDetails && !writeGuestPolicies && !editBranding && !editAmenities) {
+        toast.error("You don't have permission to save changes")
+        setIsSaving(false)
+        return
+      }
+
       if (businessData) {
-        formData.append("business[name]", businessData.name)
-        formData.append("business[description]", businessData.description)
-        formData.append("business[address]", businessData.address)
-        formData.append("business[city]", businessData.city)
-        formData.append("business[state]", businessData.state)
-        formData.append("business[zip_code]", businessData.zip_code)
-        formData.append("business[check_in]", businessData.check_in)
-        formData.append("business[check_out]", businessData.check_out)
-        if (businessData.latitude) formData.append("business[latitude]", businessData.latitude)
-        if (businessData.longitude) formData.append("business[longitude]", businessData.longitude)
+        if (editDetails) {
+          formData.append("business[name]", businessData.name)
+          formData.append("business[description]", businessData.description)
+          formData.append("business[address]", businessData.address)
+          formData.append("business[city]", businessData.city)
+          formData.append("business[state]", businessData.state)
+          formData.append("business[zip_code]", businessData.zip_code)
+          formData.append("business[check_in]", businessData.check_in)
+          formData.append("business[check_out]", businessData.check_out)
+          if (businessData.latitude) formData.append("business[latitude]", businessData.latitude)
+          if (businessData.longitude) formData.append("business[longitude]", businessData.longitude)
 
-        if (
-          referrerCode.trim() &&
-          !businessData.marketer_referrer_code &&
-          isWithinReferrerWindow(businessData.created_at)
-        ) {
-          formData.append("business[referrer_code]", referrerCode.trim())
+          if (
+            referrerCode.trim() &&
+            !businessData.marketer_referrer_code &&
+            isWithinReferrerWindow(businessData.created_at)
+          ) {
+            formData.append("business[referrer_code]", referrerCode.trim())
+          }
+
+          formData.append("business[restaurant_enabled]", String(!!businessData.restaurant_enabled))
         }
 
-        // Amenities
-        const amenities = [
-          'swimming_pool', 'gym', 'wifi', 'spa', 'restaurant', 'parking', 'breakfast',
-          'bar', 'laundry', 'pet_friendly', 'ac', 'heating', 'tv', 'minibar', 'garden',
-          'conference_facilities', 'business_center', 'fitness_center',
-          'airport_transportation', 'room_service', 'children_activities', 'beach_access',
-          'handicap_accessible', 'bicycle_rental', 'car_rental', 'shuttle_service'
-        ]
+        if (editAmenities) {
+          const amenities = [
+            'swimming_pool', 'gym', 'wifi', 'spa', 'restaurant', 'parking', 'breakfast',
+            'bar', 'laundry', 'pet_friendly', 'ac', 'heating', 'tv', 'minibar', 'garden',
+            'conference_facilities', 'business_center', 'fitness_center',
+            'airport_transportation', 'room_service', 'children_activities', 'beach_access',
+            'handicap_accessible', 'bicycle_rental', 'car_rental', 'shuttle_service'
+          ]
 
-        amenities.forEach(amenity => {
-          formData.append(`business[${amenity}]`, String(businessData[amenity as keyof BusinessData] || false))
-        })
+          amenities.forEach(amenity => {
+            formData.append(`business[${amenity}]`, String(businessData[amenity as keyof BusinessData] || false))
+          })
+        }
+
+        if (writeGuestPolicies) {
+          ;(businessData.guest_notices || []).forEach((notice) => {
+            if (notice.trim()) formData.append("business[guest_notices][]", notice.trim())
+          })
+          ;(businessData.policy_highlights || []).forEach((h) => {
+            if (h.text.trim()) {
+              formData.append("business[policy_highlights][][kind]", h.kind)
+              formData.append("business[policy_highlights][][text]", h.text.trim())
+            }
+          })
+          ;(businessData.policy_bullets || []).forEach((bullet) => {
+            if (bullet.trim()) formData.append("business[policy_bullets][]", bullet.trim())
+          })
+          if (businessData.policy_footer?.trim()) {
+            formData.append("business[policy_footer]", businessData.policy_footer.trim())
+          }
+        }
       }
 
-      // Append logo
-      if (logoFile) {
-        formData.append("business[logo]", logoFile)
-      } else if (removeLogo) {
-        formData.append("business[remove_logo]", "true")
-      }
+      if (editBranding) {
+        if (logoFile) {
+          formData.append("business[logo]", logoFile)
+        } else if (removeLogo) {
+          formData.append("business[remove_logo]", "true")
+        }
 
-      // Append images
-      if (imageFiles.length > 0) {
-        imageFiles.forEach((file) => {
-          formData.append("business[images][]", file)
-        })
-      }
+        if (imageFiles.length > 0) {
+          imageFiles.forEach((file) => {
+            formData.append("business[images][]", file)
+          })
+        }
 
-      // Append deleted image IDs
-      if (deletedImageIds.length > 0) {
-        deletedImageIds.forEach(id => {
-          formData.append("business[delete_image_ids][]", id.toString())
-        })
-      }
+        if (deletedImageIds.length > 0) {
+          deletedImageIds.forEach(id => {
+            formData.append("business[delete_image_ids][]", id.toString())
+          })
+        }
 
-      if (removeImages) {
-        formData.append("business[remove_images]", "true")
+        if (removeImages) {
+          formData.append("business[remove_images]", "true")
+        }
       }
 
       const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, {
@@ -323,6 +385,7 @@ export default function BusinessSettingsPage() {
 
         // Update local state with new data
         setBusinessData(data.business)
+        updateUser({ restaurantEnabled: !!data.business.restaurant_enabled })
         if (data.business.logo_url) {
           setLogoPreview(data.business.logo_url)
         }
@@ -362,9 +425,19 @@ export default function BusinessSettingsPage() {
     }
   }
 
-  if (user?.role !== "admin") {
+  if (!user || !canAccessBusinessSettings(user)) {
     return null
   }
+
+  const editDetails = canEditBusinessDetails(user)
+  const editBranding = canEditBranding(user)
+  const editAmenities = canEditAmenities(user)
+  const viewGuestPolicies = canViewGuestPolicies(user)
+  const writeGuestPolicies = canWriteGuestPolicies(user)
+  const canCreateGuest = canCreateGuestPolicies(user)
+  const canEditGuest = canEditGuestPolicies(user)
+  const canDeleteGuest = canDeleteGuestPolicies(user)
+  const guestPoliciesReadOnly = viewGuestPolicies && !writeGuestPolicies
 
   if (isLoading) {
     return (
@@ -405,7 +478,9 @@ export default function BusinessSettingsPage() {
               )}
             </div>
             <p className="text-muted-foreground mt-1">
-              Manage your business information, branding, and amenities
+              {editDetails
+                ? "Manage your business information, branding, and amenities"
+                : "Manage guest notices and hotel policies shown on your public listing"}
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -418,14 +493,24 @@ export default function BusinessSettingsPage() {
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+            <TabsList
+              className={cn(
+                "grid w-full lg:w-[400px]",
+                1 + (editBranding ? 1 : 0) + (editAmenities ? 1 : 0) === 3
+                  ? "grid-cols-3"
+                  : 1 + (editBranding ? 1 : 0) + (editAmenities ? 1 : 0) === 2
+                    ? "grid-cols-2"
+                    : "grid-cols-1"
+              )}
+            >
               <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="branding">Branding</TabsTrigger>
-              <TabsTrigger value="amenities">Amenities</TabsTrigger>
+              {editBranding && <TabsTrigger value="branding">Branding</TabsTrigger>}
+              {editAmenities && <TabsTrigger value="amenities">Amenities</TabsTrigger>}
             </TabsList>
 
             {/* General Information Tab */}
             <TabsContent value="general" className="space-y-6">
+              {editDetails && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -468,6 +553,240 @@ export default function BusinessSettingsPage() {
                       placeholder="Describe your business"
                     />
                   </div>
+                </CardContent>
+              </Card>
+              )}
+
+              {viewGuestPolicies && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Megaphone className="w-5 h-5" />
+                    Guest notices &amp; policies
+                  </CardTitle>
+                  <CardDescription>
+                    Shown on your public hotel page. Multiple notices rotate in a slider for guests.
+                    {editDetails
+                      ? " Check-in and check-out times use the fields in the Location & hours section."
+                      : " Check-in and check-out times are managed by admins with business details access."}
+                    {guestPoliciesReadOnly && (
+                      <span className="block mt-1 text-amber-600">You have view-only access. Ask an admin to grant create, edit, or delete permissions.</span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Guest notices</Label>
+                    {(businessData?.guest_notices || []).map((notice, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <Textarea
+                          value={notice}
+                          rows={2}
+                          disabled={!canEditGuest && !canCreateGuest}
+                          placeholder="e.g. Please follow all health and safety guidelines during your stay."
+                          onChange={(e) => {
+                            const next = [...(businessData?.guest_notices || [])]
+                            next[idx] = e.target.value
+                            setBusinessData({ ...businessData!, guest_notices: next })
+                          }}
+                        />
+                        {canDeleteGuest && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => {
+                            const next = (businessData?.guest_notices || []).filter((_, i) => i !== idx)
+                            setBusinessData({ ...businessData!, guest_notices: next })
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        )}
+                      </div>
+                    ))}
+                    {canCreateGuest && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setBusinessData({
+                          ...businessData!,
+                          guest_notices: [...(businessData?.guest_notices || []), ""],
+                        })
+                      }
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add notice
+                    </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Policy highlights</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Green = allowed / required. Red = not allowed.
+                    </p>
+                    {(businessData?.policy_highlights || []).map((row, idx) => (
+                      <div key={idx} className="flex flex-col sm:flex-row gap-2">
+                        <Select
+                          value={row.kind}
+                          disabled={!canEditGuest}
+                          onValueChange={(v: "allow" | "deny") => {
+                            const next = [...(businessData?.policy_highlights || [])]
+                            next[idx] = { ...next[idx], kind: v }
+                            setBusinessData({ ...businessData!, policy_highlights: next })
+                          }}
+                        >
+                          <SelectTrigger className="w-full sm:w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="allow">Allowed</SelectItem>
+                            <SelectItem value="deny">Not allowed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          className="flex-1"
+                          value={row.text}
+                          disabled={!canEditGuest}
+                          placeholder="Policy statement"
+                          onChange={(e) => {
+                            const next = [...(businessData?.policy_highlights || [])]
+                            next[idx] = { ...next[idx], text: e.target.value }
+                            setBusinessData({ ...businessData!, policy_highlights: next })
+                          }}
+                        />
+                        {canDeleteGuest && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => {
+                            const next = (businessData?.policy_highlights || []).filter((_, i) => i !== idx)
+                            setBusinessData({ ...businessData!, policy_highlights: next })
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        )}
+                      </div>
+                    ))}
+                    {canCreateGuest && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setBusinessData({
+                          ...businessData!,
+                          policy_highlights: [
+                            ...(businessData?.policy_highlights || []),
+                            { kind: "allow", text: "" },
+                          ],
+                        })
+                      }
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add highlight
+                    </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Additional policy lines</Label>
+                    {(businessData?.policy_bullets || []).map((bullet, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <Input
+                          value={bullet}
+                          disabled={!canEditGuest}
+                          placeholder="e.g. No pets"
+                          onChange={(e) => {
+                            const next = [...(businessData?.policy_bullets || [])]
+                            next[idx] = e.target.value
+                            setBusinessData({ ...businessData!, policy_bullets: next })
+                          }}
+                        />
+                        {canDeleteGuest && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => {
+                            const next = (businessData?.policy_bullets || []).filter((_, i) => i !== idx)
+                            setBusinessData({ ...businessData!, policy_bullets: next })
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        )}
+                      </div>
+                    ))}
+                    {canCreateGuest && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setBusinessData({
+                          ...businessData!,
+                          policy_bullets: [...(businessData?.policy_bullets || []), ""],
+                        })
+                      }
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add policy line
+                    </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="policy_footer">Footer disclaimer</Label>
+                    <Textarea
+                      id="policy_footer"
+                      rows={2}
+                      disabled={!canEditGuest}
+                      value={businessData?.policy_footer || ""}
+                      placeholder="The hotel reserves the right of admission..."
+                      onChange={(e) =>
+                        setBusinessData({ ...businessData!, policy_footer: e.target.value })
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              )}
+
+              {editDetails && (
+              <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UtensilsCrossed className="w-5 h-5" />
+                    Restaurant operations
+                  </CardTitle>
+                  <CardDescription>
+                    Enable menu, order taking, and kitchen display for your on-site restaurant. This is separate from the
+                    &quot;Restaurant&quot; amenity shown to guests when browsing hotels.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Enable restaurant &amp; kitchen module</p>
+                    <p className="text-xs text-muted-foreground">
+                      Staff with restaurant permissions can manage the menu and kitchen workflow.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!businessData.restaurant_enabled}
+                    onCheckedChange={(checked) =>
+                      setBusinessData({ ...businessData, restaurant_enabled: checked })
+                    }
+                  />
                 </CardContent>
               </Card>
 
@@ -641,9 +960,12 @@ export default function BusinessSettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </>
+              )}
             </TabsContent>
 
             {/* Branding Tab */}
+            {editBranding && (
             <TabsContent value="branding" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -748,8 +1070,10 @@ export default function BusinessSettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
             {/* Amenities Tab */}
+            {editAmenities && (
             <TabsContent value="amenities" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -809,14 +1133,17 @@ export default function BusinessSettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
           </Tabs>
 
-          {/* Save Button - Fixed at bottom */}
+          {(editDetails || writeGuestPolicies || editBranding || editAmenities) && (
           <div className="sticky bottom-4 mt-6">
             <Card className="shadow-lg">
               <CardContent className="flex items-center justify-between p-4">
                 <p className="text-sm text-muted-foreground">
-                  Make sure all required fields are filled before saving
+                  {writeGuestPolicies && !editDetails
+                    ? "Save guest notices and policies for your public hotel page"
+                    : "Make sure all required fields are filled before saving"}
                 </p>
                 <Button type="submit" disabled={isSaving} className="min-w-[120px]">
                   {isSaving ? (
@@ -834,6 +1161,7 @@ export default function BusinessSettingsPage() {
               </CardContent>
             </Card>
           </div>
+          )}
         </form>
       </div>
 

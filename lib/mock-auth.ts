@@ -28,7 +28,23 @@ export interface User {
     settings?: { view: boolean; edit_details: boolean; edit_branding: boolean; edit_amenities: boolean }
     dashboard?: { view_revenue: boolean; view_analytics: boolean }
     promos?: { view: boolean; create: boolean; edit: boolean }
+    restaurant?: {
+      view?: boolean
+      manage_menu?: boolean
+      create_orders?: boolean
+      kitchen?: boolean
+      cancel_orders?: boolean
+      mark_paid?: boolean
+      refund?: boolean
+    }
+    guest_policies?: {
+      view?: boolean
+      create?: boolean
+      edit?: boolean
+      delete?: boolean
+    }
   }
+  restaurantEnabled?: boolean
 }
 
 export const MOCK_USERS = {

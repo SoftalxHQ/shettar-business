@@ -46,8 +46,40 @@ export default function CheckInOutPage() {
   const [checkInNotes, setCheckInNotes] = useState("")
   const [checkOutNotes, setCheckOutNotes] = useState("")
 
-  const pendingCheckIns = bookings.filter((b) => !b.cancelled && !b.occupied && !b.processed)
-  const checkedIn = bookings.filter((b) => !b.cancelled && b.occupied && !b.processed)
+  useEffect(() => {
+    const loadBookings = async () => {
+      if (!businessId) return
+      setIsLoading(true)
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        const token = getAuthToken()
+        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+        const data = await response.json()
+        if (response.ok && Array.isArray(data)) {
+          setBookings(data)
+        } else {
+          toast.error(data.status?.message || data.error || "Failed to load reservations")
+        }
+      } catch {
+        toast.error("Failed to load reservations")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadBookings()
+  }, [businessId])
+
+  const pendingCheckIns = bookings.filter(
+    (b) => !b.cancelled && !b.checked_in_at && !b.checked_out_at
+  )
+  const checkedIn = bookings.filter(
+    (b) => !b.cancelled && b.checked_in_at && !b.checked_out_at
+  )
 
   const filteredPendingCheckIns = pendingCheckIns.filter(
     (booking) =>
@@ -77,17 +109,20 @@ export default function CheckInOutPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ notes: checkInNotes.trim() || undefined }),
       })
 
-      if (response.ok) {
-        toast.success("Guest checked in successfully")
-        setBookings(bookings.map((b) => (b.id === selectedBooking.id ? { ...b, occupied: true, checked_in_at: new Date().toISOString() } : b)))
+      const data = await response.json()
+      if (response.ok && data.status?.code === 200) {
+        toast.success(data.status?.message || "Guest checked in successfully")
+        if (data.data) {
+          setBookings(bookings.map((b) => (b.id === selectedBooking.id ? { ...b, ...data.data, occupied: true } : b)))
+        }
         setIsCheckInDialogOpen(false)
         setSelectedBooking(null)
         setCheckInNotes("")
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Failed to check in guest")
+        toast.error(data.status?.message || data.error || "Failed to check in guest")
       }
     } catch (error) {
       console.error("Check-in failed:", error)
@@ -109,17 +144,20 @@ export default function CheckInOutPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ notes: checkOutNotes.trim() || undefined }),
       })
 
-      if (response.ok) {
-        toast.success("Guest checked out successfully")
-        setBookings(bookings.map((b) => (b.id === selectedBooking.id ? { ...b, occupied: false, processed: true, checked_out_at: new Date().toISOString() } : b)))
+      const data = await response.json()
+      if (response.ok && data.status?.code === 200) {
+        toast.success(data.status?.message || "Guest checked out successfully")
+        if (data.data) {
+          setBookings(bookings.map((b) => (b.id === selectedBooking.id ? { ...b, ...data.data, occupied: false } : b)))
+        }
         setIsCheckOutDialogOpen(false)
         setSelectedBooking(null)
         setCheckOutNotes("")
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Failed to check out guest")
+        toast.error(data.status?.message || data.error || "Failed to check out guest")
       }
     } catch (error) {
       console.error("Check-out failed:", error)

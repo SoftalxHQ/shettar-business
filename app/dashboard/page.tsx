@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
+import { usesRestaurantPortal } from "@/lib/portal-access"
 import { getAuthToken } from "@/lib/storage"
 import api from "@/lib/api-client"
 import { toast } from "sonner"
@@ -31,6 +32,12 @@ const activeBookings = MOCK_BOOKINGS.filter((b) => b.status === "checked-in").le
 export default function DashboardPage() {
   const { user, businessId, logout } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (user && usesRestaurantPortal(user)) {
+      router.replace("/dashboard/restaurant")
+    }
+  }, [user, router])
   const [roomAvailability, setRoomAvailability] = useState<RoomTypeAvailability[]>([])
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
   const [selectedDates, setSelectedDates] = useState<Date[]>([

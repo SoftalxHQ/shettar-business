@@ -44,6 +44,9 @@ import {
   MessageSquare,
   HelpCircle,
   Tag,
+  UtensilsCrossed,
+  ClipboardList,
+  ChefHat,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -51,6 +54,7 @@ import { Badge } from "@/components/ui/badge"
 import { setupNativeWindow } from "@/lib/tauri"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
+import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -62,6 +66,9 @@ const adminNavigation = [
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
   { name: "Promos", href: "/dashboard/promos", icon: Tag },
+  { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, restaurantNav: "menu" as const },
+  { name: "Restaurant Orders", href: "/dashboard/restaurant/orders", icon: ClipboardList, restaurantNav: "orders" as const },
+  { name: "Restaurant Kitchen", href: "/dashboard/restaurant/kitchen", icon: ChefHat, restaurantNav: "kitchen" as const },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
@@ -216,6 +223,23 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {adminNavigation.filter(item => {
+              const restaurantNav = (item as { restaurantNav?: string }).restaurantNav
+              if (restaurantNav) {
+                if (!user.restaurantEnabled) return false
+                if (user.role === "admin") return true
+                if (!user.permissions?.restaurant?.view) return false
+                if (restaurantNav === "menu") {
+                  return user.permissions.restaurant?.manage_menu || user.permissions.restaurant?.view
+                }
+                if (restaurantNav === "orders") {
+                  return user.permissions.restaurant?.create_orders || user.permissions.restaurant?.view
+                }
+                if (restaurantNav === "kitchen") {
+                  return user.permissions.restaurant?.kitchen
+                }
+                return false
+              }
+
               if (user.role === 'admin') return true;
 
               // If no permissions object but role is manager/staff, default to safe subset or hidden?
@@ -238,11 +262,22 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   return user.permissions.staff?.view;
                 case "Promos":
                   return user.permissions.promos?.view;
+                case "Settings":
+                  return (
+                    user.role === "admin" ||
+                    !!user.permissions?.settings?.view ||
+                    canViewGuestPolicies(user)
+                  );
+                case "Bank Details":
+                  return user.role === "admin" || !!user.permissions?.settings?.view;
                 default:
                   return true;
               }
             }).map((item) => {
-              let isActive = activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
+              const restaurantNav = (item as { restaurantNav?: string }).restaurantNav
+              let isActive = restaurantNav
+                ? activeTab === restaurantNav
+                : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
 
               // Special case for Dashboard (matches "dashboard" or "business")
               if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
@@ -442,6 +477,14 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                     <span>Profile Settings</span>
                   </Link>
                 </DropdownMenuItem>
+                {canAccessBusinessSettings(user) && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/business/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Business Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />

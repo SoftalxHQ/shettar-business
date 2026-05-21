@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { QrCode, Check, X, Printer, ArrowLeft } from "lucide-react"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -51,6 +53,8 @@ function ScanContent() {
   const [result, setResult] = useState<"success" | "error" | null>(null)
   const [reservation, setReservation] = useState<Reservation | null>(null)
   const [businessDetails, setBusinessDetails] = useState<{ logo_url?: string; check_in?: string; check_out?: string } | null>(null)
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false)
+  const [checkoutNotes, setCheckoutNotes] = useState("")
 
   // Fetch business details
   useEffect(() => {
@@ -216,16 +220,19 @@ function ScanContent() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ notes: checkoutNotes.trim() || undefined }),
         }
       )
 
       const data = await response.json()
 
       if (response.ok && data.status?.code === 200) {
-        setReservation(data.data) // Update with new data including check-out timestamp
+        setReservation(data.data)
+        setCheckoutDialogOpen(false)
+        setCheckoutNotes("")
         toast.success(data.status.message || "Guest checked out successfully!")
       } else {
-        toast.error(data.status?.message || "Failed to check out guest")
+        toast.error(data.status?.message || data.error || "Failed to check out guest")
       }
     } catch (error) {
       console.error("Failed to check out:", error)
@@ -649,11 +656,11 @@ function ScanContent() {
                         </Button>
                       ) : !reservation.checked_out_at ? (
                         <Button
-                          onClick={handleCheckOut}
+                          onClick={() => setCheckoutDialogOpen(true)}
                           disabled={isLoading}
                           className="flex-1 md:flex-none h-10 bg-rose-600 hover:bg-rose-700 text-sm"
                         >
-                          {isLoading ? <LoadingSpinner className="text-white" /> : "Check Out Guest"}
+                          Check Out Guest
                         </Button>
                       ) : (
                         <Button disabled variant="outline" className="flex-1 md:flex-none h-10 text-sm">Completed</Button>
@@ -677,6 +684,27 @@ function ScanContent() {
         </Card>
       </div>
 
+      <ConfirmDialog
+        open={checkoutDialogOpen}
+        onOpenChange={setCheckoutDialogOpen}
+        title="Check out guest"
+        description={`Check out ${reservation?.other_first_name} ${reservation?.other_last_name} from room ${reservation?.room_number}?`}
+        confirmText="Confirm check-out"
+        isDestructive
+        loading={isLoading}
+        onConfirm={handleCheckOut}
+      >
+        <div className="space-y-2 py-2">
+          <Label htmlFor="checkout-notes">Checkout notes</Label>
+          <Textarea
+            id="checkout-notes"
+            value={checkoutNotes}
+            onChange={(e) => setCheckoutNotes(e.target.value)}
+            placeholder="Room condition, minibar, damages, etc."
+            rows={4}
+          />
+        </div>
+      </ConfirmDialog>
     </DashboardLayout>
   )
 }

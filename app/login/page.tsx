@@ -20,6 +20,7 @@ import { Hotel, AlertCircle, Info } from "lucide-react"
 import { api } from "@/lib/api-client"
 import Image from "next/image"
 import { toast } from "sonner"
+import { getDefaultDashboardPath } from "@/lib/portal-access"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -72,6 +73,7 @@ export default function LoginPage() {
           hotelName: data.data.business?.name || "",
           businessId: data.data.business?.business_unique_id || businessIdToUse || "",
           permissions: data.data.business?.permissions,
+          restaurantEnabled: !!data.data.business?.restaurant_enabled,
         }
       const resolvedBusinessId = data.data.business?.business_unique_id || businessIdToUse || ""
       const resolvedBusinessName = data.data.business?.name || "Your Business"
@@ -91,7 +93,7 @@ export default function LoginPage() {
         description: `Welcome back to ${resolvedBusinessName}, ${user.name}!`,
       })
 
-      router.push("/dashboard")
+      router.push(getDefaultDashboardPath(user))
     } catch (err: any) {
       console.error("Login error:", err)
       setError(err.message || "Unable to connect to server. Please try again.")
