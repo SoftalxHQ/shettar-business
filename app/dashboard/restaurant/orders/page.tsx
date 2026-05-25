@@ -226,6 +226,7 @@ export default function RestaurantOrdersPage() {
   const [refundFull, setRefundFull] = useState(true);
   const [refundLineQtys, setRefundLineQtys] = useState<Record<number, number>>({});
   const [cancelOrderTarget, setCancelOrderTarget] = useState<RestaurantOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [cableLive, setCableLive] = useState(false);
   const [highlightIds, setHighlightIds] = useState<Set<number>>(new Set());
@@ -539,11 +540,19 @@ export default function RestaurantOrdersPage() {
 
   const handleCancelOrder = async () => {
     if (!bid || !cancelOrderTarget) return;
+    const note = cancelReason.trim();
+    if (!note) {
+      toast.error("Please add a cancellation note");
+      return;
+    }
     setActionLoading(true);
     try {
-      await transitionOrderStatus(bid, cancelOrderTarget.id, "cancelled");
+      await transitionOrderStatus(bid, cancelOrderTarget.id, "cancelled", {
+        cancellation_note: note,
+      });
       toast.success("Order cancelled");
       setCancelOrderTarget(null);
+      setCancelReason("");
       loadOrders();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to cancel order");
@@ -1133,18 +1142,34 @@ export default function RestaurantOrdersPage() {
 
       <ConfirmDialog
         open={!!cancelOrderTarget}
-        onOpenChange={(open) => !open && setCancelOrderTarget(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelOrderTarget(null);
+            setCancelReason("");
+          }
+        }}
         title="Cancel order"
         description={
           cancelOrderTarget
-            ? `Cancel ${formatOrderNumber(cancelOrderTarget)}? Use this if the order was sent to the kitchen by mistake.`
+            ? `Cancel ${formatOrderNumber(cancelOrderTarget)}? Use this if the order was sent to the kitchen by mistake. A note is required and will appear in the activity log.`
             : undefined
         }
         confirmText="Cancel order"
         isDestructive
         loading={actionLoading}
+        confirmDisabled={!cancelReason.trim()}
         onConfirm={handleCancelOrder}
-      />
+      >
+        <div className="space-y-2 py-2">
+          <Label>Cancellation note</Label>
+          <Textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="e.g. Sent to kitchen by mistake, guest changed their mind"
+            rows={3}
+          />
+        </div>
+      </ConfirmDialog>
     </RestaurantLayoutWrapper>
   );
 }

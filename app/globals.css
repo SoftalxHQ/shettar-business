@@ -158,6 +158,11 @@
     to { transform: rotate(360deg); }
   }
   --animate-spin-slow: spin-slow 3s linear infinite;
+
+  @keyframes shettar-menu-shimmer {
+    0% { background-position: 200% 0; opacity: 0.6; }
+    100% { background-position: -200% 0; opacity: 1; }
+  }
 }
 
 @layer base {
@@ -180,6 +185,16 @@
 }
 
 @layer components {
+    .shettar-menu-shimmer {
+      background-size: 200% 100%;
+      animation: shettar-menu-shimmer 1.5s ease-in-out infinite;
+      background-image: linear-gradient(90deg, #eeeeee 25%, #dddddd 50%, #eeeeee 75%);
+    }
+
+    .dark .shettar-menu-shimmer {
+      background-image: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
+    }
+
     /* Typography */
     .h1 { @apply text-4xl font-extrabold tracking-tighter md:text-5xl; }
     .h2 { @apply text-3xl font-extrabold tracking-tighter md:text-4xl; }

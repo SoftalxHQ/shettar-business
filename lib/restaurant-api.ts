@@ -290,11 +290,21 @@ export async function createOrder(
   return data.order as RestaurantOrder;
 }
 
-export async function transitionOrderStatus(businessId: string, orderId: number, status: string) {
+export async function transitionOrderStatus(
+  businessId: string,
+  orderId: number,
+  status: string,
+  options?: { cancellation_note?: string }
+) {
+  const body: { status: string; cancellation_note?: string } = { status };
+  if (options?.cancellation_note?.trim()) {
+    body.cancellation_note = options.cancellation_note.trim();
+  }
+
   const res = await fetch(`${basePath(businessId)}/restaurant_orders/${orderId}/transition_status`, {
     method: "PATCH",
     headers: headers(businessId),
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.errors?.join?.(", ") || data.error || "Failed to update status");
