@@ -29,8 +29,14 @@ import {
 import { resolveBusinessId } from "@/lib/restaurant-api";
 import { notify as nativeNotify } from "@/lib/tauri";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+import {
+  canReceiveNotificationCategory,
+  filterNotificationsForUser,
+} from "@/lib/notification-access";
 
 export function NotificationBell({ businessId }: { businessId: string | null }) {
+  const { user } = useAuth();
   const bid = resolveBusinessId(businessId);
   const [notifications, setNotifications] = useState<StaffNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -43,13 +49,13 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
         fetchStaffNotifications(bid),
         fetchNotificationPreferences(bid),
       ]);
-      setNotifications(data.notifications.slice(0, 8));
+      setNotifications(filterNotificationsForUser(user, data.notifications).slice(0, 8));
       setUnreadCount(data.unread_count);
       setNotificationSoundEnabled(p.sound_enabled !== false);
     } catch {
       /* silent on poll failure */
     }
-  }, [bid]);
+  }, [bid, user]);
 
   useEffect(() => {
     load();
@@ -57,6 +63,8 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
 
   useEffect(() => {
     const onNotification = (msg: StaffNotificationCablePayload) => {
+      if (user?.permissions && !canReceiveNotificationCategory(user, msg.category)) return;
+
       const title = msg.title;
       const body = msg.message || "";
       toast.info(title, { description: body || undefined });
@@ -66,7 +74,7 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
     };
 
     return subscribeUserNotifications(onNotification);
-  }, [load]);
+  }, [load, user]);
 
   const markAllRead = async () => {
     if (!bid) return;

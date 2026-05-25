@@ -28,11 +28,18 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { isTauri, printHtml } from "@/lib/tauri"
+import { reservationGuestName } from "@/lib/reservation-guest"
+import {
+  BookingReceiptBusiness,
+  PAYMENT_METHOD_LABELS,
+  buildBookingReceiptHtml,
+  printBookingReceipt,
+} from "@/lib/booking-receipt"
 
 interface Reservation {
   id: number
   booking_id: string
+  booking_id_revealed?: boolean
   other_first_name: string
   other_last_name: string
   other_phone_number: string
@@ -72,7 +79,7 @@ function BookingsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
-  const [businessDetails, setBusinessDetails] = useState<{ logo_url?: string; check_in?: string; check_out?: string } | null>(null)
+  const [businessDetails, setBusinessDetails] = useState<BookingReceiptBusiness | null>(null)
 
   const [rangeSelection, setRangeSelection] = useState("This month")
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()))
@@ -209,13 +216,14 @@ function BookingsContent() {
 
   // Helper function to determine if a reservation is active, upcoming, or past
   const getReservationStatus = (reservation: Reservation) => {
+    if (reservation.cancelled) return "cancelled"
+    if (reservation.checked_out_at) return "past"
     if (reservation.status) return reservation.status
 
     const now = new Date()
     const startDate = new Date(reservation.start_date)
     const endDate = new Date(reservation.end_date)
 
-    if (reservation.cancelled) return "cancelled"
     if (now >= startDate && now <= endDate) return "active"
     if (now < startDate) return "upcoming"
     return "past"
@@ -249,7 +257,12 @@ function BookingsContent() {
 
   const today = new Date().toISOString().split("T")[0]
   const todayCheckIns = upcomingReservations.filter((r) => r.start_date.split("T")[0] === today)
-  const todayCheckOuts = activeReservations.filter((r) => r.end_date.split("T")[0] === today)
+  const todayCheckOuts = filteredReservations.filter((r) => {
+    if (r.cancelled) return false
+    const scheduledToday = r.end_date.split("T")[0] === today
+    const checkedOutToday = r.checked_out_at?.split("T")[0] === today
+    return scheduledToday || !!checkedOutToday
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -293,116 +306,27 @@ function BookingsContent() {
   const handlePrintReceipt = (reservation: Reservation) => {
     if (!reservation) return
 
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'absolute'
-    iframe.style.width = '0px'
-    iframe.style.height = '0px'
-    iframe.style.border = 'none'
-    document.body.appendChild(iframe)
+    const receiptHtml = buildBookingReceiptHtml({
+      reservation,
+      business: {
+        name: businessName || businessDetails?.name,
+        logo_url: businessDetails?.logo_url,
+        check_in: businessDetails?.check_in,
+        check_out: businessDetails?.check_out,
+        address: businessDetails?.address,
+        city: businessDetails?.city,
+        state: businessDetails?.state,
+      },
+      guestName: reservationGuestName(reservation),
+      paymentMethodLabel: PAYMENT_METHOD_LABELS[reservation.payment_method] || "Unknown",
+      detailed: Boolean(
+        reservation.room_number ||
+          reservation.checked_in_at ||
+          reservation.checked_out_at
+      ),
+    })
 
-    // Format dates with business check-in/check-out times
-    const formatReceiptDateTime = (dateStr: string, timeStr?: string) => {
-      const date = new Date(dateStr)
-      const formattedDate = date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-
-      if (!timeStr) return formattedDate
-
-      let formattedTime = timeStr
-      try {
-        const today = new Date().toISOString().split('T')[0]
-        const timeDate = new Date(`${today}T${timeStr.includes('T') ? timeStr.split('T')[1] : timeStr}`)
-        if (!isNaN(timeDate.getTime())) {
-          formattedTime = timeDate.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          })
-        }
-      } catch (e) {
-        // fallback to original string if parsing fails
-      }
-
-      return `${formattedDate} at ${formattedTime}`
-    }
-
-    const checkInDisplay = formatReceiptDateTime(reservation.start_date, businessDetails?.check_in)
-    const checkOutDisplay = formatReceiptDateTime(reservation.end_date, businessDetails?.check_out)
-
-    const receiptHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Receipt - ${reservation.booking_id}</title>
-          <style>
-            body { font-family: 'Courier New', monospace; max-width: 400px; margin: 20px auto; padding: 20px; }
-            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 15px; }
-            .section { margin: 15px 0; border-bottom: 1px dashed #ccc; padding-bottom: 10px; }
-            .row { display: flex; justify-content: space-between; margin: 5px 0; }
-            .label { font-weight: bold; }
-            .total { font-size: 18px; font-weight: bold; margin-top: 10px; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; }
-            @media print { body { margin: 0; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-             ${businessDetails?.logo_url
-        ? `<img src="${businessDetails.logo_url}" alt="Logo" style="max-height: 60px; max-width: 150px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;" />`
-        : `<div style="width: 60px; height: 60px; background-color: #f3f4f6; border-radius: 50%; margin: 0 auto 10px auto; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; font-weight: bold;">${(businessName || "H").charAt(0)}</div>`
-      }
-            <h2>${businessName || "RESERVATION RECEIPT"}</h2>
-            <p>Booking ID: ${reservation.booking_id}</p>
-          </div>
-          <div class="section">
-            <h3>Guest Information</h3>
-            <div class="row"><span class="label">Name:</span><span>${reservation.client_name || reservation.other_first_name + ' ' + reservation.other_last_name}</span></div>
-            <div class="row"><span class="label">Email:</span><span>${reservation.client_email || reservation.other_email_address}</span></div>
-            <div class="row"><span class="label">Phone:</span><span>${reservation.client_phone || reservation.other_phone_number}</span></div>
-          </div>
-          <div class="section">
-            <h3>Booking Details</h3>
-            <div class="row"><span class="label">Room Type:</span><span>${reservation.room_type_name}</span></div>
-            <div class="row"><span class="label">Check-in:</span><span>${checkInDisplay}</span></div>
-            <div class="row"><span class="label">Check-out:</span><span>${checkOutDisplay}</span></div>
-          </div>
-          <div class="section">
-            <div class="row"><span class="label">Payment:</span><span>${paymentMethodLabels[reservation.payment_method] || "Unknown"}</span></div>
-            <div class="row total"><span class="label">Total:</span><span>₦${reservation.total_amount?.toLocaleString()}</span></div>
-          </div>
-          <div class="footer">
-            <p>Thank you for staying with us!</p>
-            <p>${new Date().toLocaleString()}</p>
-          </div>
-        </body>
-      </html>
-    `
-
-    const doc = iframe.contentWindow?.document
-    if (doc) {
-      doc.open()
-      doc.write(receiptHtml)
-      doc.close()
-
-      iframe.onload = () => {
-        iframe.contentWindow?.focus()
-        iframe.contentWindow?.print()
-        // Wait for print dialog to close (approximate) or user interaction
-        setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe)
-          }
-        }, 1000)
-      }
-    }
-
-    if (isTauri()) {
-      printHtml(receiptHtml)
-    }
+    printBookingReceipt(receiptHtml)
   }
 
   if (user && user.role !== "admin" && !user.permissions?.bookings?.view) {

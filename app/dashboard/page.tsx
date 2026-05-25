@@ -14,7 +14,6 @@ import { useEffect, useState, useMemo } from "react"
 import { usesRestaurantPortal } from "@/lib/portal-access"
 import { getAuthToken } from "@/lib/storage"
 import api from "@/lib/api-client"
-import { toast } from "sonner"
 import Flatpickr from "react-flatpickr"
 import "flatpickr/dist/themes/light.css"
 import { format, addDays } from "date-fns"
@@ -58,48 +57,12 @@ export default function DashboardPage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
   const [businessInfo, setBusinessInfo] = useState<any>(null)
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
-
-    try {
-      setIsSearching(true)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = getAuthToken()
-
-      const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/reservations/${searchQuery.trim()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      )
-
-      const data = await response.json()
-
-      if (response.ok && data.status?.code === 200) {
-        // Success: Redirect to scan page with code
-        router.push(`/dashboard/scan?code=${encodeURIComponent(searchQuery.trim())}`)
-      } else {
-        // Error: Show toast
-        if (response.status === 401 && (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired')) {
-          logout(true)
-          return
-        }
-        // Use the imported toast function from sonner
-        toast.error("Oops, no reservation found with this code")
-      }
-    } catch (error) {
-      console.error("Search failed:", error)
-      toast.error("Failed to verify booking code")
-    } finally {
-      setIsSearching(false)
-    }
+    router.push(`/dashboard/scan?code=${encodeURIComponent(searchQuery.trim().toUpperCase())}`)
   }
 
   useEffect(() => {
@@ -254,19 +217,20 @@ export default function DashboardPage() {
               <div className="relative group">
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                 <input
-                  className="w-full bg-white/95 backdrop-blur-sm shadow-xl rounded-2xl py-3 pl-12 pr-12 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-lg"
+                  className="w-full bg-white/95 backdrop-blur-sm shadow-xl rounded-2xl py-3 pl-12 pr-12 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-lg font-mono uppercase tracking-wider"
                   type="search"
                   placeholder="Scan or enter booking code..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  disabled={isSearching}
+                  onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
                 <button
                   className="absolute right-3 top-2.5 p-1.5 bg-indigo-100 rounded-lg text-indigo-600 hover:bg-indigo-200 transition-colors"
                   type="submit"
-                  disabled={isSearching}
                 >
-                  {isSearching ? <LoadingSpinner size={18} /> : <ArrowRight className="w-4 h-4" />}
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>

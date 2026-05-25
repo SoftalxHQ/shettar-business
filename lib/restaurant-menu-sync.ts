@@ -4,6 +4,7 @@ export type MenuAvailabilityUpdate = {
   item?: MenuItem;
   available?: boolean;
   item_name?: string;
+  actor_user_id?: number | null;
 };
 
 const listeners = new Set<(update: MenuAvailabilityUpdate) => void>();

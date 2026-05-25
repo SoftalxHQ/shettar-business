@@ -20,10 +20,21 @@ import {
   type MenuItem,
   type RestaurantOrder,
 } from "@/lib/restaurant-api";
+import { RestaurantOrderItemLine, RestaurantOrderNotes } from "@/components/restaurant-order-notes";
 import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
-import { notifyMenuAvailabilityChange } from "@/lib/restaurant-menu-sync";
+import { printRestaurantOrderReceipt } from "@/lib/restaurant-order-receipt";
+import {
+  type BookingReceiptBusiness,
+  businessReceiptContext,
+  fetchBusinessReceiptDetails,
+} from "@/lib/booking-receipt";
+import {
+  resolveAvailability,
+  subscribeMenuAvailabilityChange,
+  type MenuAvailabilityUpdate,
+} from "@/lib/restaurant-menu-sync";
 import { toast } from "sonner";
-import { ChefHat, Loader2, RefreshCw, Wifi } from "lucide-react";
+import { ChefHat, Loader2, Printer, RefreshCw, Wifi } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +46,14 @@ const COLUMNS: { key: string; label: string; next?: string; action?: string }[] 
 
 export default function RestaurantKitchenPage() {
   const router = useRouter();
-  const { user, businessId } = useAuth();
+  const { user, businessId, businessName } = useAuth();
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [live, setLive] = useState(false);
   const [togglingItemId, setTogglingItemId] = useState<number | null>(null);
+  const [businessDetails, setBusinessDetails] = useState<BookingReceiptBusiness | null>(null);
 
   const bid = resolveBusinessId(businessId);
   const canKitchen = canUseKitchenDisplay(user);
@@ -55,6 +67,11 @@ export default function RestaurantKitchenPage() {
     }
     if (!canKitchen) router.push("/dashboard/business");
   }, [user, router, canKitchen]);
+
+  useEffect(() => {
+    if (!bid) return;
+    void fetchBusinessReceiptDetails(bid).then(setBusinessDetails);
+  }, [bid]);
 
   const load = useCallback(async () => {
     if (!bid) return;
@@ -76,6 +93,40 @@ export default function RestaurantKitchenPage() {
     load();
   }, [load]);
 
+  const applyMenuAvailabilityUpdate = useCallback(
+    (update: MenuAvailabilityUpdate) => {
+      const item = update.item;
+      const itemId = item?.id;
+      const available = resolveAvailability(update);
+      const name = update.item_name || item?.name || "Item";
+
+      const currentUserId = user?.id ? Number(user.id) : null;
+      const actorId = update.actor_user_id;
+      const isRemote =
+        available !== undefined &&
+        actorId != null &&
+        currentUserId != null &&
+        actorId !== currentUserId;
+      if (isRemote) {
+        toast.info(`${name} ${available ? "activated" : "deactivated"}`);
+      }
+
+      if (itemId == null || available === undefined) {
+        load();
+        return;
+      }
+
+      setMenuItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, ...item, available } : i))
+      );
+    },
+    [load, user?.id]
+  );
+
+  useEffect(() => {
+    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+  }, [applyMenuAvailabilityUpdate]);
+
   useEffect(() => {
     if (!bid) return;
     const unsub = subscribeRestaurantChannel(bid, (msg) => {
@@ -84,18 +135,6 @@ export default function RestaurantKitchenPage() {
         load();
       } else if (msg.event === "order_status_changed" || msg.event === "order_paid") {
         load();
-      } else if (msg.event === "menu_item_availability_changed") {
-        const item = msg.payload?.item as MenuItem | undefined;
-        const name = (msg.payload?.item_name as string) || item?.name || "Item";
-        const available = msg.payload?.available as boolean;
-        toast.info(`${name} ${available ? "activated" : "deactivated"}`);
-        if (item) {
-          setMenuItems((prev) =>
-            prev.map((i) => (i.id === item.id ? { ...i, available: item.available } : i))
-          );
-        } else {
-          load();
-        }
       }
     });
     setLive(true);
@@ -111,11 +150,6 @@ export default function RestaurantKitchenPage() {
     try {
       const updated = await toggleMenuItemAvailability(bid, item.id);
       setMenuItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
-      notifyMenuAvailabilityChange({
-        item: updated,
-        available: updated.available,
-        item_name: updated.name,
-      });
       toast.success(`${updated.name} ${updated.available ? "activated" : "deactivated"}`);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to update item");
@@ -141,6 +175,19 @@ export default function RestaurantKitchenPage() {
 
   const orderLabel = (o: RestaurantOrder) =>
     (o.order_number || `#${o.id}`).replace(/\s+/g, "");
+
+  const handlePrintOrder = async (order: RestaurantOrder) => {
+    let details = businessDetails;
+    if (!details && bid) {
+      details = await fetchBusinessReceiptDetails(bid);
+      if (details) setBusinessDetails(details);
+    }
+
+    printRestaurantOrderReceipt({
+      order,
+      business: businessReceiptContext(businessName, details),
+    });
+  };
 
   return (
     <RestaurantLayoutWrapper activeTab="kitchen">
@@ -231,10 +278,18 @@ export default function RestaurantKitchenPage() {
                       </CardHeader>
                       <CardContent className="space-y-2 pb-3">
                         {order.items.map((item) => (
-                          <p key={item.id} className="text-sm font-medium">
-                            {item.quantity}× {item.name}
-                          </p>
+                          <RestaurantOrderItemLine key={item.id} item={item} className="text-sm" />
                         ))}
+                        <RestaurantOrderNotes order={order} />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-1.5"
+                          onClick={() => void handlePrintOrder(order)}
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          Print receipt
+                        </Button>
                         {colDef?.next && (
                           <Button
                             className={cn("w-full mt-2", col.key === "ready" && "bg-green-600 hover:bg-green-700")}

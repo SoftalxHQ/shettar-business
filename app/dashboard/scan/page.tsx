@@ -9,14 +9,20 @@ import { Badge } from "@/components/ui/badge"
 import { QrCode, Check, X, Printer, ArrowLeft } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { isTauri, nativeScan, printHtml } from "@/lib/tauri"
+import { isTauri, nativeScan } from "@/lib/tauri"
 import { reservationGuestName } from "@/lib/reservation-guest"
+import {
+  BookingReceiptBusiness,
+  PAYMENT_METHOD_LABELS,
+  buildBookingReceiptHtml,
+  printBookingReceipt,
+} from "@/lib/booking-receipt"
 
 interface Reservation {
   id: number
@@ -52,13 +58,16 @@ import { Suspense } from "react"
 function ScanContent() {
   const { user, businessId, businessName, logout } = useAuth()
   const searchParams = useSearchParams()
-  const [code, setCode] = useState(searchParams.get("code") || "")
+  const [code, setCode] = useState((searchParams.get("code") || "").toUpperCase())
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<"success" | "error" | null>(null)
   const [reservation, setReservation] = useState<Reservation | null>(null)
-  const [businessDetails, setBusinessDetails] = useState<{ logo_url?: string; check_in?: string; check_out?: string } | null>(null)
+  const [businessDetails, setBusinessDetails] = useState<BookingReceiptBusiness | null>(null)
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false)
   const [checkoutNotes, setCheckoutNotes] = useState("")
+  const autoVerifiedCode = useRef<string | null>(null)
+
+  const codeFromUrl = searchParams.get("code")
 
   // Fetch business details
   useEffect(() => {
@@ -87,8 +96,9 @@ function ScanContent() {
     fetchBusinessDetails()
   }, [businessId])
 
-  const verifyBooking = async (bookingCode: string) => {
+  const verifyBooking = async (bookingCode: string, options?: { showSuccessToast?: boolean }) => {
     if (!businessId || !bookingCode.trim()) return
+    const showSuccessToast = options?.showSuccessToast ?? true
 
     try {
       setIsLoading(true)
@@ -110,7 +120,9 @@ function ScanContent() {
       if (response.ok && data.status?.code === 200) {
         setResult("success")
         setReservation(data.data)
-        toast.success("Booking found successfully!")
+        if (showSuccessToast) {
+          toast.success("Booking found successfully!")
+        }
       } else {
         if (response.status === 401) {
           if (
@@ -137,13 +149,13 @@ function ScanContent() {
     }
   }
 
-  // Auto-scan on mount if code exists
+  // Auto-verify once when opened with ?code= (e.g. from dashboard search)
   useEffect(() => {
-    const urlCode = searchParams.get("code")
-    if (urlCode && businessId) { // Ensure businessId is ready
-      verifyBooking(urlCode)
-    }
-  }, [businessId, searchParams]) // Add dependencies
+    if (!codeFromUrl || !businessId) return
+    if (autoVerifiedCode.current === codeFromUrl) return
+    autoVerifiedCode.current = codeFromUrl
+    void verifyBooking(codeFromUrl, { showSuccessToast: true })
+  }, [businessId, codeFromUrl])
 
   const handleScan = () => {
     if (!businessId) {
@@ -156,18 +168,19 @@ function ScanContent() {
       return
     }
 
-    verifyBooking(code)
+    verifyBooking(code, { showSuccessToast: true })
   }
 
   const handleNativeScan = async () => {
     const scannnedCode = await nativeScan();
     if (scannnedCode) {
       setCode(scannnedCode);
-      verifyBooking(scannnedCode);
+      verifyBooking(scannnedCode, { showSuccessToast: true });
     }
   }
 
   const handleReset = () => {
+    autoVerifiedCode.current = null
     setCode("")
     setResult(null)
     setReservation(null)
@@ -249,205 +262,24 @@ function ScanContent() {
   const handlePrintReceipt = () => {
     if (!reservation) return
 
-    // Create a hidden iframe
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'absolute'
-    iframe.style.width = '0px'
-    iframe.style.height = '0px'
-    iframe.style.border = 'none'
-    document.body.appendChild(iframe)
+    const receiptHtml = buildBookingReceiptHtml({
+      reservation,
+      business: {
+        name: businessName || businessDetails?.name,
+        logo_url: businessDetails?.logo_url,
+        check_in: businessDetails?.check_in,
+        check_out: businessDetails?.check_out,
+        address: businessDetails?.address,
+        city: businessDetails?.city,
+        state: businessDetails?.state,
+      },
+      guestName: reservationGuestName(reservation),
+      paymentMethodLabel: PAYMENT_METHOD_LABELS[reservation.payment_method] || "Unknown",
+      detailed: true,
+      footerMessage: "Thank you for your stay!",
+    })
 
-    const receiptHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Receipt - ${reservation.booking_id}</title>
-          <style>
-            body {
-              font-family: 'Courier New', monospace;
-              max-width: 400px;
-              margin: 20px auto;
-              padding: 20px;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 2px dashed #000;
-              padding-bottom: 10px;
-              margin-bottom: 15px;
-            }
-            .section {
-              margin: 15px 0;
-              border-bottom: 1px dashed #ccc;
-              padding-bottom: 10px;
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              margin: 5px 0;
-            }
-            .label {
-              font-weight: bold;
-            }
-            .total {
-              font-size: 18px;
-              font-weight: bold;
-              margin-top: 10px;
-            }
-            .footer {
-              text-align: center;
-              margin-top: 20px;
-              font-size: 12px;
-            }
-            @media print {
-              body {
-                margin: 0;
-              }
-            }
-          </style>
-        </head>
-        <body>
-
-          <div class="header">
-            ${businessDetails?.logo_url
-        ? `<img src="${businessDetails.logo_url}" alt="Logo" style="max-height: 60px; max-width: 150px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;" />`
-        : `<div style="width: 60px; height: 60px; background-color: #f3f4f6; border-radius: 50%; margin: 0 auto 10px auto; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; font-weight: bold;">${(businessName || "H").charAt(0)}</div>`
-      }
-            <h2>${businessName || "RESERVATION RECEIPT"}</h2>
-            ${businessName ? '<p style="font-size: 14px; margin-bottom: 5px;">RESERVATION RECEIPT</p>' : ''}
-            <p>Booking ID: ${reservation.booking_id}</p>
-          </div>
-
-          <div class="section">
-            <h3>Guest Information</h3>
-            <div class="row">
-              <span class="label">Name:</span>
-              <span>${reservationGuestName(reservation)}</span>
-            </div>
-            <div class="row">
-              <span class="label">Email:</span>
-              <span>${reservation.other_email_address}</span>
-            </div>
-            <div class="row">
-              <span class="label">Phone:</span>
-              <span>${reservation.other_phone_number}</span>
-            </div>
-          </div>
-
-          <div class="section">
-            <h3>Room Details</h3>
-            <div class="row">
-              <span class="label">Room Number:</span>
-              <span>${reservation.room_number}</span>
-            </div>
-            <div class="row">
-              <span class="label">Room Type:</span>
-              <span>${reservation.room_type_name}</span>
-            </div>
-            <div class="row">
-              <span class="label">Guests:</span>
-              <span>${reservation.guests} adults, ${reservation.children} children</span>
-            </div>
-          </div>
-
-          <div class="section">
-            <h3>Stay Details</h3>
-            <div class="row">
-              <span class="label">Check-in Date:</span>
-              <span>${new Date(reservation.start_date).toLocaleDateString()}</span>
-            </div>
-            ${businessDetails?.check_in ? `
-            <div class="row">
-              <span class="label">Business Check-in:</span>
-              <span>${businessDetails.check_in}</span>
-            </div>` : ''}
-            <div class="row">
-              <span class="label">Check-out Date:</span>
-              <span>${new Date(reservation.end_date).toLocaleDateString()}</span>
-            </div>
-            ${businessDetails?.check_out ? `
-            <div class="row">
-              <span class="label">Business Check-out:</span>
-              <span>${businessDetails.check_out}</span>
-            </div>` : ''}
-            ${reservation.checked_in_at ? `
-            <div class="row">
-              <span class="label">Actual Check-in:</span>
-              <span>${new Date(reservation.checked_in_at).toLocaleString()}</span>
-            </div>
-            ${reservation.checked_in_by_name ? `
-            <div class="row">
-              <span class="label">Checked in by:</span>
-              <span>${reservation.checked_in_by_name}</span>
-            </div>
-            ` : ''}
-            ` : ''}
-            ${reservation.checked_out_at ? `
-            <div class="row">
-              <span class="label">Actual Check-out:</span>
-              <span>${new Date(reservation.checked_out_at).toLocaleString()}</span>
-            </div>
-            ${reservation.checked_out_by_name ? `
-            <div class="row">
-              <span class="label">Checked out by:</span>
-              <span>${reservation.checked_out_by_name}</span>
-            </div>
-            ` : ''}
-            ` : ''}
-          </div>
-
-          <div class="section">
-            <h3>Payment</h3>
-            <div class="row">
-              <span class="label">Payment Method:</span>
-              <span>${paymentMethodLabels[reservation.payment_method] || "Unknown"}</span>
-            </div>
-            <div class="row total">
-              <span class="label">Total Amount:</span>
-              <span>₦${reservation.total_amount?.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>Thank you for your stay!</p>
-            <p>Printed on: ${new Date().toLocaleString()}</p>
-            <div style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px solid #eee; padding-top: 5px;">
-              Powered by SoftalxHQ
-            </div>
-          </div>
-        </body>
-      </html>
-    `
-
-    const doc = iframe.contentWindow?.document
-    if (doc) {
-      doc.open()
-      doc.write(receiptHtml)
-      doc.close()
-
-      // Print after content loads
-      iframe.contentWindow?.focus()
-      // Small delay to ensure styles render
-      setTimeout(() => {
-        iframe.contentWindow?.print()
-        // Wait for print dialog to potentially close before removing (though removed from DOM doesn't always stop print)
-        // A generous timeout usually works best for invisible iframe cleanup
-        setTimeout(() => {
-          document.body.removeChild(iframe)
-        }, 1000)
-      }, 500)
-    }
-
-    if (isTauri()) {
-      printHtml(receiptHtml)
-    }
-  }
-
-  const paymentMethodLabels: { [key: number]: string } = {
-    0: "Wallet",
-    1: "Card",
-    2: "POS",
-    3: "Cash",
-    4: "Transfer",
+    printBookingReceipt(receiptHtml)
   }
 
   const isWithinReservationWindow = () => {
@@ -464,13 +296,18 @@ function ScanContent() {
   const getStatusBadge = () => {
     if (!reservation) return null
 
+    if (reservation.cancelled) return <Badge variant="destructive">Cancelled</Badge>
+    if (reservation.checked_out_at) return <Badge variant="secondary">Past</Badge>
+
     const now = new Date()
     const startDate = new Date(reservation.start_date)
     const endDate = new Date(reservation.end_date)
 
-    if (reservation.cancelled) return <Badge variant="destructive">Cancelled</Badge>
-    if (now >= startDate && now <= endDate) return <Badge className="bg-green-600">Active</Badge>
-    if (now < startDate) return <Badge className="bg-blue-600">Upcoming</Badge>
+    if (reservation.status === "past" || now > endDate) return <Badge variant="secondary">Past</Badge>
+    if (reservation.status === "active" || (now >= startDate && now <= endDate)) {
+      return <Badge className="bg-green-600">Active</Badge>
+    }
+    if (reservation.status === "upcoming" || now < startDate) return <Badge className="bg-blue-600">Upcoming</Badge>
     return <Badge variant="secondary">Past</Badge>
   }
 
@@ -543,7 +380,7 @@ function ScanContent() {
                       id="code"
                       placeholder="e.g., SSH-123-ABC-456"
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
                       onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
                       className="text-center text-base h-11 font-mono uppercase tracking-wider border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                       disabled={isLoading}

@@ -56,6 +56,7 @@ function notifyConnection(connected: boolean) {
 function notifyHandlers(event: RestaurantCableEvent) {
   if (event.event === "menu_item_availability_changed") {
     notifyMenuAvailabilityChange(event.payload as MenuAvailabilityUpdate);
+    return;
   }
   eventHandlers.forEach((handler) => {
     try {

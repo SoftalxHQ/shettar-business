@@ -28,6 +28,7 @@ import {
   playNotificationTone,
   setNotificationSoundEnabled,
 } from "@/lib/notification-sound";
+import { filterNotificationsForUser } from "@/lib/notification-access";
 
 export default function NotificationsPage() {
   const { user, businessId } = useAuth();
@@ -47,7 +48,7 @@ export default function NotificationsPage() {
         fetchStaffNotifications(bid),
         fetchNotificationPreferences(bid),
       ]);
-      setNotifications(data.notifications);
+      setNotifications(filterNotificationsForUser(user, data.notifications));
       setPrefs(p);
       setNotificationSoundEnabled(p.sound_enabled !== false);
     } catch (e) {
@@ -55,7 +56,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [bid]);
+  }, [bid, user]);
 
   useEffect(() => {
     load();

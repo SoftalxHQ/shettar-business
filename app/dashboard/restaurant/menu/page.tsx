@@ -30,15 +30,14 @@ import {
   updateMenuItem,
   toggleMenuItemAvailability,
 } from "@/lib/restaurant-api";
-import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
-import { CachedMenuImage } from "@/components/cached-menu-image";
-import { prefetchMenuImages } from "@/lib/menu-image-cache";
 import {
   resolveAvailability,
-  notifyMenuAvailabilityChange,
   subscribeMenuAvailabilityChange,
   type MenuAvailabilityUpdate,
 } from "@/lib/restaurant-menu-sync";
+import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
+import { CachedMenuImage } from "@/components/cached-menu-image";
+import { prefetchMenuImages } from "@/lib/menu-image-cache";
 import { toast } from "sonner";
 import { ImageIcon, Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -113,7 +112,14 @@ export default function RestaurantMenuPage() {
       const available = resolveAvailability(update);
       const name = update.item_name || item?.name || "Item";
 
-      if (available !== undefined) {
+      const currentUserId = user?.id ? Number(user.id) : null;
+      const actorId = update.actor_user_id;
+      const isRemote =
+        available !== undefined &&
+        actorId != null &&
+        currentUserId != null &&
+        actorId !== currentUserId;
+      if (isRemote) {
         toast.info(`${name} ${available ? "activated" : "deactivated"}`);
       }
 
@@ -131,21 +137,17 @@ export default function RestaurantMenuPage() {
         }))
       );
     },
-    [load]
+    [load, user?.id]
   );
-
-  useEffect(() => {
-    if (!bid) return;
-    return subscribeRestaurantChannel(bid, (msg) => {
-      if (msg.event === "menu_item_availability_changed") {
-        applyMenuAvailabilityUpdate(msg.payload as MenuAvailabilityUpdate);
-      }
-    });
-  }, [bid, applyMenuAvailabilityUpdate]);
 
   useEffect(() => {
     return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
   }, [applyMenuAvailabilityUpdate]);
+
+  useEffect(() => {
+    if (!bid) return;
+    return subscribeRestaurantChannel(bid, () => {});
+  }, [bid]);
 
   useEffect(() => {
     const urls = categories.flatMap((c) => (c.items || []).map((i) => i.image_url));
@@ -278,13 +280,15 @@ export default function RestaurantMenuPage() {
     if (!bid || !canEdit) return;
     try {
       const updated = await toggleMenuItemAvailability(bid, item.id);
-      notifyMenuAvailabilityChange({
-        item: updated,
-        available: updated.available,
-        item_name: updated.name,
-      });
+      setCategories((prev) =>
+        prev.map((cat) => ({
+          ...cat,
+          items: (cat.items || []).map((i) =>
+            i.id === updated.id ? { ...i, ...updated } : i
+          ),
+        }))
+      );
       toast.success(`${updated.name} ${updated.available ? "activated" : "deactivated"}`);
-      load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Update failed");
     }

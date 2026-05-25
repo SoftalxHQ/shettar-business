@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
+import { RestaurantOrderItemLine, RestaurantOrderNotes } from "@/components/restaurant-order-notes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CachedMenuImage } from "@/components/cached-menu-image";
 import { prefetchMenuImages } from "@/lib/menu-image-cache";
 import { orderStatusColor, subscribeRestaurantChannel } from "@/lib/restaurant-cable";
+import { printRestaurantOrderReceipt } from "@/lib/restaurant-order-receipt";
+import {
+  type BookingReceiptBusiness,
+  businessReceiptContext,
+  fetchBusinessReceiptDetails,
+} from "@/lib/booking-receipt";
 import {
   resolveAvailability,
   subscribeMenuAvailabilityChange,
@@ -61,6 +68,7 @@ import {
   Loader2,
   Minus,
   Plus,
+  Printer,
   Radio,
   RefreshCw,
   Search,
@@ -121,6 +129,7 @@ function OrderCardContent({
   canMark,
   canRefundOrder,
   canCancelOrder,
+  onPrint,
   onMarkPaid,
   onRefund,
   onCancel,
@@ -129,6 +138,7 @@ function OrderCardContent({
   canMark: boolean;
   canRefundOrder: boolean;
   canCancelOrder: boolean;
+  onPrint: () => void;
   onMarkPaid: () => void;
   onRefund: () => void;
   onCancel: () => void;
@@ -158,46 +168,44 @@ function OrderCardContent({
         {order.booking_id && ` · ${order.booking_id}`}
         {order.source === "guest" && " · Guest"}
       </p>
-      <div className="text-sm space-y-1 mt-3">
+      <div className="text-sm space-y-2 mt-3">
         {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between gap-2">
-            <span className="truncate">
-              {item.quantity}× {item.name}
-            </span>
-            <span className="shrink-0">₦{item.line_total.toLocaleString()}</span>
-          </div>
+          <RestaurantOrderItemLine key={item.id} item={item} showPrice />
         ))}
+        <RestaurantOrderNotes order={order} />
         <div className="flex justify-between font-semibold pt-2 border-t">
           <span>Total</span>
           <span>₦{order.subtotal.toLocaleString()}</span>
         </div>
       </div>
-      {(canMark || canRefundOrder || canCancelOrder) && (
-        <div className="flex flex-wrap gap-2 pt-3">
-          {canMark && (
-            <Button size="sm" variant="outline" onClick={onMarkPaid}>
-              Mark paid
-            </Button>
-          )}
-          {canRefundOrder && (
-            <Button size="sm" variant="outline" onClick={onRefund}>
-              Refund
-            </Button>
-          )}
-          {canCancelOrder && (
-            <Button size="sm" variant="destructive" onClick={onCancel}>
-              Cancel order
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 pt-3">
+        <Button size="sm" variant="outline" onClick={onPrint} className="gap-1.5">
+          <Printer className="w-3.5 h-3.5" />
+          Print
+        </Button>
+        {canMark && (
+          <Button size="sm" variant="outline" onClick={onMarkPaid}>
+            Mark paid
+          </Button>
+        )}
+        {canRefundOrder && (
+          <Button size="sm" variant="outline" onClick={onRefund}>
+            Refund
+          </Button>
+        )}
+        {canCancelOrder && (
+          <Button size="sm" variant="destructive" onClick={onCancel}>
+            Cancel order
+          </Button>
+        )}
+      </div>
     </>
   );
 }
 
 export default function RestaurantOrdersPage() {
   const router = useRouter();
-  const { user, businessId } = useAuth();
+  const { user, businessId, businessName } = useAuth();
   const [activeTab, setActiveTab] = useState("orders");
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [menu, setMenu] = useState<MenuCategory[]>([]);
@@ -230,6 +238,7 @@ export default function RestaurantOrdersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [cableLive, setCableLive] = useState(false);
   const [highlightIds, setHighlightIds] = useState<Set<number>>(new Set());
+  const [businessDetails, setBusinessDetails] = useState<BookingReceiptBusiness | null>(null);
 
   const bid = resolveBusinessId(businessId);
   const canView = canViewRestaurant(user);
@@ -246,6 +255,11 @@ export default function RestaurantOrdersPage() {
     }
     if (!canView) router.push("/dashboard/business");
   }, [user, router, canView]);
+
+  useEffect(() => {
+    if (!bid) return;
+    void fetchBusinessReceiptDetails(bid).then(setBusinessDetails);
+  }, [bid]);
 
   const loadOrders = useCallback(async () => {
     if (!bid) return;
@@ -490,6 +504,19 @@ export default function RestaurantOrdersPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handlePrintOrder = async (order: RestaurantOrder) => {
+    let details = businessDetails;
+    if (!details && bid) {
+      details = await fetchBusinessReceiptDetails(bid);
+      if (details) setBusinessDetails(details);
+    }
+
+    printRestaurantOrderReceipt({
+      order,
+      business: businessReceiptContext(businessName, details),
+    });
   };
 
   const openRefundDialog = (order: RestaurantOrder) => {
@@ -747,6 +774,7 @@ export default function RestaurantOrdersPage() {
                           canMark={canMark}
                           canRefundOrder={canRefundOrder}
                           canCancelOrder={canCancelOrder}
+                          onPrint={() => void handlePrintOrder(order)}
                           onMarkPaid={() => {
                             setMarkPaidOrder(order);
                             setMarkPaidMethod("cash");
@@ -786,6 +814,7 @@ export default function RestaurantOrdersPage() {
                           canMark={canMark}
                           canRefundOrder={canRefundOrder}
                           canCancelOrder={canCancelOrder}
+                          onPrint={() => void handlePrintOrder(order)}
                           onMarkPaid={() => {
                             setMarkPaidOrder(order);
                             setMarkPaidMethod("cash");

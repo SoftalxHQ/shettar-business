@@ -19,6 +19,7 @@ import {
   PERMISSION_PRESETS,
   getPermissionSummary,
   getPresetPermissions,
+  getSwitchRoleInitialState,
   getSwitchablePresets,
   type PermissionPresetKey,
   type StaffMember,
@@ -34,9 +35,10 @@ interface SwitchRoleDialogProps {
 
 export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDialogProps) {
   const { businessId } = useAuth()
-  const [selectedPreset, setSelectedPreset] = useState<PermissionPresetKey>("front_desk")
-  const [title, setTitle] = useState(member.title || PERMISSION_PRESETS.front_desk.name)
-  const [permissions, setPermissions] = useState(getPresetPermissions("front_desk"))
+  const initial = getSwitchRoleInitialState(member)
+  const [selectedPreset, setSelectedPreset] = useState<PermissionPresetKey>(initial.preset)
+  const [title, setTitle] = useState(initial.title)
+  const [permissions, setPermissions] = useState(initial.permissions)
   const [step, setStep] = useState<1 | 2>(1)
   const [saving, setSaving] = useState(false)
 
@@ -84,8 +86,9 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
         <DialogHeader>
           <DialogTitle>Switch role</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Replace {member.user?.name}&apos;s current permissions with a new role preset.
-            Previous access will be removed.
+            Switch role for {member.user?.name}. Their current role (
+            <span className="font-medium text-foreground">{member.title || initial.title}</span>
+            ) is pre-selected — pick a different preset to change their access.
           </p>
         </DialogHeader>
 

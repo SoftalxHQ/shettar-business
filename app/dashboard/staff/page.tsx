@@ -285,6 +285,7 @@ export default function StaffPage() {
 
       {showSwitchDialog && selectedMember && (
         <SwitchRoleDialog
+          key={selectedMember.id}
           member={selectedMember}
           onSuccess={() => {
             setShowSwitchDialog(false)

@@ -301,6 +301,46 @@ export function getSwitchablePresets(): PermissionPresetKey[] {
   return ["manager", "front_desk", "kitchen", "restaurant_staff", "custom"]
 }
 
+function permissionFlag(value: unknown): boolean {
+  return value === true
+}
+
+export function permissionsMatch(a: Permissions, b: Permissions): boolean {
+  for (const [category, config] of Object.entries(PERMISSION_LABELS)) {
+    const aCat = a[category as keyof Permissions] as Record<string, boolean> | undefined
+    const bCat = b[category as keyof Permissions] as Record<string, boolean> | undefined
+    for (const permKey of Object.keys(config.permissions)) {
+      if (permissionFlag(aCat?.[permKey]) !== permissionFlag(bCat?.[permKey])) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
+/** Maps a member's permission set to the closest switchable preset, or custom. */
+export function inferPermissionPreset(permissions: Permissions): PermissionPresetKey {
+  for (const key of getSwitchablePresets()) {
+    if (key === "custom") continue
+    if (permissionsMatch(permissions, getPresetPermissions(key))) {
+      return key
+    }
+  }
+  return "custom"
+}
+
+export function getSwitchRoleInitialState(member: Pick<StaffMember, "title" | "permissions">) {
+  const preset = inferPermissionPreset(member.permissions || {})
+  return {
+    preset,
+    title: member.title || PERMISSION_PRESETS[preset].name,
+    permissions:
+      preset === "custom"
+        ? { ...(member.permissions || {}) }
+        : getPresetPermissions(preset),
+  }
+}
+
 export const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
