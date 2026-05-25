@@ -1,12 +1,18 @@
 // Staff and Permissions Types
 
+export type StaffStatus = "active" | "suspended" | "deactivated" | "fired"
+
 export interface StaffMember {
   id: number
   user_id: number
   business_id: number
   title: string
+  role?: string
   permissions: Permissions
   is_owner: boolean
+  status?: StaffStatus
+  status_reason?: string | null
+  status_changed_at?: string | null
   created_at: string
   updated_at: string
 
@@ -284,3 +290,21 @@ export function getPermissionSummary(permissions: Permissions): string {
 
   return enabled.length > 0 ? enabled.join(', ') : 'No permissions'
 }
+
+export type PermissionPresetKey = keyof typeof PERMISSION_PRESETS
+
+export function getPresetPermissions(key: PermissionPresetKey): Permissions {
+  return PERMISSION_PRESETS[key].permissions as Permissions
+}
+
+export function getSwitchablePresets(): PermissionPresetKey[] {
+  return ["manager", "front_desk", "kitchen", "restaurant_staff", "custom"]
+}
+
+export const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "suspended", label: "Suspended" },
+  { value: "deactivated", label: "Deactivated" },
+  { value: "fired", label: "Fired" },
+] as const

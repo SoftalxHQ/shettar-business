@@ -33,3 +33,31 @@ export function canRefundRestaurantOrder(user: User | null | undefined) {
   if (!isRestaurantModuleEnabled(user)) return false;
   return user?.role === "admin" || !!user?.permissions?.restaurant?.refund;
 }
+
+export function canCancelRestaurantOrder(user: User | null | undefined) {
+  if (!isRestaurantModuleEnabled(user)) return false;
+  return user?.role === "admin" || !!user?.permissions?.restaurant?.cancel_orders;
+}
+
+const REFUND_EARLY_STATUSES = ["pending", "preparing"] as const;
+
+/** Paid orders in pending/preparing need cancel_orders (or admin); later statuses need refund permission. */
+export function canRefundRestaurantOrderForOrder(
+  user: User | null | undefined,
+  order: { status: string; payment_status?: string | null }
+) {
+  if (!isRestaurantModuleEnabled(user)) return false;
+  const paid =
+    order.payment_status === "paid" || order.payment_status === "partially_refunded";
+  if (!paid || order.status === "cancelled" || order.payment_status === "refunded") {
+    return false;
+  }
+  if (REFUND_EARLY_STATUSES.includes(order.status as (typeof REFUND_EARLY_STATUSES)[number])) {
+    return canCancelRestaurantOrder(user);
+  }
+  return canRefundRestaurantOrder(user);
+}
+
+export function canCancelRestaurantOrderStatus(order: { status: string }) {
+  return order.status === "pending" || order.status === "preparing" || order.status === "ready";
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +20,11 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth-context";
 import {
+  canCancelRestaurantOrder,
+  canCancelRestaurantOrderStatus,
   canCreateRestaurantOrders,
   canMarkRestaurantOrderPaid,
-  canRefundRestaurantOrder,
+  canRefundRestaurantOrderForOrder,
   canViewRestaurant,
   isRestaurantModuleEnabled,
 } from "@/lib/restaurant-access";
@@ -34,6 +36,7 @@ import {
   markOrderPaid,
   refundOrder,
   resolveBusinessId,
+  transitionOrderStatus,
   type MenuCategory,
   type MenuItem,
   type RestaurantOrder,
@@ -41,6 +44,15 @@ import {
 } from "@/lib/restaurant-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CachedMenuImage } from "@/components/cached-menu-image";
+import { prefetchMenuImages } from "@/lib/menu-image-cache";
+import { orderStatusColor, subscribeRestaurantChannel } from "@/lib/restaurant-cable";
+import {
+  resolveAvailability,
+  subscribeMenuAvailabilityChange,
+  type MenuAvailabilityUpdate,
+} from "@/lib/restaurant-menu-sync";
 import {
   ClipboardList,
   Grid3X3,
@@ -49,6 +61,7 @@ import {
   Loader2,
   Minus,
   Plus,
+  Radio,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -93,18 +106,32 @@ function paymentBadgeVariant(status?: string) {
   return "outline";
 }
 
+function upsertOrder(list: RestaurantOrder[], incoming: RestaurantOrder) {
+  const index = list.findIndex((o) => o.id === incoming.id);
+  if (index >= 0) {
+    const next = [...list];
+    next[index] = incoming;
+    return next;
+  }
+  return [incoming, ...list];
+}
+
 function OrderCardContent({
   order,
   canMark,
   canRefundOrder,
+  canCancelOrder,
   onMarkPaid,
   onRefund,
+  onCancel,
 }: {
   order: RestaurantOrder;
   canMark: boolean;
   canRefundOrder: boolean;
+  canCancelOrder: boolean;
   onMarkPaid: () => void;
   onRefund: () => void;
+  onCancel: () => void;
 }) {
   const loc = orderLocationLabel(order);
   return (
@@ -117,7 +144,10 @@ function OrderCardContent({
           <Badge variant={paymentBadgeVariant(order.payment_status)} className="text-xs">
             {PAYMENT_LABELS[order.payment_status || "unpaid"] || order.payment_status}
           </Badge>
-          <Badge variant="outline" className="text-xs">
+          <Badge
+            variant="outline"
+            className={cn("text-xs border", orderStatusColor(order.status))}
+          >
             {STATUS_LABELS[order.status] || order.status}
           </Badge>
         </div>
@@ -142,7 +172,7 @@ function OrderCardContent({
           <span>₦{order.subtotal.toLocaleString()}</span>
         </div>
       </div>
-      {(canMark || canRefundOrder) && (
+      {(canMark || canRefundOrder || canCancelOrder) && (
         <div className="flex flex-wrap gap-2 pt-3">
           {canMark && (
             <Button size="sm" variant="outline" onClick={onMarkPaid}>
@@ -152,6 +182,11 @@ function OrderCardContent({
           {canRefundOrder && (
             <Button size="sm" variant="outline" onClick={onRefund}>
               Refund
+            </Button>
+          )}
+          {canCancelOrder && (
+            <Button size="sm" variant="destructive" onClick={onCancel}>
+              Cancel order
             </Button>
           )}
         </div>
@@ -188,13 +223,18 @@ export default function RestaurantOrdersPage() {
   const [markPaidMethod, setMarkPaidMethod] = useState("cash");
   const [refundOrderTarget, setRefundOrderTarget] = useState<RestaurantOrder | null>(null);
   const [refundReason, setRefundReason] = useState("");
+  const [refundFull, setRefundFull] = useState(true);
+  const [refundLineQtys, setRefundLineQtys] = useState<Record<number, number>>({});
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<RestaurantOrder | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [cableLive, setCableLive] = useState(false);
+  const [highlightIds, setHighlightIds] = useState<Set<number>>(new Set());
 
   const bid = resolveBusinessId(businessId);
   const canView = canViewRestaurant(user);
   const canCreate = canCreateRestaurantOrders(user);
   const canMarkPaid = canMarkRestaurantOrderPaid(user);
-  const canRefund = canRefundRestaurantOrder(user);
+  const canCancel = canCancelRestaurantOrder(user);
 
   useEffect(() => {
     if (!user) return;
@@ -241,15 +281,107 @@ export default function RestaurantOrdersPage() {
     }
   }, [bid]);
 
+  const loadOrdersRef = useRef(loadOrders);
+  loadOrdersRef.current = loadOrders;
+  const loadMenuDataRef = useRef(loadMenuData);
+  loadMenuDataRef.current = loadMenuData;
+
+  const applyMenuAvailabilityUpdate = useCallback((update: MenuAvailabilityUpdate) => {
+    const item = update.item;
+    const itemId = item?.id;
+    const available = resolveAvailability(update);
+
+    if (itemId == null || available === undefined) {
+      loadMenuDataRef.current();
+      return;
+    }
+
+    setMenu((prev) => {
+      if (prev.length === 0) return prev;
+      return prev.map((cat) => ({
+        ...cat,
+        items: (cat.items || []).map((i) =>
+          i.id === itemId ? { ...i, ...item, available } : i
+        ),
+      }));
+    });
+
+    if (!available) {
+      setCart((prev) => prev.filter((line) => line.menu_item_id !== itemId));
+    }
+  }, []);
+
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
 
   useEffect(() => {
-    if (activeTab === "new-order" && menu.length === 0) {
+    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+  }, [applyMenuAvailabilityUpdate]);
+
+  useEffect(() => {
+    if (!bid) return;
+    const unsub = subscribeRestaurantChannel(bid, {
+      onConnection: setCableLive,
+      onEvent: (msg) => {
+        const event = msg.event;
+        const order = msg.payload?.order as RestaurantOrder | undefined;
+
+        if (event === "order_created") {
+          if (order) {
+            setOrders((prev) => upsertOrder(prev, order));
+            setHighlightIds((prev) => new Set(prev).add(order.id));
+            setTimeout(() => {
+              setHighlightIds((prev) => {
+                const next = new Set(prev);
+                next.delete(order.id);
+                return next;
+              });
+            }, 4000);
+            toast.info("New order", {
+              description: formatOrderNumber(order),
+            });
+          } else {
+            loadOrdersRef.current();
+          }
+          return;
+        }
+
+        if (event === "order_status_changed" && order) {
+          setOrders((prev) => upsertOrder(prev, order));
+          toast.success(
+            `Order ${formatOrderNumber(order)} is now ${STATUS_LABELS[order.status] || order.status}`
+          );
+          return;
+        }
+
+        if (event === "order_paid" && order) {
+          setOrders((prev) => upsertOrder(prev, order));
+          toast.success(`Order ${formatOrderNumber(order)} paid`);
+          return;
+        }
+
+      },
+    });
+    return unsub;
+  }, [bid]);
+
+  useEffect(() => {
+    if (bid && canCreate) {
       loadMenuData();
     }
-  }, [activeTab, menu.length, loadMenuData]);
+  }, [bid, canCreate, loadMenuData]);
+
+  useEffect(() => {
+    if (activeTab === "new-order" && bid && canCreate) {
+      loadMenuData();
+    }
+  }, [activeTab, bid, canCreate, loadMenuData]);
+
+  useEffect(() => {
+    const urls = menu.flatMap((c) => (c.items || []).map((i) => i.image_url));
+    prefetchMenuImages(urls);
+  }, [menu]);
 
   const applySearch = () => setSearchApplied(searchDraft.trim());
 
@@ -359,20 +491,62 @@ export default function RestaurantOrdersPage() {
     }
   };
 
+  const openRefundDialog = (order: RestaurantOrder) => {
+    setRefundOrderTarget(order);
+    setRefundReason("");
+    setRefundFull(true);
+    const lines: Record<number, number> = {};
+    order.items.forEach((item) => {
+      const max =
+        item.refundable_quantity ??
+        Math.max(0, item.quantity - (item.refunded_quantity ?? 0));
+      if (max > 0) lines[item.id] = max;
+    });
+    setRefundLineQtys(lines);
+  };
+
   const handleRefund = async () => {
     if (!bid || !refundOrderTarget) return;
+    const items = refundFull
+      ? undefined
+      : Object.entries(refundLineQtys)
+          .map(([id, qty]) => ({
+            order_item_id: Number(id),
+            quantity: Math.max(0, Math.floor(qty)),
+          }))
+          .filter((line) => line.quantity > 0);
+    if (!refundFull && (!items || items.length === 0)) {
+      toast.error("Select at least one item and quantity to refund");
+      return;
+    }
     setActionLoading(true);
     try {
       await refundOrder(bid, refundOrderTarget.id, {
-        full: true,
+        full: refundFull,
+        items,
         reason: refundReason.trim() || undefined,
       });
-      toast.success("Refund processed");
+      toast.success(refundFull ? "Full refund processed" : "Partial refund processed");
       setRefundOrderTarget(null);
       setRefundReason("");
       loadOrders();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Refund failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!bid || !cancelOrderTarget) return;
+    setActionLoading(true);
+    try {
+      await transitionOrderStatus(bid, cancelOrderTarget.id, "cancelled");
+      toast.success("Order cancelled");
+      setCancelOrderTarget(null);
+      loadOrders();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to cancel order");
     } finally {
       setActionLoading(false);
     }
@@ -435,11 +609,19 @@ export default function RestaurantOrdersPage() {
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap border-t pt-3">
-          <p className="text-sm text-muted-foreground">
-            {ordersLoading ? "Loading…" : `${orders.length} order${orders.length === 1 ? "" : "s"}`}
-            {searchApplied && (
-              <span className="ml-1">
-                · matching &quot;{searchApplied}&quot;
+          <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+            <span>
+              {ordersLoading ? "Loading…" : `${orders.length} order${orders.length === 1 ? "" : "s"}`}
+              {searchApplied && (
+                <span className="ml-1">
+                  · matching &quot;{searchApplied}&quot;
+                </span>
+              )}
+            </span>
+            {cableLive && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <Radio className="w-3 h-3" />
+                Live
               </span>
             )}
           </p>
@@ -489,6 +671,12 @@ export default function RestaurantOrdersPage() {
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <ClipboardList className="w-7 h-7 text-indigo-600" />
               Restaurant orders
+              {cableLive && (
+                <span className="inline-flex items-center gap-1 text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <Radio className="w-3 h-3" />
+                  Live
+                </span>
+              )}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Search and filter orders, or build a new order with menu grid/list
@@ -530,26 +718,32 @@ export default function RestaurantOrdersPage() {
                     canMarkPaid &&
                     order.payment_status === "unpaid" &&
                     order.status !== "cancelled";
-                  const canRefundOrder =
-                    canRefund &&
-                    (order.payment_status === "paid" ||
-                      order.payment_status === "partially_refunded") &&
-                    order.source === "guest";
+                  const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
+                  const canCancelOrder =
+                    canCancel &&
+                    canCancelRestaurantOrderStatus(order) &&
+                    order.status !== "cancelled" &&
+                    order.status !== "served";
                   return (
-                    <Card key={order.id} className="h-full">
+                    <Card
+                      key={order.id}
+                      className={cn(
+                        "h-full transition-colors",
+                        highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
+                      )}
+                    >
                       <CardContent className="pt-4">
                         <OrderCardContent
                           order={order}
                           canMark={canMark}
                           canRefundOrder={canRefundOrder}
+                          canCancelOrder={canCancelOrder}
                           onMarkPaid={() => {
                             setMarkPaidOrder(order);
                             setMarkPaidMethod("cash");
                           }}
-                          onRefund={() => {
-                            setRefundOrderTarget(order);
-                            setRefundReason("");
-                          }}
+                          onRefund={() => openRefundDialog(order)}
+                          onCancel={() => setCancelOrderTarget(order)}
                         />
                       </CardContent>
                     </Card>
@@ -563,26 +757,32 @@ export default function RestaurantOrdersPage() {
                     canMarkPaid &&
                     order.payment_status === "unpaid" &&
                     order.status !== "cancelled";
-                  const canRefundOrder =
-                    canRefund &&
-                    (order.payment_status === "paid" ||
-                      order.payment_status === "partially_refunded") &&
-                    order.source === "guest";
+                  const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
+                  const canCancelOrder =
+                    canCancel &&
+                    canCancelRestaurantOrderStatus(order) &&
+                    order.status !== "cancelled" &&
+                    order.status !== "served";
                   return (
-                    <Card key={order.id}>
+                    <Card
+                      key={order.id}
+                      className={cn(
+                        "transition-colors",
+                        highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
+                      )}
+                    >
                       <CardContent className="pt-4">
                         <OrderCardContent
                           order={order}
                           canMark={canMark}
                           canRefundOrder={canRefundOrder}
+                          canCancelOrder={canCancelOrder}
                           onMarkPaid={() => {
                             setMarkPaidOrder(order);
                             setMarkPaidMethod("cash");
                           }}
-                          onRefund={() => {
-                            setRefundOrderTarget(order);
-                            setRefundReason("");
-                          }}
+                          onRefund={() => openRefundDialog(order)}
+                          onCancel={() => setCancelOrderTarget(order)}
                         />
                       </CardContent>
                     </Card>
@@ -675,17 +875,12 @@ export default function RestaurantOrdersPage() {
                                 className="text-left rounded-lg border p-2 hover:bg-muted hover:border-indigo-300 transition-colors"
                                 onClick={() => addToCart(item)}
                               >
-                                {item.image_url ? (
-                                  <img
-                                    src={item.image_url}
-                                    alt=""
-                                    className="w-full h-20 object-cover rounded mb-1"
-                                  />
-                                ) : (
-                                  <div className="w-full h-20 bg-muted rounded mb-1 flex items-center justify-center text-xs text-muted-foreground">
-                                    No image
-                                  </div>
-                                )}
+                                <CachedMenuImage
+                                  src={item.image_url}
+                                  alt={item.name}
+                                  className="w-full h-20 object-cover rounded mb-1"
+                                  placeholderClassName="w-full h-20 rounded mb-1"
+                                />
                                 <p className="text-sm font-medium truncate">{item.name}</p>
                                 <p className="text-xs text-muted-foreground">
                                   ₦{Number(item.price).toLocaleString()}
@@ -698,15 +893,12 @@ export default function RestaurantOrdersPage() {
                                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted flex items-center gap-3 border border-transparent hover:border-indigo-200"
                                 onClick={() => addToCart(item)}
                               >
-                                {item.image_url ? (
-                                  <img
-                                    src={item.image_url}
-                                    alt=""
-                                    className="w-12 h-12 rounded object-cover shrink-0"
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded bg-muted shrink-0" />
-                                )}
+                                <CachedMenuImage
+                                  src={item.image_url}
+                                  alt={item.name}
+                                  className="w-12 h-12 rounded object-cover shrink-0"
+                                  placeholderClassName="w-12 h-12 rounded shrink-0"
+                                />
                                 <span className="flex-1 font-medium text-sm">{item.name}</span>
                                 <span className="text-sm font-semibold text-indigo-600">
                                   ₦{Number(item.price).toLocaleString()}
@@ -878,23 +1070,81 @@ export default function RestaurantOrdersPage() {
         title="Refund order"
         description={
           refundOrderTarget
-            ? `Refund ${formatOrderNumber(refundOrderTarget)}?`
+            ? `${formatOrderNumber(refundOrderTarget)} · ${STATUS_LABELS[refundOrderTarget.status] || refundOrderTarget.status}`
             : undefined
         }
-        confirmText="Process refund"
+        confirmText={refundFull ? "Full refund" : "Partial refund"}
         loading={actionLoading}
         onConfirm={handleRefund}
       >
-        <div className="space-y-3 py-2">
-          <Label>Reason (optional)</Label>
-          <Textarea
-            value={refundReason}
-            onChange={(e) => setRefundReason(e.target.value)}
-            placeholder="e.g. Item unavailable"
-            rows={3}
-          />
+        <div className="space-y-4 py-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="refund-full"
+              checked={refundFull}
+              onCheckedChange={(v) => setRefundFull(v === true)}
+            />
+            <Label htmlFor="refund-full" className="font-normal cursor-pointer">
+              Full refund (all remaining items)
+            </Label>
+          </div>
+          {!refundFull && refundOrderTarget && (
+            <div className="space-y-2 rounded-lg border p-3 max-h-48 overflow-y-auto">
+              <p className="text-xs text-muted-foreground">Select quantities to refund</p>
+              {refundOrderTarget.items.map((item) => {
+                const max =
+                  item.refundable_quantity ??
+                  Math.max(0, item.quantity - (item.refunded_quantity ?? 0));
+                if (max <= 0) return null;
+                return (
+                  <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate flex-1">{item.name}</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={max}
+                      className="w-16 h-8"
+                      value={refundLineQtys[item.id] ?? 0}
+                      onChange={(e) => {
+                        const qty = Math.min(
+                          max,
+                          Math.max(0, parseInt(e.target.value, 10) || 0)
+                        );
+                        setRefundLineQtys((prev) => ({ ...prev, [item.id]: qty }));
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground shrink-0">/ {max}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Reason (optional)</Label>
+            <Textarea
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="e.g. Item unavailable"
+              rows={3}
+            />
+          </div>
         </div>
       </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!cancelOrderTarget}
+        onOpenChange={(open) => !open && setCancelOrderTarget(null)}
+        title="Cancel order"
+        description={
+          cancelOrderTarget
+            ? `Cancel ${formatOrderNumber(cancelOrderTarget)}? Use this if the order was sent to the kitchen by mistake.`
+            : undefined
+        }
+        confirmText="Cancel order"
+        isDestructive
+        loading={actionLoading}
+        onConfirm={handleCancelOrder}
+      />
     </RestaurantLayoutWrapper>
   );
 }

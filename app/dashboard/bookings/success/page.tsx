@@ -12,9 +12,13 @@ import { getAuthToken } from "@/lib/storage"
 
 import { toast } from "sonner"
 import { isTauri, printHtml } from "@/lib/tauri"
+import { reservationGuestName } from "@/lib/reservation-guest"
 
 interface Reservation {
   booking_id: string
+  client_name?: string
+  first_name?: string
+  last_name?: string
   other_first_name: string
   other_last_name: string
   other_email_address: string
@@ -173,7 +177,7 @@ function BookingSuccessContent() {
           </div>
           <div class="section">
             <h3>Guest Information</h3>
-            <div class="row"><span class="label">Name:</span><span>${reservation.other_first_name} ${reservation.other_last_name}</span></div>
+            <div class="row"><span class="label">Name:</span><span>${reservationGuestName(reservation)}</span></div>
             <div class="row"><span class="label">Email:</span><span>${reservation.other_email_address}</span></div>
             <div class="row"><span class="label">Phone:</span><span>${reservation.other_phone_number}</span></div>
           </div>
@@ -248,7 +252,7 @@ function BookingSuccessContent() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm py-2 border-b border-slate-100">
                   <span className="text-slate-500">Guest Name</span>
-                  <span className="font-semibold text-slate-800 text-right">{reservation.other_first_name} {reservation.other_last_name}</span>
+                  <span className="font-semibold text-slate-800 text-right">{reservationGuestName(reservation)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm py-2 border-b border-slate-100">
                   <span className="text-slate-500">Dates</span>

@@ -50,11 +50,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import { setupNativeWindow } from "@/lib/tauri"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
+import { TopBarNotifications } from "@/components/top-bar-notifications"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -74,6 +74,7 @@ const adminNavigation = [
   { name: "Staffs", href: "/dashboard/staff", icon: Users },
   { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { name: "Activity", href: "/dashboard/activity", icon: Activity },
+  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { name: "Support", href: "/dashboard/support", icon: HelpCircle },
   { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
   { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
@@ -166,42 +167,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     .toUpperCase()
 
   const isAdmin = user.role === "admin" || user.role === "manager"
-
-  const notifications = [
-    {
-      id: 1,
-      title: "New booking received",
-      message: "John Doe - Standard Room, Check-in: Dec 22",
-      time: "5 min ago",
-      unread: true,
-      type: "booking",
-    },
-    {
-      id: 2,
-      title: "Room disabled for maintenance",
-      message: "Room 305 - Deluxe - AC repair scheduled",
-      time: "1 hour ago",
-      unread: true,
-      type: "maintenance",
-    },
-    {
-      id: 3,
-      title: "New booking received",
-      message: "Sarah Johnson - Suite Room, Check-in: Dec 23",
-      time: "2 hours ago",
-      unread: false,
-      type: "booking",
-    },
-    {
-      id: 4,
-      title: "Room disabled for maintenance",
-      message: "Room 108 - Standard - Plumbing issue",
-      time: "3 hours ago",
-      unread: false,
-      type: "maintenance",
-    },
-  ]
-  const unreadCount = notifications.filter((n) => n.unread).length
 
   if (isAdmin) {
     // Admin layout with sidebar
@@ -302,6 +267,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             })}
           </nav>
 
+          <div className="px-4 py-2 border-t border-border flex justify-end">
+            <TopBarNotifications businessId={businessId} />
+          </div>
+
           {/* User menu */}
           <div className="p-4 border-t border-border">
             <DropdownMenu>
@@ -395,54 +364,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             </div>
           </Link>
 
-          {/* Notification dropdown */}
-          <div className="flex items-center gap-3">
-            {/* Notification dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                    >
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel className="flex items-center justify-between">
-                  <span>Notifications</span>
-                  {unreadCount > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {unreadCount} new
-                    </Badge>
-                  )}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="max-h-[400px] overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <DropdownMenuItem
-                      key={notification.id}
-                      className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between w-full">
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        {notification.unread && <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0 mt-1" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground">{notification.time}</p>
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center justify-center text-indigo-600 cursor-pointer">
-                  View all notifications
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <TopBarNotifications businessId={businessId} />
 
             {/* User profile */}
             <DropdownMenu>

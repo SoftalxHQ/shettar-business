@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useEffect } from "react"
 import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
+import { reservationGuestName } from "@/lib/reservation-guest"
 
 interface Booking {
   id: number
@@ -83,14 +84,14 @@ export default function CheckInOutPage() {
 
   const filteredPendingCheckIns = pendingCheckIns.filter(
     (booking) =>
-      `${booking.other_first_name} ${booking.other_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reservationGuestName(booking).toLowerCase().includes(searchQuery.toLowerCase()) ||
       String(booking.room_number || "").includes(searchQuery) ||
       booking.booking_id.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const filteredCheckedIn = checkedIn.filter(
     (booking) =>
-      `${booking.other_first_name} ${booking.other_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reservationGuestName(booking).toLowerCase().includes(searchQuery.toLowerCase()) ||
       String(booking.room_number || "").includes(searchQuery) ||
       booking.booking_id.toLowerCase().includes(searchQuery.toLowerCase()),
   )
@@ -223,7 +224,7 @@ export default function CheckInOutPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{booking.other_first_name} {booking.other_last_name}</h3>
+                              <h3 className="text-lg font-semibold">{reservationGuestName(booking)}</h3>
                               <Badge className="bg-blue-100 text-blue-700">Arriving Today</Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">{booking.other_email_address}</div>
@@ -314,7 +315,7 @@ export default function CheckInOutPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{booking.other_first_name} {booking.other_last_name}</h3>
+                              <h3 className="text-lg font-semibold">{reservationGuestName(booking)}</h3>
                               <Badge className="bg-green-100 text-green-700">Staying</Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">{booking.other_email_address}</div>
@@ -378,13 +379,13 @@ export default function CheckInOutPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Check In Guest</DialogTitle>
-              <DialogDescription>Complete the check-in process for {selectedBooking?.guestName}</DialogDescription>
+              <DialogDescription>Complete the check-in process for {reservationGuestName(selectedBooking)}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Guest Name</Label>
-                  <div className="font-medium">{selectedBooking?.other_first_name} {selectedBooking?.other_last_name}</div>
+                  <div className="font-medium">{reservationGuestName(selectedBooking)}</div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Room Number</Label>
@@ -435,13 +436,13 @@ export default function CheckInOutPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Check Out Guest</DialogTitle>
-              <DialogDescription>Complete the check-out process for {selectedBooking?.guestName}</DialogDescription>
+              <DialogDescription>Complete the check-out process for {reservationGuestName(selectedBooking)}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Guest Name</Label>
-                  <div className="font-medium">{selectedBooking?.other_first_name} {selectedBooking?.other_last_name}</div>
+                  <div className="font-medium">{reservationGuestName(selectedBooking)}</div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Room Number</Label>

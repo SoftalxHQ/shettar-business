@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react"
 interface PermissionPresetSelectorProps {
   selected: keyof typeof PERMISSION_PRESETS
   onSelect: (preset: keyof typeof PERMISSION_PRESETS) => void
+  presets?: (keyof typeof PERMISSION_PRESETS)[]
 }
 
 const PRESET_ICONS: Record<keyof typeof PERMISSION_PRESETS, LucideIcon> = {
@@ -19,16 +20,19 @@ const PRESET_ICONS: Record<keyof typeof PERMISSION_PRESETS, LucideIcon> = {
   custom: Settings,
 }
 
-export function PermissionPresetSelector({ selected, onSelect }: PermissionPresetSelectorProps) {
+export function PermissionPresetSelector({ selected, onSelect, presets }: PermissionPresetSelectorProps) {
+  const keys = presets ?? (Object.keys(PERMISSION_PRESETS) as (keyof typeof PERMISSION_PRESETS)[])
+
   return (
     <div className="grid gap-3">
-      {Object.entries(PERMISSION_PRESETS).map(([key, preset]) => {
+      {keys.map((key) => {
+        const preset = PERMISSION_PRESETS[key]
         const Icon = PRESET_ICONS[key as keyof typeof PERMISSION_PRESETS] ?? Settings
         const isSelected = selected === key
 
         return (
           <label
-            key={key}
+            key={String(key)}
             className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
                 ? "border-blue-600 bg-blue-50"
                 : "border-gray-200 hover:border-gray-300"

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { getAuthToken } from "@/lib/storage"
 
-const FAVICON_SRC = "/shettar-icon.png"
+const FAVICON_SRC = "/favicon.png"
 
 type SidebarBrandLogoProps = {
   businessId?: string | null

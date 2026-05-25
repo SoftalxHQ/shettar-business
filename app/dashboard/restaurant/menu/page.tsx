@@ -28,7 +28,17 @@ import {
   type MenuItem,
   updateMenuCategory,
   updateMenuItem,
+  toggleMenuItemAvailability,
 } from "@/lib/restaurant-api";
+import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
+import { CachedMenuImage } from "@/components/cached-menu-image";
+import { prefetchMenuImages } from "@/lib/menu-image-cache";
+import {
+  resolveAvailability,
+  notifyMenuAvailabilityChange,
+  subscribeMenuAvailabilityChange,
+  type MenuAvailabilityUpdate,
+} from "@/lib/restaurant-menu-sync";
 import { toast } from "sonner";
 import { ImageIcon, Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -95,6 +105,52 @@ export default function RestaurantMenuPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const applyMenuAvailabilityUpdate = useCallback(
+    (update: MenuAvailabilityUpdate) => {
+      const item = update.item;
+      const itemId = item?.id;
+      const available = resolveAvailability(update);
+      const name = update.item_name || item?.name || "Item";
+
+      if (available !== undefined) {
+        toast.info(`${name} ${available ? "activated" : "deactivated"}`);
+      }
+
+      if (itemId == null || available === undefined) {
+        load();
+        return;
+      }
+
+      setCategories((prev) =>
+        prev.map((cat) => ({
+          ...cat,
+          items: (cat.items || []).map((i) =>
+            i.id === itemId ? { ...i, ...item, available } : i
+          ),
+        }))
+      );
+    },
+    [load]
+  );
+
+  useEffect(() => {
+    if (!bid) return;
+    return subscribeRestaurantChannel(bid, (msg) => {
+      if (msg.event === "menu_item_availability_changed") {
+        applyMenuAvailabilityUpdate(msg.payload as MenuAvailabilityUpdate);
+      }
+    });
+  }, [bid, applyMenuAvailabilityUpdate]);
+
+  useEffect(() => {
+    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+  }, [applyMenuAvailabilityUpdate]);
+
+  useEffect(() => {
+    const urls = categories.flatMap((c) => (c.items || []).map((i) => i.image_url));
+    prefetchMenuImages(urls);
+  }, [categories]);
 
   const openNewCategory = () => {
     setEditingCategory(null);
@@ -175,14 +231,22 @@ export default function RestaurantMenuPage() {
   };
 
   const saveItem = async () => {
-    if (!bid || !itemForm.name.trim() || !itemForm.price) return;
+    if (!bid || !itemForm.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    const price = parseFloat(itemForm.price);
+    if (Number.isNaN(price) || price < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         restaurant_menu_category_id: itemForm.restaurant_menu_category_id,
         name: itemForm.name.trim(),
-        description: itemForm.description.trim() || undefined,
-        price: parseFloat(itemForm.price),
+        description: itemForm.description.trim(),
+        price,
         available: itemForm.available,
       };
       const imageOpts = {
@@ -213,7 +277,13 @@ export default function RestaurantMenuPage() {
   const toggleItemAvailable = async (item: MenuItem) => {
     if (!bid || !canEdit) return;
     try {
-      await updateMenuItem(bid, item.id, { available: !item.available });
+      const updated = await toggleMenuItemAvailability(bid, item.id);
+      notifyMenuAvailabilityChange({
+        item: updated,
+        available: updated.available,
+        item_name: updated.name,
+      });
+      toast.success(`${updated.name} ${updated.available ? "activated" : "deactivated"}`);
       load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Update failed");
@@ -305,15 +375,13 @@ export default function RestaurantMenuPage() {
                     className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30"
                   >
                     {item.image_url ? (
-                      <div className="relative w-14 h-14 rounded-md overflow-hidden shrink-0 border">
-                        <Image
-                          src={item.image_url}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
+                      <CachedMenuImage
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-14 h-14 rounded-md object-cover shrink-0 border"
+                        placeholderClassName="w-14 h-14 rounded-md shrink-0 border"
+                        showPlaceholderIcon
+                      />
                     ) : (
                       <div className="w-14 h-14 rounded-md border bg-muted flex items-center justify-center shrink-0">
                         <ImageIcon className="w-5 h-5 text-muted-foreground" />
@@ -388,18 +456,19 @@ export default function RestaurantMenuPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>Name *</Label>
               <Input value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>Description (optional)</Label>
               <Input
                 value={itemForm.description}
                 onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                placeholder="Internal note — not shown to guests"
               />
             </div>
             <div className="space-y-2">
-              <Label>Price (₦)</Label>
+              <Label>Price (₦) *</Label>
               <Input
                 type="number"
                 min="0"

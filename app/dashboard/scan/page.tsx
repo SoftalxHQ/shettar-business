@@ -16,10 +16,14 @@ import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { isTauri, nativeScan, printHtml } from "@/lib/tauri"
+import { reservationGuestName } from "@/lib/reservation-guest"
 
 interface Reservation {
   id: number
   booking_id: string
+  client_name?: string
+  first_name?: string
+  last_name?: string
   other_first_name: string
   other_last_name: string
   other_phone_number: string
@@ -317,7 +321,7 @@ function ScanContent() {
             <h3>Guest Information</h3>
             <div class="row">
               <span class="label">Name:</span>
-              <span>${reservation.other_first_name} ${reservation.other_last_name}</span>
+              <span>${reservationGuestName(reservation)}</span>
             </div>
             <div class="row">
               <span class="label">Email:</span>
@@ -598,7 +602,7 @@ function ScanContent() {
                     <div className="bg-slate-50 p-3 rounded-lg space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Name</span>
-                        <span className="font-semibold">{reservation.other_first_name} {reservation.other_last_name}</span>
+                        <span className="font-semibold">{reservationGuestName(reservation)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Phone</span>
@@ -688,7 +692,7 @@ function ScanContent() {
         open={checkoutDialogOpen}
         onOpenChange={setCheckoutDialogOpen}
         title="Check out guest"
-        description={`Check out ${reservation?.other_first_name} ${reservation?.other_last_name} from room ${reservation?.room_number}?`}
+        description={`Check out ${reservationGuestName(reservation)} from room ${reservation?.room_number}?`}
         confirmText="Confirm check-out"
         isDestructive
         loading={isLoading}

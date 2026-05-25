@@ -6,24 +6,25 @@ import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
 import {
-  canRefundRestaurantOrder,
   canUseKitchenDisplay,
   isRestaurantModuleEnabled,
 } from "@/lib/restaurant-access";
 import {
   fetchKitchenQueue,
-  refundOrder,
+  fetchMenuItems,
   resolveBusinessId,
+  toggleMenuItemAvailability,
   transitionOrderStatus,
+  type MenuItem,
   type RestaurantOrder,
 } from "@/lib/restaurant-api";
+import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
+import { notifyMenuAvailabilityChange } from "@/lib/restaurant-menu-sync";
 import { toast } from "sonner";
-import { ChefHat, Loader2, RefreshCw } from "lucide-react";
+import { ChefHat, Loader2, RefreshCw, Wifi } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 const COLUMNS: { key: string; label: string; next?: string; action?: string }[] = [
@@ -38,13 +39,12 @@ export default function RestaurantKitchenPage() {
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const [refundTarget, setRefundTarget] = useState<RestaurantOrder | null>(null);
-  const [refundReason, setRefundReason] = useState("");
-  const [refundLoading, setRefundLoading] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [live, setLive] = useState(false);
+  const [togglingItemId, setTogglingItemId] = useState<number | null>(null);
 
   const bid = resolveBusinessId(businessId);
   const canKitchen = canUseKitchenDisplay(user);
-  const canRefund = canRefundRestaurantOrder(user);
 
   useEffect(() => {
     if (!user) return;
@@ -59,8 +59,12 @@ export default function RestaurantKitchenPage() {
   const load = useCallback(async () => {
     if (!bid) return;
     try {
-      const data = await fetchKitchenQueue(bid);
-      setOrders(data);
+      const [queue, items] = await Promise.all([
+        fetchKitchenQueue(bid),
+        fetchMenuItems(bid).catch(() => []),
+      ]);
+      setOrders(queue);
+      setMenuItems(items);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to load kitchen queue");
     } finally {
@@ -70,9 +74,55 @@ export default function RestaurantKitchenPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
   }, [load]);
+
+  useEffect(() => {
+    if (!bid) return;
+    const unsub = subscribeRestaurantChannel(bid, (msg) => {
+      if (msg.event === "order_created") {
+        toast.info("New order received");
+        load();
+      } else if (msg.event === "order_status_changed" || msg.event === "order_paid") {
+        load();
+      } else if (msg.event === "menu_item_availability_changed") {
+        const item = msg.payload?.item as MenuItem | undefined;
+        const name = (msg.payload?.item_name as string) || item?.name || "Item";
+        const available = msg.payload?.available as boolean;
+        toast.info(`${name} ${available ? "activated" : "deactivated"}`);
+        if (item) {
+          setMenuItems((prev) =>
+            prev.map((i) => (i.id === item.id ? { ...i, available: item.available } : i))
+          );
+        } else {
+          load();
+        }
+      }
+    });
+    setLive(true);
+    return () => {
+      unsub();
+      setLive(false);
+    };
+  }, [bid, load]);
+
+  const toggleMenuItem = async (item: MenuItem) => {
+    if (!bid) return;
+    setTogglingItemId(item.id);
+    try {
+      const updated = await toggleMenuItemAvailability(bid, item.id);
+      setMenuItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+      notifyMenuAvailabilityChange({
+        item: updated,
+        available: updated.available,
+        item_name: updated.name,
+      });
+      toast.success(`${updated.name} ${updated.available ? "activated" : "deactivated"}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to update item");
+    } finally {
+      setTogglingItemId(null);
+    }
+  };
 
   const advance = async (orderId: number, status: string) => {
     if (!bid) return;
@@ -89,25 +139,6 @@ export default function RestaurantKitchenPage() {
 
   const ordersByStatus = (status: string) => orders.filter((o) => o.status === status);
 
-  const handleRefund = async () => {
-    if (!bid || !refundTarget) return;
-    setRefundLoading(true);
-    try {
-      await refundOrder(bid, refundTarget.id, {
-        full: true,
-        reason: refundReason.trim() || undefined,
-      });
-      toast.success("Refund processed");
-      setRefundTarget(null);
-      setRefundReason("");
-      await load();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Refund failed");
-    } finally {
-      setRefundLoading(false);
-    }
-  };
-
   const orderLabel = (o: RestaurantOrder) =>
     (o.order_number || `#${o.id}`).replace(/\s+/g, "");
 
@@ -120,7 +151,16 @@ export default function RestaurantKitchenPage() {
               <ChefHat className="w-7 h-7 text-indigo-600" />
               Kitchen display
             </h1>
-            <p className="text-muted-foreground text-sm">Auto-refreshes every 15 seconds</p>
+            <p className="text-muted-foreground text-sm flex items-center gap-2">
+              {live ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-green-600" />
+                  Live updates
+                </>
+              ) : (
+                "Connecting…"
+              )}
+            </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => load()} className="gap-2">
             <RefreshCw className="w-4 h-4" />
@@ -133,6 +173,36 @@ export default function RestaurantKitchenPage() {
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </div>
         ) : (
+          <>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Menu availability (86)</CardTitle>
+              <p className="text-xs text-muted-foreground">Deactivate items that are out of stock</p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+              {menuItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No menu items</p>
+              ) : (
+                menuItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "flex items-center gap-2 border rounded-lg px-3 py-2 text-sm",
+                      !item.available && "bg-red-50 border-red-200 opacity-80"
+                    )}
+                  >
+                    <span className="font-medium">{item.name}</span>
+                    <Switch
+                      checked={item.available}
+                      disabled={togglingItemId === item.id}
+                      onCheckedChange={() => toggleMenuItem(item)}
+                    />
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COLUMNS.map((col) => (
               <div key={col.key} className="space-y-3">
@@ -165,21 +235,6 @@ export default function RestaurantKitchenPage() {
                             {item.quantity}× {item.name}
                           </p>
                         ))}
-                        {canRefund &&
-                          order.payment_status === "paid" &&
-                          order.source === "guest" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                setRefundTarget(order);
-                                setRefundReason("");
-                              }}
-                            >
-                              Refund (unavailable)
-                            </Button>
-                          )}
                         {colDef?.next && (
                           <Button
                             className={cn("w-full mt-2", col.key === "ready" && "bg-green-600 hover:bg-green-700")}
@@ -201,32 +256,10 @@ export default function RestaurantKitchenPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 
-      <ConfirmDialog
-        open={!!refundTarget}
-        onOpenChange={(open) => !open && setRefundTarget(null)}
-        title="Refund order"
-        description={
-          refundTarget
-            ? `Full refund for ${orderLabel(refundTarget)}? Amount credits guest wallet when applicable.`
-            : undefined
-        }
-        confirmText="Refund"
-        loading={refundLoading}
-        onConfirm={handleRefund}
-      >
-        <div className="space-y-2 py-2">
-          <Label>Reason</Label>
-          <Textarea
-            value={refundReason}
-            onChange={(e) => setRefundReason(e.target.value)}
-            placeholder="e.g. Item unavailable"
-            rows={3}
-          />
-        </div>
-      </ConfirmDialog>
     </RestaurantLayoutWrapper>
   );
 }

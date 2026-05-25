@@ -35,7 +35,9 @@ function buildMenuItemFormData(
     formData.append("item[restaurant_menu_category_id]", String(item.restaurant_menu_category_id));
   }
   if (item.name != null) formData.append("item[name]", String(item.name));
-  if (item.description != null) formData.append("item[description]", String(item.description));
+  if ("description" in item) {
+    formData.append("item[description]", String(item.description ?? ""));
+  }
   if (item.price != null) formData.append("item[price]", String(item.price));
   if (item.available != null) formData.append("item[available]", String(item.available));
   if (item.position != null) formData.append("item[position]", String(item.position));
@@ -201,6 +203,19 @@ export async function updateMenuItem(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.errors?.join?.(", ") || data.error || "Failed to update item");
+  return data.item as MenuItem;
+}
+
+export async function toggleMenuItemAvailability(businessId: string, id: number) {
+  const res = await fetch(
+    `${basePath(businessId)}/restaurant_menu_items/${id}/toggle_availability`,
+    {
+      method: "PATCH",
+      headers: headers(businessId),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.errors?.join?.(", ") || data.error || "Failed to update availability");
   return data.item as MenuItem;
 }
 

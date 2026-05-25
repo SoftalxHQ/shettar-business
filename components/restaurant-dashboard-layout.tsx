@@ -23,13 +23,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User } from "lucide-react";
+import { Bell, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SidebarBrandLogo } from "@/components/sidebar-brand-logo";
 import { getRestaurantNavItems } from "@/lib/portal-access";
+import { TopBarNotifications } from "@/components/top-bar-notifications";
 
 interface RestaurantDashboardLayoutProps {
   children: React.ReactNode;
@@ -114,7 +115,9 @@ export function RestaurantDashboardLayout({
             ))}
           </nav>
 
-          <DropdownMenu>
+          <div className="flex items-center gap-2 shrink-0">
+            <TopBarNotifications businessId={businessId} />
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-3 h-auto py-2 px-3 shrink-0">
                 <div className="text-right hidden sm:block">
@@ -148,6 +151,12 @@ export function RestaurantDashboardLayout({
                   <span>Profile Settings</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/notifications" className="cursor-pointer">
+                  <Bell className="mr-2 h-4 w-4" />
+                  <span>All notifications</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <div className="md:hidden px-2 py-1">
                 {navItems.map((item) => (
@@ -165,6 +174,7 @@ export function RestaurantDashboardLayout({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </header>
 
