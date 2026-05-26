@@ -16,6 +16,7 @@ import {
 import {
   fetchNotificationPreferences,
   fetchStaffNotifications,
+  markNotificationRead,
   markNotificationsRead,
   subscribeUserNotifications,
   type StaffNotification,
@@ -34,6 +35,7 @@ import {
   canReceiveNotificationCategory,
   filterNotificationsForUser,
 } from "@/lib/notification-access";
+import { cn } from "@/lib/utils";
 
 export function NotificationBell({ businessId }: { businessId: string | null }) {
   const { user } = useAuth();
@@ -65,11 +67,17 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
     const onNotification = (msg: StaffNotificationCablePayload) => {
       if (user?.permissions && !canReceiveNotificationCategory(user, msg.category)) return;
 
+      const actorId = msg.metadata?.actor_user_id;
+      const isSelfAction =
+        actorId != null && user?.id != null && Number(actorId) === Number(user.id);
+
       const title = msg.title;
       const body = msg.message || "";
-      toast.info(title, { description: body || undefined });
+      if (!isSelfAction) {
+        toast.info(title, { description: body || undefined });
+      }
       if (isNotificationSoundEnabled()) void playNotificationTone();
-      void nativeNotify(title, body);
+      if (!isSelfAction) void nativeNotify(title, body);
       load();
     };
 
@@ -80,9 +88,25 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
     if (!bid) return;
     try {
       await markNotificationsRead(bid);
-      load();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
     } catch {
       toast.error("Failed to mark read");
+      load();
+    }
+  };
+
+  const markOneRead = async (id: number) => {
+    if (!bid) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+    try {
+      await markNotificationRead(bid, id);
+    } catch {
+      toast.error("Failed to mark read");
+      load();
     }
   };
 
@@ -118,10 +142,13 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
             notifications.map((n) => (
               <DropdownMenuItem
                 key={n.id}
-                className="flex flex-col items-start gap-1 p-3 cursor-default"
+                className="flex flex-col items-start gap-1 p-3 cursor-pointer"
+                onSelect={() => {
+                  if (!n.read) void markOneRead(n.id);
+                }}
               >
                 <div className="flex items-start justify-between w-full gap-2">
-                  <p className="font-medium text-sm">{n.title}</p>
+                  <p className={cn("text-sm", !n.read && "font-semibold")}>{n.title}</p>
                   {!n.read && (
                     <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0 mt-1" />
                   )}
@@ -129,9 +156,14 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
                 {n.message && (
                   <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
                 )}
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(n.created_at).toLocaleString()}
-                </p>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(n.created_at).toLocaleString()}
+                  </p>
+                  {!n.read && (
+                    <span className="text-[10px] text-indigo-600 font-medium">Mark read</span>
+                  )}
+                </div>
               </DropdownMenuItem>
             ))
           )}

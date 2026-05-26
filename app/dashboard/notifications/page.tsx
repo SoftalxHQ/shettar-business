@@ -14,6 +14,7 @@ import { resolveBusinessId } from "@/lib/restaurant-api";
 import {
   fetchNotificationPreferences,
   fetchStaffNotifications,
+  markNotificationRead,
   markNotificationsRead,
   subscribeUserNotifications,
   updateNotificationPreferences,
@@ -37,6 +38,7 @@ export default function NotificationsPage() {
   const layoutTab = restaurantPortal ? "restaurant" : "notifications";
   const bid = resolveBusinessId(businessId);
   const [notifications, setNotifications] = useState<StaffNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +51,7 @@ export default function NotificationsPage() {
         fetchNotificationPreferences(bid),
       ]);
       setNotifications(filterNotificationsForUser(user, data.notifications));
+      setUnreadCount(data.unread_count);
       setPrefs(p);
       setNotificationSoundEnabled(p.sound_enabled !== false);
     } catch (e) {
@@ -86,9 +89,25 @@ export default function NotificationsPage() {
     if (!bid) return;
     try {
       await markNotificationsRead(bid);
-      load();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
     } catch {
       toast.error("Failed");
+      load();
+    }
+  };
+
+  const markOneRead = async (id: number) => {
+    if (!bid) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+    try {
+      await markNotificationRead(bid, id);
+    } catch {
+      toast.error("Failed to mark read");
+      load();
     }
   };
 
@@ -102,8 +121,11 @@ export default function NotificationsPage() {
               Notifications
             </h1>
             <p className="text-muted-foreground text-sm">Alerts for your role and permissions</p>
+            {unreadCount > 0 && (
+              <p className="text-xs text-indigo-600 mt-1">{unreadCount} unread</p>
+            )}
           </div>
-          <Button variant="outline" size="sm" onClick={markAllRead}>
+          <Button variant="outline" size="sm" onClick={markAllRead} disabled={unreadCount === 0}>
             Mark all read
           </Button>
         </div>
@@ -142,15 +164,27 @@ export default function NotificationsPage() {
               >
                 <CardContent className="py-3">
                   <div className="flex justify-between gap-2">
-                    <p className="font-semibold text-sm">{n.title}</p>
+                    <p className={cn("text-sm", !n.read && "font-semibold")}>{n.title}</p>
                     <span className="text-[10px] text-muted-foreground uppercase">{n.category}</span>
                   </div>
                   {n.message && (
                     <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {new Date(n.created_at).toLocaleString()}
-                  </p>
+                  <div className="flex items-center justify-between gap-2 mt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                    {!n.read && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-indigo-600 text-xs"
+                        onClick={() => markOneRead(n.id)}
+                      >
+                        Mark as read
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

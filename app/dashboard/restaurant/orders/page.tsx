@@ -353,9 +353,6 @@ export default function RestaurantOrdersPage() {
                 return next;
               });
             }, 4000);
-            toast.info("New order", {
-              description: formatOrderNumber(order),
-            });
           } else {
             loadOrdersRef.current();
           }
@@ -364,15 +361,11 @@ export default function RestaurantOrdersPage() {
 
         if (event === "order_status_changed" && order) {
           setOrders((prev) => upsertOrder(prev, order));
-          toast.success(
-            `Order ${formatOrderNumber(order)} is now ${STATUS_LABELS[order.status] || order.status}`
-          );
           return;
         }
 
         if (event === "order_paid" && order) {
           setOrders((prev) => upsertOrder(prev, order));
-          toast.success(`Order ${formatOrderNumber(order)} paid`);
           return;
         }
 

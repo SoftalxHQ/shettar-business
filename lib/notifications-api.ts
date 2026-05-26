@@ -67,6 +67,10 @@ export async function markNotificationsRead(businessId: string, ids?: number[]) 
   if (!res.ok) throw new Error("Failed to mark read");
 }
 
+export async function markNotificationRead(businessId: string, id: number) {
+  return markNotificationsRead(businessId, [id]);
+}
+
 export async function fetchNotificationPreferences(businessId: string) {
   const res = await fetch(
     `${API_URL}/api/v1/staff_notifications/preferences?business_id=${encodeURIComponent(businessId)}`,

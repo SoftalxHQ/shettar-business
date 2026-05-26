@@ -110,6 +110,8 @@ export type RestaurantOrder = {
   subtotal: number;
   reservation_id?: number | null;
   placed_by_name?: string | null;
+  served_at?: string | null;
+  settled_at?: string | null;
   items: RestaurantOrderItem[];
   created_at: string;
   updated_at: string;

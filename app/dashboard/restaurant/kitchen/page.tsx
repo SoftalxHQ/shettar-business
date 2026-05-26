@@ -131,7 +131,6 @@ export default function RestaurantKitchenPage() {
     if (!bid) return;
     const unsub = subscribeRestaurantChannel(bid, (msg) => {
       if (msg.event === "order_created") {
-        toast.info("New order received");
         load();
       } else if (msg.event === "order_status_changed" || msg.event === "order_paid") {
         load();
