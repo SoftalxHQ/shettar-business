@@ -1,5 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
+        <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
         <ReduxProvider>
           {children}
           <Toaster position="top-center" richColors />

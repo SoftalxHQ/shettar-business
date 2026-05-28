@@ -34,6 +34,7 @@ export interface Permissions {
   finance?: FinancePermissions
   settings?: SettingsPermissions
   promos?: PromosPermissions
+  ads?: AdsPermissions
   restaurant?: RestaurantPermissions
   guest_policies?: GuestPoliciesPermissions
 }
@@ -96,6 +97,11 @@ export interface PromosPermissions {
   edit?: boolean
 }
 
+export interface AdsPermissions {
+  view?: boolean
+  manage?: boolean
+}
+
 export interface RestaurantPermissions {
   view?: boolean
   manage_menu?: boolean
@@ -119,6 +125,7 @@ export const PERMISSION_PRESETS = {
       finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
       settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
       promos: { view: true, create: true, edit: true },
+      ads: { view: true, manage: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
       guest_policies: { view: true, create: true, edit: true, delete: true }
     }
@@ -134,6 +141,7 @@ export const PERMISSION_PRESETS = {
       finance: { view: true, withdraw: false, add: false, update_account: false, process_refunds: false, manage_payment_methods: false },
       settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false },
       promos: { view: true, create: true, edit: true },
+      ads: { view: true, manage: false },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: false, cancel_orders: true, mark_paid: true, refund: false },
       guest_policies: { view: true, create: false, edit: false, delete: false }
     }
@@ -237,6 +245,13 @@ export const PERMISSION_LABELS = {
       view: "View Promo Codes",
       create: "Create Promo Codes",
       edit: "Edit Promo Codes"
+    }
+  },
+  ads: {
+    title: "Ads & Promotions",
+    permissions: {
+      view: "View Ads",
+      manage: "Manage Ads & Campaigns"
     }
   },
   restaurant: {

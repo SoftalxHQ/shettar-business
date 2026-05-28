@@ -44,6 +44,7 @@ import {
   MessageSquare,
   HelpCircle,
   Tag,
+  Megaphone,
   UtensilsCrossed,
   ClipboardList,
   ChefHat,
@@ -65,6 +66,7 @@ const adminNavigation = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
+  { name: "Ads", href: "/dashboard/ads", icon: Megaphone },
   { name: "Promos", href: "/dashboard/promos", icon: Tag },
   { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, restaurantNav: "menu" as const },
   { name: "Restaurant Orders", href: "/dashboard/restaurant/orders", icon: ClipboardList, restaurantNav: "orders" as const },
@@ -219,6 +221,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   return user.permissions.dashboard?.view_analytics;
                 case "Finance":
                   return user.permissions.finance?.view;
+                case "Ads":
+                  return user.permissions.ads?.view || user.permissions.ads?.manage;
                 case "Bookings":
                   return user.permissions.bookings?.view;
                 case "Rooms":

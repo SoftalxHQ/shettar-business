@@ -11,6 +11,7 @@ import {
 } from "redux-persist";
 import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 import authReducer from "./slices/authSlice";
+import adsReducer from "./slices/adsSlice";
 
 const createNoopStorage = () => {
   return {
@@ -37,7 +38,7 @@ const persistConfig = {
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
 
 export const store = configureStore({
-  reducer: { auth: persistedAuthReducer },
+  reducer: { auth: persistedAuthReducer, ads: adsReducer },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
