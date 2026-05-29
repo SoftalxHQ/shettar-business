@@ -3,8 +3,18 @@ name: "Publish Release"
 on:
   push:
     tags:
+      # Plain tags (e.g. v0.1.22) build PRODUCTION.
+      # Tags suffixed with -staging (e.g. v0.1.22-staging) build STAGING.
       - 'v*'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        options:
+          - production
+          - staging
+        default: production
 
 jobs:
   publish-tauri:
@@ -55,15 +65,48 @@ jobs:
       - name: install frontend dependencies
         run: pnpm install
 
+      - name: Resolve target environment
+        id: env
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref_name }}" == *-staging ]]; then
+            ENVIRONMENT="staging"
+          else
+            ENVIRONMENT="production"
+          fi
+
+          echo "Resolved environment: $ENVIRONMENT"
+
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            {
+              echo "api_url=https://api.stg.shettar.com"
+              echo "app_env=staging"
+              echo "tag_name=v__VERSION__-staging"
+              echo "release_name=Shettar Business v__VERSION__ (staging)"
+              echo "prerelease=true"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "api_url=https://api-v1.shettar.com"
+              echo "app_env=production"
+              echo "tag_name=v__VERSION__"
+              echo "release_name=Shettar Business v__VERSION__"
+              echo "prerelease=false"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEXT_PUBLIC_API_URL: https://api.stg.shettar.com
-          NEXT_PUBLIC_APP_ENV: staging
+          # API URL + env are baked into the static Next.js export at build time.
+          NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
+          NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
         with:
-          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: "Shettar Business v__VERSION__"
+          tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
+          releaseName: ${{ steps.env.outputs.release_name }}
           releaseBody: "Automated release from GitHub Actions."
           releaseDraft: true
-          prerelease: false
+          prerelease: ${{ steps.env.outputs.prerelease }}
           args: ${{ matrix.args }}
