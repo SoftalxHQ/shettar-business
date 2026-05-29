@@ -44,7 +44,7 @@ export default function RoomsPage() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = localStorage.getItem("abri_auth_token")
+      const token = localStorage.getItem("shettar_auth_token")
 
       const response = await fetch(
         `${API_URL}/api/v1/user_businesses/${businessId}/room_types`,
@@ -100,7 +100,7 @@ export default function RoomsPage() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = localStorage.getItem("abri_auth_token")
+      const token = localStorage.getItem("shettar_auth_token")
 
       const response = await fetch(
         `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomTypeToDelete}`,

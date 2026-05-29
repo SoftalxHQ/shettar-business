@@ -1,11 +1,11 @@
 // Local storage utilities for managing business context
 // All functions check for client-side to prevent SSR errors
 
-const BUSINESS_ID_KEY = "abri_business_id"
-const BUSINESS_NAME_KEY = "abri_business_name"
-const AUTH_TOKEN_KEY = "abri_auth_token"
-const USER_DATA_KEY = "abri_user_data"
-const DEVICE_ID_KEY = "abri_device_id"
+const BUSINESS_ID_KEY = "shettar_business_id"
+const BUSINESS_NAME_KEY = "shettar_business_name"
+const AUTH_TOKEN_KEY = "shettar_auth_token"
+const USER_DATA_KEY = "shettar_user_data"
+const DEVICE_ID_KEY = "shettar_device_id"
 
 // Check if we're on the client side
 const isClient = typeof window !== "undefined"

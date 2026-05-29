@@ -278,11 +278,11 @@
   }
 
   /* Isolated hide to prevent reflow on the original screen UI */
-  body > *:not(#abri-print-container) {
+  body > *:not(#shettar-print-container) {
     display: none !important;
   }
 
-  #abri-print-container {
+  #shettar-print-container {
     display: block !important;
     visibility: visible !important;
     width: 58mm !important;
@@ -316,6 +316,6 @@
 }
 
 /* Hidden container for print content - hidden from screen but available for printer */
-#abri-print-container {
+#shettar-print-container {
   display: none;
 }

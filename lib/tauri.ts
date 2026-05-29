@@ -52,10 +52,10 @@ export const nativeScan = async () => {
 
 export const printHtml = async (html: string) => {
   if (isTauri()) {
-    let container = document.getElementById('abri-print-container');
+    let container = document.getElementById('shettar-print-container');
     if (!container) {
       container = document.createElement('div');
-      container.id = 'abri-print-container';
+      container.id = 'shettar-print-container';
       document.body.appendChild(container);
     }
 

@@ -244,7 +244,7 @@ export default function ReviewsPage() {
   const [deleteReplyId, setDeleteReplyId] = useState<number | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-  const token = () => localStorage.getItem("abri_auth_token")
+  const token = () => localStorage.getItem("shettar_auth_token")
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
