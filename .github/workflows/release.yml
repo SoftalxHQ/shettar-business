@@ -80,17 +80,27 @@ jobs:
           echo "Resolved environment: $ENVIRONMENT"
 
           if [ "$ENVIRONMENT" = "staging" ]; then
+            PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY_STAGING }}"
+            if [ -z "$PAYSTACK_KEY" ]; then
+              PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+            fi
             {
               echo "api_url=https://api.stg.shettar.com"
               echo "app_env=staging"
+              echo "paystack_public_key=$PAYSTACK_KEY"
               echo "tag_name=v__VERSION__-staging"
               echo "release_name=Shettar Business v__VERSION__ (staging)"
               echo "prerelease=true"
             } >> "$GITHUB_OUTPUT"
           else
+            PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY_PRODUCTION }}"
+            if [ -z "$PAYSTACK_KEY" ]; then
+              PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+            fi
             {
               echo "api_url=https://api-v1.shettar.com"
               echo "app_env=production"
+              echo "paystack_public_key=$PAYSTACK_KEY"
               echo "tag_name=v__VERSION__"
               echo "release_name=Shettar Business v__VERSION__"
               echo "prerelease=false"
@@ -103,6 +113,7 @@ jobs:
           # API URL + env are baked into the static Next.js export at build time.
           NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
           NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
+          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ steps.env.outputs.paystack_public_key }}
         with:
           tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
           releaseName: ${{ steps.env.outputs.release_name }}

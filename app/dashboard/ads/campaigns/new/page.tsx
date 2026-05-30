@@ -16,7 +16,7 @@ import { toast } from "sonner"
 
 const PLACEMENTS = [
   { id: "homepage_featured", label: "Homepage featured", help: "Carousel on the app home screen before a user searches." },
-  { id: "search_results", label: "Search results", help: "Blended into hotel search results when travelers search a destination." },
+  { id: "search_results", label: "Search results", help: "Up to 2 sponsored listings at the top of search when your hotel has availability for the guest's dates." },
   { id: "category_page", label: "Category page", help: "Shown on category browsing pages." },
 ]
 

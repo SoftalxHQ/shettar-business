@@ -49,6 +49,14 @@ export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
             })
           )
         }
+        if (data.event === "booking_attributed" && data.campaign_id) {
+          dispatch(
+            applyRealtimeUpdate({
+              campaignId: data.campaign_id,
+              roas: data.roas,
+            })
+          )
+        }
       } catch {
         /* ignore */
       }

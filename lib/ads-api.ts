@@ -92,16 +92,49 @@ export async function fetchAdCampaign(businessId: string, campaignId: string) {
   return data.campaign as AdCampaign
 }
 
-export async function fetchCampaignStats(businessId: string, campaignId: string, from?: string, to?: string) {
+export type CampaignStatsQuery = {
+  from?: string
+  to?: string
+  granularity?: "day" | "hour"
+}
+
+export type CampaignStatsResponse = {
+  granularity: "day" | "hour"
+  rows: Array<{
+    date: string
+    hour?: number
+    impressions: number
+    clicks: number
+    spend: number
+    revenue?: number
+    roas: number
+  }>
+  totals: {
+    impressions: number
+    clicks: number
+    spend: number
+    revenue?: number
+    bookings?: number
+    roas: number
+  }
+  geo: Array<{ state: string; city: string | null; impressions: number; clicks: number }>
+}
+
+export async function fetchCampaignStats(
+  businessId: string,
+  campaignId: string,
+  query: CampaignStatsQuery = {}
+) {
   const params = new URLSearchParams()
-  if (from) params.set("from", from)
-  if (to) params.set("to", to)
+  if (query.from) params.set("from", query.from)
+  if (query.to) params.set("to", query.to)
+  if (query.granularity) params.set("granularity", query.granularity)
   const res = await fetch(
     `${API_URL}/api/v1/user_businesses/${businessId}/ad_campaigns/${campaignId}/stats?${params}`,
     { headers: businessHeaders(businessId) }
   )
   if (!res.ok) throw new Error("Failed to load stats")
-  return res.json()
+  return res.json() as Promise<CampaignStatsResponse>
 }
 
 export async function createAdCampaign(businessId: string, campaign: Record<string, unknown>) {
