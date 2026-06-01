@@ -34,6 +34,13 @@ import {
 
 type StatRow = CampaignStatsResponse["rows"][number]
 type GeoRow = { state: string; city: string | null; impressions: number; clicks: number }
+type DeviceRow = {
+  platform: string
+  os: string
+  device_type: string
+  impressions: number
+  clicks: number
+}
 
 type RangePreset = "today" | "last7" | "all" | "pick_day"
 
@@ -107,6 +114,7 @@ function AdCampaignReportsContent() {
   const [pickedDay, setPickedDay] = useState(todayParam())
   const [rows, setRows] = useState<StatRow[]>([])
   const [geoRows, setGeoRows] = useState<GeoRow[]>([])
+  const [deviceRows, setDeviceRows] = useState<DeviceRow[]>([])
   const [totals, setTotals] = useState({
     impressions: 0,
     clicks: 0,
@@ -132,6 +140,7 @@ function AdCampaignReportsContent() {
       const data = await fetchCampaignStats(businessId, campaignId, statsQuery)
       setRows(data.rows || [])
       setGeoRows(data.geo || [])
+      setDeviceRows(data.devices || [])
       setTotals({
         impressions: data.totals?.impressions ?? 0,
         clicks: data.totals?.clicks ?? 0,
@@ -142,6 +151,7 @@ function AdCampaignReportsContent() {
     } catch {
       setRows([])
       setGeoRows([])
+      setDeviceRows([])
       setTotals({ impressions: 0, clicks: 0, spend: 0, roas: 0 })
     } finally {
       setLoading(false)
@@ -310,6 +320,53 @@ function AdCampaignReportsContent() {
                         <td className="py-2">{row.clicks.toLocaleString()}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance by device</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {deviceRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No device data yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 pr-4">Platform</th>
+                      <th className="py-2 pr-4">OS</th>
+                      <th className="py-2 pr-4">Device</th>
+                      <th className="py-2 pr-4">Impressions</th>
+                      <th className="py-2 pr-4">Clicks</th>
+                      <th className="py-2">CTR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deviceRows.map((row, idx) => {
+                      const ctr =
+                        row.impressions > 0
+                          ? `${((row.clicks / row.impressions) * 100).toFixed(1)}%`
+                          : "—"
+                      return (
+                        <tr
+                          key={`${row.platform}-${row.os}-${row.device_type}-${idx}`}
+                          className="border-b last:border-0"
+                        >
+                          <td className="py-2 pr-4 capitalize">{row.platform}</td>
+                          <td className="py-2 pr-4">{row.os}</td>
+                          <td className="py-2 pr-4 capitalize">{row.device_type}</td>
+                          <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
+                          <td className="py-2 pr-4">{row.clicks.toLocaleString()}</td>
+                          <td className="py-2">{ctr}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

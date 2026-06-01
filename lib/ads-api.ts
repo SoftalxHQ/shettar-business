@@ -118,6 +118,13 @@ export type CampaignStatsResponse = {
     roas: number
   }
   geo: Array<{ state: string; city: string | null; impressions: number; clicks: number }>
+  devices: Array<{
+    platform: string
+    os: string
+    device_type: string
+    impressions: number
+    clicks: number
+  }>
 }
 
 export async function fetchCampaignStats(
