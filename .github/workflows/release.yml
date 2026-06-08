@@ -79,10 +79,24 @@ jobs:
 
           echo "Resolved environment: $ENVIRONMENT"
 
+          read_paystack_from_env_file() {
+            local file="$1"
+            if [ -f "$file" ]; then
+              grep -E '^NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=' "$file" | head -1 | cut -d= -f2- | tr -d '\r'
+            fi
+          }
+
           if [ "$ENVIRONMENT" = "staging" ]; then
             PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY_STAGING }}"
             if [ -z "$PAYSTACK_KEY" ]; then
               PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+            fi
+            if [ -z "$PAYSTACK_KEY" ]; then
+              PAYSTACK_KEY="$(read_paystack_from_env_file .env.staging)"
+            fi
+            if [ -z "$PAYSTACK_KEY" ]; then
+              echo "::error::Paystack public key missing. Set PAYSTACK_PUBLIC_KEY_STAGING secret or NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY in .env.staging"
+              exit 1
             fi
             {
               echo "api_url=https://api.stg.shettar.com"
@@ -96,6 +110,13 @@ jobs:
             PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY_PRODUCTION }}"
             if [ -z "$PAYSTACK_KEY" ]; then
               PAYSTACK_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+            fi
+            if [ -z "$PAYSTACK_KEY" ]; then
+              PAYSTACK_KEY="$(read_paystack_from_env_file .env.production)"
+            fi
+            if [ -z "$PAYSTACK_KEY" ]; then
+              echo "::error::Paystack public key missing. Set PAYSTACK_PUBLIC_KEY_PRODUCTION secret or NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY in .env.production"
+              exit 1
             fi
             {
               echo "api_url=https://api-v1.shettar.com"

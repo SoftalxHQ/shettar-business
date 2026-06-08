@@ -16,8 +16,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (staging/production are committed — Paystack public keys are client-side)
 .env*
+!.env.example
+!.env.staging
+!.env.production
 
 # vercel
 .vercel
