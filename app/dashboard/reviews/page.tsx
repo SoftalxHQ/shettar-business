@@ -37,6 +37,9 @@ interface ReviewComment {
   updated_at?: string
   deletable?: boolean
   editable?: boolean
+  likes_count?: number
+  dislikes_count?: number
+  user_vote?: 1 | -1 | null
 }
 
 interface ReviewAccount {
@@ -310,6 +313,8 @@ function CommentBodyBlock({
   const isEditing = editingCommentId === comment.id
   const replyToName = replyToAuthorName(allComments, comment)
   const bodyText = commentBodyDisplay(comment.body, replyToName)
+  const likesCount = comment.likes_count ?? 0
+  const dislikesCount = comment.dislikes_count ?? 0
 
   return (
     <div className="flex-1 min-w-0 pb-1">
@@ -354,8 +359,18 @@ function CommentBodyBlock({
 
       {!isEditing && (
         <div className="flex items-center gap-0.5 mb-1">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500"><ThumbsUp className="w-4 h-4" /></Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500"><ThumbsDown className="w-4 h-4" /></Button>
+          {likesCount > 0 && (
+            <span className="inline-flex items-center gap-1 h-8 px-2 text-slate-500 text-xs font-semibold">
+              <ThumbsUp className="w-4 h-4" />
+              {likesCount}
+            </span>
+          )}
+          {dislikesCount > 0 && (
+            <span className="inline-flex items-center gap-1 h-8 px-2 text-slate-500 text-xs font-semibold">
+              <ThumbsDown className="w-4 h-4" />
+              {dislikesCount}
+            </span>
+          )}
           <button type="button" className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1" onClick={() => onReplyTo(commentReplyParentId(comment))}>
             Reply
           </button>
