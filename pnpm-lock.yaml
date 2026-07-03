@@ -104,6 +104,9 @@ importers:
       '@tauri-apps/plugin-biometric':
         specifier: ^2.3.2
         version: 2.3.2
+      '@tauri-apps/plugin-geolocation':
+        specifier: ^2.3.2
+        version: 2.3.2
       '@tauri-apps/plugin-notification':
         specifier: ^2.3.3
         version: 2.3.3
@@ -2211,6 +2214,9 @@ packages:
 
   '@tauri-apps/plugin-biometric@2.3.2':
     resolution: {integrity: sha512-RFydYGKEJ6m4UWdcPsO+vJQUb3JyyfFeNoZSPDs0uWjvwHBs03xey5wWO+uowmFFy03JAff1l2idQAwuycO8Uw==}
+
+  '@tauri-apps/plugin-geolocation@2.3.2':
+    resolution: {integrity: sha512-ONCwav1monafjeO8/JdXtRlbhZ3xgAdBYxo/62qgw99u9+y6xGsohy3avZgFZsBHA0JVNe1uJnMi+vfT5ZSFUA==}
 
   '@tauri-apps/plugin-notification@2.3.3':
     resolution: {integrity: sha512-Zw+ZH18RJb41G4NrfHgIuofJiymusqN+q8fGUIIV7vyCH+5sSn5coqRv/MWB9qETsUs97vmU045q7OyseCV3Qg==}
@@ -5210,6 +5216,10 @@ snapshots:
       '@tauri-apps/api': 2.10.1
 
   '@tauri-apps/plugin-biometric@2.3.2':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
+
+  '@tauri-apps/plugin-geolocation@2.3.2':
     dependencies:
       '@tauri-apps/api': 2.10.1
 

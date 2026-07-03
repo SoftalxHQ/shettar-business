@@ -10,6 +10,9 @@
     "notification:default",
     "shell:default",
     "os:default",
-    "core:webview:allow-print"
+    "core:webview:allow-print",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "geolocation:allow-get-current-position"
   ]
 }

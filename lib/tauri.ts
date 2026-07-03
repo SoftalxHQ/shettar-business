@@ -12,6 +12,91 @@ export const isTauri = () => {
   return typeof window !== 'undefined' && window.__TAURI_INTERNALS__ !== undefined;
 };
 
+export type DeviceLocationResult =
+  | { ok: true; latitude: number; longitude: number }
+  | { ok: false; reason: 'unsupported' | 'denied' | 'unavailable' | 'timeout' | 'unknown' };
+
+const browserGeolocationErrorReason = (code?: number): DeviceLocationResult['reason'] => {
+  if (code === 1) return 'denied';
+  if (code === 2) return 'unavailable';
+  if (code === 3) return 'timeout';
+  return 'unknown';
+};
+
+const getBrowserLocation = (): Promise<DeviceLocationResult> => {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve({ ok: false, reason: 'unsupported' });
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          ok: true,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        resolve({ ok: false, reason: browserGeolocationErrorReason(error.code) });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  });
+};
+
+const getTauriMobileLocation = async (): Promise<DeviceLocationResult> => {
+  try {
+    const {
+      checkPermissions: checkGeolocationPermissions,
+      getCurrentPosition: getTauriCurrentPosition,
+      requestPermissions: requestGeolocationPermissions,
+    } = await import('@tauri-apps/plugin-geolocation');
+
+    let permissions = await checkGeolocationPermissions();
+    if (
+      permissions.location === 'prompt' ||
+      permissions.location === 'prompt-with-rationale'
+    ) {
+      permissions = await requestGeolocationPermissions(['location']);
+    }
+
+    if (permissions.location !== 'granted') {
+      return { ok: false, reason: 'denied' };
+    }
+
+    const position = await getTauriCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+
+    return {
+      ok: true,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+  } catch (error) {
+    console.error('Tauri geolocation failed', error);
+    return { ok: false, reason: 'unknown' };
+  }
+};
+
+export const getDeviceLocation = async (): Promise<DeviceLocationResult> => {
+  if (isTauri()) {
+    const { type } = await import('@tauri-apps/plugin-os');
+    const osType = type();
+
+    // The geolocation plugin is only implemented on iOS/Android.
+    // Desktop Tauri uses the WebView geolocation API instead.
+    if (osType === 'ios' || osType === 'android') {
+      return getTauriMobileLocation();
+    }
+  }
+
+  return getBrowserLocation();
+};
+
 export const setupNativeWindow = async () => {
   if (isTauri()) {
     const appWindow = getCurrentWindow();

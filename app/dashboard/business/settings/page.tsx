@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Image from "next/image"
 import { BusinessVerificationBadge } from "@/components/business-verification-badge"
+import { getDeviceLocation } from "@/lib/tauri"
 import type { VerificationDisplayStatus } from "@/lib/business-verification"
 import {
   canAccessBusinessSettings,
@@ -186,31 +187,36 @@ export default function BusinessSettingsPage() {
     fetchBusinessData()
   }, [businessId])
 
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser")
-      return
+  const getCurrentLocation = async () => {
+    setIsGettingLocation(true)
+
+    const result = await getDeviceLocation()
+
+    if (result.ok) {
+      if (businessData) {
+        setBusinessData({
+          ...businessData,
+          latitude: result.latitude.toFixed(6),
+          longitude: result.longitude.toFixed(6),
+        })
+      }
+      toast.success("Location captured successfully!")
+    } else {
+      const message =
+        result.reason === 'unsupported'
+          ? "Geolocation is not supported on this device."
+          : result.reason === 'denied'
+            ? "Location access was denied. Allow location for Shettar Business in system settings, then try again."
+            : result.reason === 'timeout'
+              ? "Location request timed out. Please try again."
+              : result.reason === 'unavailable'
+                ? "Location is unavailable right now. Check that location services are enabled."
+                : "Unable to retrieve your location. Please check your permissions."
+
+      toast.error(message)
     }
 
-    setIsGettingLocation(true)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (businessData) {
-          setBusinessData({
-            ...businessData,
-            latitude: position.coords.latitude.toFixed(6),
-            longitude: position.coords.longitude.toFixed(6)
-          })
-          toast.success("Location captured successfully!")
-        }
-        setIsGettingLocation(false)
-      },
-      (error) => {
-        console.error("Error getting location:", error)
-        toast.error("Unable to retrieve your location. Please check your permissions.")
-        setIsGettingLocation(false)
-      }
-    )
+    setIsGettingLocation(false)
   }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
