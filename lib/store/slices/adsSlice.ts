@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit"
 import type { AdAccount, AdCampaign } from "@/lib/ads-api"
-import type { RootState } from "./store"
+import type { RootState } from "../store"
 
 type RealtimeCounters = Record<number, { impressions: number; clicks: number; spend: number; roas: number }>
 
@@ -25,6 +25,10 @@ const adsSlice = createSlice({
     setAdAccount(state, action: PayloadAction<AdAccount | null>) {
       state.adAccount = action.payload
     },
+    patchAdAccount(state, action: PayloadAction<Partial<AdAccount>>) {
+      if (!state.adAccount) return
+      state.adAccount = { ...state.adAccount, ...action.payload }
+    },
     setCampaigns(state, action: PayloadAction<AdCampaign[]>) {
       state.campaigns = action.payload
     },
@@ -33,9 +37,25 @@ const adsSlice = createSlice({
     },
     applyRealtimeUpdate(
       state,
-      action: PayloadAction<{ campaignId: number; impressions?: number; clicks?: number; spend?: number; roas?: number }>
+      action: PayloadAction<{
+        campaignId?: number
+        impressions?: number
+        clicks?: number
+        spend?: number
+        roas?: number
+        ads_balance?: number
+        lifetime_spend?: number
+      }>
     ) {
-      const { campaignId, ...rest } = action.payload
+      const { campaignId, ads_balance, lifetime_spend, ...rest } = action.payload
+      if (state.adAccount && (ads_balance != null || lifetime_spend != null)) {
+        state.adAccount = {
+          ...state.adAccount,
+          ...(ads_balance != null ? { ads_balance } : {}),
+          ...(lifetime_spend != null ? { lifetime_spend } : {}),
+        }
+      }
+      if (!campaignId) return
       state.realtimeCounters[campaignId] = {
         ...state.realtimeCounters[campaignId],
         impressions: rest.impressions ?? state.realtimeCounters[campaignId]?.impressions ?? 0,
@@ -50,7 +70,7 @@ const adsSlice = createSlice({
   },
 })
 
-export const { setAdAccount, setCampaigns, setCampaignStats, applyRealtimeUpdate, resetAdsState } = adsSlice.actions
+export const { setAdAccount, patchAdAccount, setCampaigns, setCampaignStats, applyRealtimeUpdate, resetAdsState } = adsSlice.actions
 export const selectAdAccount = (state: RootState) => state.ads?.adAccount ?? null
 export const selectCampaigns = (state: RootState) => state.ads?.campaigns ?? []
 export const selectRealtimeCounters = (state: RootState) => state.ads?.realtimeCounters ?? {}

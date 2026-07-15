@@ -38,6 +38,14 @@ export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
         const frame = JSON.parse(ev.data as string)
         if (frame.type !== "message" || !frame.message) return
         const data = frame.message
+        if (data.event === "ads_balance_updated") {
+          dispatch(
+            applyRealtimeUpdate({
+              ads_balance: data.ads_balance,
+              lifetime_spend: data.lifetime_spend,
+            })
+          )
+        }
         if (data.event === "stats_updated" && data.campaign_id) {
           dispatch(
             applyRealtimeUpdate({
@@ -46,6 +54,8 @@ export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
               clicks: data.clicks,
               spend: data.spend,
               roas: data.roas,
+              ads_balance: data.ads_balance,
+              lifetime_spend: data.lifetime_spend,
             })
           )
         }
