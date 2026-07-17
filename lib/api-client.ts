@@ -59,7 +59,14 @@ class ApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new ApiError(response.status, errorData.message || response.statusText, errorData)
+      const nestedError = Array.isArray(errorData.error)
+        ? errorData.error[0]?.message
+        : errorData.error
+      throw new ApiError(
+        response.status,
+        errorData.message || nestedError || response.statusText,
+        errorData,
+      )
     }
 
     return response.json()
