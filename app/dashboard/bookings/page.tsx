@@ -28,7 +28,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { reservationGuestName } from "@/lib/reservation-guest"
+import { reservationGuestName, reservationEmergencyName, reservationEmergencyPhone, reservationHasEmergencyContact } from "@/lib/reservation-guest"
 import {
   BookingReceiptBusiness,
   PAYMENT_METHOD_LABELS,
@@ -747,6 +747,33 @@ function BookingsContent() {
                       <p className="text-muted-foreground mb-1">Phone</p>
                       <p className="font-semibold text-slate-900">{selectedReservation.client_phone || selectedReservation.other_phone_number || 'N/A'}</p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-lg px-1">Emergency Contact</h4>
+                  <div className="bg-rose-50/60 border border-rose-100 rounded-xl p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-sm">
+                    {reservationHasEmergencyContact(selectedReservation) ? (
+                      <>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Name</p>
+                          <p className="text-slate-700 font-medium">
+                            {reservationEmergencyName(selectedReservation) || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 mb-1 uppercase tracking-wider">Phone</p>
+                          <p className="text-slate-700 font-medium">
+                            {reservationEmergencyPhone(selectedReservation) || "N/A"}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="col-span-2">
+                        <p className="text-slate-500">No emergency contact on file for this reservation.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useEffect } from "react"
 import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
-import { reservationGuestName } from "@/lib/reservation-guest"
+import { reservationGuestEmail, reservationGuestName } from "@/lib/reservation-guest"
 
 interface Booking {
   id: number
@@ -25,6 +25,8 @@ interface Booking {
   other_first_name: string
   other_last_name: string
   other_email_address: string
+  client_email?: string
+  client_phone?: string
   room_number?: string
   start_date: string
   end_date: string
@@ -227,7 +229,7 @@ export default function CheckInOutPage() {
                               <h3 className="text-lg font-semibold">{reservationGuestName(booking)}</h3>
                               <Badge className="bg-blue-100 text-blue-700">Arriving Today</Badge>
                             </div>
-                            <div className="text-sm text-muted-foreground">{booking.other_email_address}</div>
+                            <div className="text-sm text-muted-foreground">{reservationGuestEmail(booking)}</div>
                           </div>
                         </div>
 
@@ -318,7 +320,7 @@ export default function CheckInOutPage() {
                               <h3 className="text-lg font-semibold">{reservationGuestName(booking)}</h3>
                               <Badge className="bg-green-100 text-green-700">Staying</Badge>
                             </div>
-                            <div className="text-sm text-muted-foreground">{booking.other_email_address}</div>
+                            <div className="text-sm text-muted-foreground">{reservationGuestEmail(booking)}</div>
                           </div>
                         </div>
 

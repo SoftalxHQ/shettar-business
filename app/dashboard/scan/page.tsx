@@ -16,7 +16,11 @@ import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { isTauri, nativeScan } from "@/lib/tauri"
-import { reservationGuestName } from "@/lib/reservation-guest"
+import {
+  reservationGuestEmail,
+  reservationGuestName,
+  reservationGuestPhone,
+} from "@/lib/reservation-guest"
 import {
   BookingReceiptBusiness,
   PAYMENT_METHOD_LABELS,
@@ -28,12 +32,15 @@ interface Reservation {
   id: number
   booking_id: string
   client_name?: string
+  client_email?: string
+  client_phone?: string
   first_name?: string
   last_name?: string
   other_first_name: string
   other_last_name: string
   other_phone_number: string
   other_email_address: string
+  phone_number?: string
   start_date: string
   end_date: string
   guests: number
@@ -49,6 +56,7 @@ interface Reservation {
   checked_out_at?: string
   checked_in_by_name?: string
   checked_out_by_name?: string
+  status?: string
 }
 
 import { useSearchParams } from "next/navigation"
@@ -441,13 +449,15 @@ function ScanContent() {
                         <span className="text-slate-500">Name</span>
                         <span className="font-semibold">{reservationGuestName(reservation)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Phone</span>
-                        <span className="font-medium">{reservation.other_phone_number}</span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500 shrink-0">Phone</span>
+                        <span className="font-medium text-right">{reservationGuestPhone(reservation)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Email</span>
-                        <span className="font-medium text-xs truncate max-w-[150px]">{reservation.other_email_address}</span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500 shrink-0">Email</span>
+                        <span className="font-medium text-xs truncate max-w-[150px] text-right" title={reservationGuestEmail(reservation)}>
+                          {reservationGuestEmail(reservation)}
+                        </span>
                       </div>
                     </div>
                   </div>
