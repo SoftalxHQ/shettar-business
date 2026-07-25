@@ -5,11 +5,22 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { api } from "@/lib/api-client";
 import { subscribeSupportTicket, type SupportCableEvent, type SupportTicketSubscription } from "@/lib/support-cable";
+import {
+  isNotificationSoundEnabled,
+  playNotificationTone,
+  setNotificationSoundEnabled,
+  unlockNotificationAudio,
+} from "@/lib/notification-sound";
+import { fetchNotificationPreferences } from "@/lib/notifications-api";
+import { resolveBusinessId } from "@/lib/restaurant-api";
+import { notify as nativeNotify } from "@/lib/tauri";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useAppSelector } from "@/lib/store/hooks";
+import { selectBusinessId } from "@/lib/store/slices/authSlice";
 
 interface SupportMessage {
   id: number;
@@ -65,9 +76,14 @@ function priorityBadge(priority: string) {
   return map[priority] ?? "bg-slate-100 text-slate-500";
 }
 
+function isFromSupport(msg: SupportMessage): boolean {
+  return String(msg.sender_type || "").toLowerCase() !== "user";
+}
+
 function SupportTicketDetailContent() {
   const searchParams = useSearchParams();
   const ticketId = searchParams?.get("id");
+  const businessId = useAppSelector(selectBusinessId);
 
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -80,6 +96,29 @@ function SupportTicketDetailContent() {
   const subscriptionRef = useRef<SupportTicketSubscription | null>(null);
   const typingClearTimer = useRef<number | null>(null);
   const lastTypingSentAt = useRef(0);
+  const ticketRef = useRef<SupportTicket | null>(null);
+
+  useEffect(() => {
+    ticketRef.current = ticket;
+  }, [ticket]);
+
+  // Match notification bell: hydrate sound prefs + unlock Web Audio for Tauri.
+  useEffect(() => {
+    unlockNotificationAudio();
+    const bid = resolveBusinessId(businessId);
+    if (!bid) return;
+    let cancelled = false;
+    fetchNotificationPreferences(bid)
+      .then((p) => {
+        if (!cancelled) setNotificationSoundEnabled(p.sound_enabled !== false);
+      })
+      .catch(() => {
+        /* keep default */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   const fetchTicket = useCallback(async () => {
     if (!ticketId) return;
@@ -109,7 +148,16 @@ function SupportTicketDetailContent() {
     const handleEvent = (event: SupportCableEvent) => {
       if (event.type === "new_message" && event.message) {
         const incoming = event.message as unknown as SupportMessage;
-        if (incoming.sender_type === "Admin") setSupportTyping(false);
+        const fromSupport = isFromSupport(incoming);
+        if (fromSupport) {
+          setSupportTyping(false);
+          // Same notice path as staff notifications (Web Audio + Tauri OS chime).
+          if (isNotificationSoundEnabled()) void playNotificationTone();
+          const label = ticketRef.current?.ticket_id || "Support";
+          const preview = (incoming.body || "").slice(0, 120);
+          toast.info("New support reply", { description: preview || label });
+          void nativeNotify("New support reply", preview || label);
+        }
         setMessages((prev) =>
           prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
         );
@@ -136,6 +184,7 @@ function SupportTicketDetailContent() {
   }, [ticket?.ticket_id]);
 
   const handleReplyChange = (value: string) => {
+    unlockNotificationAudio();
     setReplyMessage(value);
     const now = Date.now();
     if (value.trim() && now - lastTypingSentAt.current > 2000) {
