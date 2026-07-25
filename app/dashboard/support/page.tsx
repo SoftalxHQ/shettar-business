@@ -19,6 +19,7 @@ interface SupportTicket {
   priority: string;
   status: string;
   created_at: string;
+  unread?: boolean;
 }
 
 export default function SupportPage() {
@@ -331,6 +332,12 @@ export default function SupportPage() {
                           </span>
                           {getPriorityBadge(ticket.priority)}
                           {getStatusBadge(ticket.status)}
+                          {ticket.unread && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 uppercase tracking-wider">
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                              New reply
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
                           {ticket.subject}

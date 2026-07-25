@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { api } from "@/lib/api-client";
+import { subscribeSupportTicket, type SupportCableEvent, type SupportTicketSubscription } from "@/lib/support-cable";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
@@ -37,6 +38,14 @@ interface SupportTicket {
   } | null;
 }
 
+/** Chat-style timestamp: time only for today's messages, date + time otherwise. */
+function formatMessageTime(dateString: string): string {
+  const date = new Date(dateString);
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (date.toDateString() === new Date().toDateString()) return time;
+  return `${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${time}`;
+}
+
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     open:        "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
@@ -66,6 +75,11 @@ function SupportTicketDetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const [supportTyping, setSupportTyping] = useState(false);
+
+  const subscriptionRef = useRef<SupportTicketSubscription | null>(null);
+  const typingClearTimer = useRef<number | null>(null);
+  const lastTypingSentAt = useRef(0);
 
   const fetchTicket = useCallback(async () => {
     if (!ticketId) return;
@@ -87,15 +101,65 @@ function SupportTicketDetailContent() {
 
   useEffect(() => { fetchTicket(); }, [fetchTicket]);
 
+  // Live updates for this ticket room (messages, status, assignment, typing).
+  useEffect(() => {
+    const cableTicketId = ticket?.ticket_id;
+    if (!cableTicketId) return;
+
+    const handleEvent = (event: SupportCableEvent) => {
+      if (event.type === "new_message" && event.message) {
+        const incoming = event.message as unknown as SupportMessage;
+        if (incoming.sender_type === "Admin") setSupportTyping(false);
+        setMessages((prev) =>
+          prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]
+        );
+      } else if (event.type === "status_changed" || event.type === "assigned") {
+        const updated = event.ticket as unknown as Partial<SupportTicket> | undefined;
+        if (updated) {
+          setTicket((prev) => (prev ? { ...prev, ...updated } : prev));
+        }
+      } else if (event.type === "typing" && event.sender_role === "admin") {
+        setSupportTyping(true);
+        if (typingClearTimer.current) window.clearTimeout(typingClearTimer.current);
+        typingClearTimer.current = window.setTimeout(() => setSupportTyping(false), 3000);
+      }
+    };
+
+    const subscription = subscribeSupportTicket(cableTicketId, handleEvent);
+    subscriptionRef.current = subscription;
+
+    return () => {
+      subscription.unsubscribe();
+      subscriptionRef.current = null;
+      if (typingClearTimer.current) window.clearTimeout(typingClearTimer.current);
+    };
+  }, [ticket?.ticket_id]);
+
+  const handleReplyChange = (value: string) => {
+    setReplyMessage(value);
+    const now = Date.now();
+    if (value.trim() && now - lastTypingSentAt.current > 2000) {
+      lastTypingSentAt.current = now;
+      subscriptionRef.current?.sendTyping();
+    }
+  };
+
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyMessage.trim()) return;
     setIsReplying(true);
     try {
-      await api.postBusinessData(`/api/v1/support_tickets/${ticketId}/messages`, { body: replyMessage });
+      const res = await api.postBusinessData<{ support_message: SupportMessage }>(
+        `/api/v1/support_tickets/${ticketId}/messages`,
+        { body: replyMessage }
+      );
+      if (res.support_message) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === res.support_message.id) ? prev : [...prev, res.support_message]
+        );
+      }
       setReplyMessage("");
       toast.success("Reply sent");
-      fetchTicket();
     } catch (err: unknown) {
       const e = err as { message?: string };
       toast.error(e?.message || "Failed to send reply");
@@ -181,13 +245,24 @@ function SupportTicketDetailContent() {
                               {isUser ? "You" : (msg.sender?.first_name || "Support Team")}
                             </span>
                             <span>•</span>
-                            <span>{new Date(msg.created_at).toLocaleString()}</span>
+                            <span>{formatMessageTime(msg.created_at)}</span>
                           </div>
                           <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
                         </div>
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {supportTyping && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+                  <span className="flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                  </span>
+                  Support is typing…
                 </div>
               )}
 
@@ -201,7 +276,7 @@ function SupportTicketDetailContent() {
                   <form onSubmit={handleReplySubmit} className="space-y-3">
                     <textarea
                       value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
+                      onChange={(e) => handleReplyChange(e.target.value)}
                       placeholder="Type your reply to the support team..."
                       className="w-full bg-background border border-border resize-y h-24 px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50"
                       disabled={isReplying}

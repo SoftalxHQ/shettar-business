@@ -56,6 +56,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 import { TopBarNotifications } from "@/components/top-bar-notifications"
+import { SupportUnreadBadge } from "@/components/support-unread-badge"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -266,6 +267,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
                   {item.name}
+                  {item.name === "Support" && <SupportUnreadBadge />}
                 </Link>
               )
             })}
