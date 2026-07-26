@@ -28,6 +28,7 @@ export interface User {
     settings?: { view: boolean; edit_details: boolean; edit_branding: boolean; edit_amenities: boolean }
     dashboard?: { view_revenue: boolean; view_analytics: boolean }
     promos?: { view: boolean; create: boolean; edit: boolean }
+    ads?: { view?: boolean; manage?: boolean }
     restaurant?: {
       view?: boolean
       manage_menu?: boolean

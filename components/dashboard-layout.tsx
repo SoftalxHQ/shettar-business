@@ -57,6 +57,7 @@ import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
+import { UpdateBanner } from "@/components/update-banner"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -233,13 +234,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                 case "Promos":
                   return user.permissions.promos?.view;
                 case "Settings":
-                  return (
-                    user.role === "admin" ||
-                    !!user.permissions?.settings?.view ||
-                    canViewGuestPolicies(user)
-                  );
+                  // Admins already returned true above; managers need settings or guest-policy access.
+                  return !!user.permissions?.settings?.view || canViewGuestPolicies(user);
                 case "Bank Details":
-                  return user.role === "admin" || !!user.permissions?.settings?.view;
+                  return !!user.permissions?.settings?.view;
                 default:
                   return true;
               }
@@ -337,6 +335,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         {/* Main content */}
         <div className="pl-64">
           <main className="p-8">
+            <UpdateBanner />
             <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
             {children}
           </main>
@@ -430,7 +429,10 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
       {/* Main content */}
       <div className="pt-16">
-        <main className="p-8">{children}</main>
+        <main className="p-8">
+          <UpdateBanner />
+          {children}
+        </main>
       </div>
     </div>
   )

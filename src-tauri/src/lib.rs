@@ -5,6 +5,8 @@ pub fn run() {
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_os::init())
     .plugin(tauri_plugin_geolocation::init())
+    .plugin(tauri_plugin_process::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
     .setup(|app| {
       #[cfg(any(target_os = "android", target_os = "ios"))]
       {

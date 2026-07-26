@@ -50,7 +50,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      
+
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -128,6 +128,12 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Configure updater endpoint for environment
+        env:
+          NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
+          NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
+        run: pnpm configure:updater
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -135,10 +141,175 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
           NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
           NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ steps.env.outputs.paystack_public_key }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
           releaseName: ${{ steps.env.outputs.release_name }}
           releaseBody: "Automated release from GitHub Actions."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: ${{ steps.env.outputs.prerelease }}
           args: ${{ matrix.args }}
+
+  register-release:
+    name: Register release with Rails API
+    needs: publish-tauri
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve channel + API
+        id: env
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref_name }}" == *-staging ]]; then
+            ENVIRONMENT="staging"
+          else
+            ENVIRONMENT="production"
+          fi
+
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            {
+              echo "channel=staging"
+              echo "api_url=https://api.stg.shettar.com"
+              echo "tag=v${VERSION}-staging"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "channel=production"
+              echo "api_url=https://api-v1.shettar.com"
+              echo "tag=v${VERSION}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Registering $ENVIRONMENT release v$VERSION"
+
+      - name: Map GitHub assets and POST to Rails
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DESKTOP_RELEASE_CI_TOKEN: ${{ secrets.DESKTOP_RELEASE_CI_TOKEN }}
+          API_URL: ${{ steps.env.outputs.api_url }}
+          CHANNEL: ${{ steps.env.outputs.channel }}
+          VERSION: ${{ steps.env.outputs.version }}
+          TAG: ${{ steps.env.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DESKTOP_RELEASE_CI_TOKEN:-}" ]; then
+            echo "::error::DESKTOP_RELEASE_CI_TOKEN secret is not set"
+            exit 1
+          fi
+
+          RELEASE_JSON="$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}")"
+          ASSETS_JSON="$(echo "$RELEASE_JSON" | jq -c '.assets')"
+          NOTES="$(echo "$RELEASE_JSON" | jq -r '.body // empty')"
+          PUBLISHED_AT="$(echo "$RELEASE_JSON" | jq -r '.published_at // .created_at')"
+
+          find_url() {
+            local pattern="$1"
+            echo "$ASSETS_JSON" | jq -r --arg re "$pattern" '
+              map(select(.name | test($re; "i"))) | .[0].browser_download_url // empty
+            '
+          }
+
+          read_sig() {
+            local url="$1"
+            if [ -z "$url" ]; then
+              echo ""
+              return
+            fi
+            curl -fsSL "$url"
+          }
+
+          WIN_INSTALLER="$(find_url '_x64-setup\\.exe$|_x64_en-US\\.msi$')"
+          WIN_UPDATER="$(find_url '\\.nsis\\.zip$')"
+          WIN_SIG_URL="$(find_url '\\.nsis\\.zip\\.sig$')"
+          WIN_SIG="$(read_sig "$WIN_SIG_URL")"
+
+          MAC_ARM_DMG="$(find_url '_aarch64\\.dmg$|aarch64\\.dmg$')"
+          MAC_ARM_UPD="$(find_url 'aarch64\\.app\\.tar\\.gz$')"
+          MAC_ARM_SIG_URL="$(find_url 'aarch64\\.app\\.tar\\.gz\\.sig$')"
+          MAC_ARM_SIG="$(read_sig "$MAC_ARM_SIG_URL")"
+
+          MAC_X64_DMG="$(find_url '_x64\\.dmg$|x64\\.dmg$')"
+          MAC_X64_UPD="$(find_url 'x64\\.app\\.tar\\.gz$|x86_64\\.app\\.tar\\.gz$')"
+          MAC_X64_SIG_URL="$(find_url '(x64|x86_64)\\.app\\.tar\\.gz\\.sig$')"
+          MAC_X64_SIG="$(read_sig "$MAC_X64_SIG_URL")"
+
+          LINUX_APPIMAGE="$(find_url '\\.AppImage$')"
+          LINUX_UPD="$(find_url '\\.AppImage\\.tar\\.gz$')"
+          LINUX_SIG_URL="$(find_url '\\.AppImage\\.tar\\.gz\\.sig$')"
+          LINUX_SIG="$(read_sig "$LINUX_SIG_URL")"
+
+          echo "Mapped installers:"
+          echo "  windows=$WIN_INSTALLER"
+          echo "  macos_arm=$MAC_ARM_DMG"
+          echo "  macos_x64=$MAC_X64_DMG"
+          echo "  linux=$LINUX_APPIMAGE"
+          echo "Mapped updaters:"
+          echo "  windows=$WIN_UPDATER"
+          echo "  macos_arm=$MAC_ARM_UPD"
+          echo "  macos_x64=$MAC_X64_UPD"
+          echo "  linux=$LINUX_UPD"
+
+          PAYLOAD="$(jq -n \
+            --arg version "$VERSION" \
+            --arg channel "$CHANNEL" \
+            --arg notes "$NOTES" \
+            --arg published_at "$PUBLISHED_AT" \
+            --arg windows_installer_url "$WIN_INSTALLER" \
+            --arg macos_x64_installer_url "$MAC_X64_DMG" \
+            --arg macos_arm_installer_url "$MAC_ARM_DMG" \
+            --arg linux_installer_url "$LINUX_APPIMAGE" \
+            --arg windows_updater_url "$WIN_UPDATER" \
+            --arg windows_updater_sig "$WIN_SIG" \
+            --arg macos_x64_updater_url "$MAC_X64_UPD" \
+            --arg macos_x64_updater_sig "$MAC_X64_SIG" \
+            --arg macos_arm_updater_url "$MAC_ARM_UPD" \
+            --arg macos_arm_updater_sig "$MAC_ARM_SIG" \
+            --arg linux_updater_url "$LINUX_UPD" \
+            --arg linux_updater_sig "$LINUX_SIG" \
+            '{
+              desktop_release: {
+                version: $version,
+                channel: $channel,
+                notes: $notes,
+                published_at: $published_at,
+                active: true,
+                windows_installer_url: ($windows_installer_url | select(length > 0) // null),
+                macos_x64_installer_url: ($macos_x64_installer_url | select(length > 0) // null),
+                macos_arm_installer_url: ($macos_arm_installer_url | select(length > 0) // null),
+                linux_installer_url: ($linux_installer_url | select(length > 0) // null),
+                windows_updater_url: ($windows_updater_url | select(length > 0) // null),
+                windows_updater_sig: ($windows_updater_sig | select(length > 0) // null),
+                macos_x64_updater_url: ($macos_x64_updater_url | select(length > 0) // null),
+                macos_x64_updater_sig: ($macos_x64_updater_sig | select(length > 0) // null),
+                macos_arm_updater_url: ($macos_arm_updater_url | select(length > 0) // null),
+                macos_arm_updater_sig: ($macos_arm_updater_sig | select(length > 0) // null),
+                linux_updater_url: ($linux_updater_url | select(length > 0) // null),
+                linux_updater_sig: ($linux_updater_sig | select(length > 0) // null)
+              }
+            }')"
+
+          HTTP_CODE="$(curl -sS -o /tmp/register-response.json -w "%{http_code}" \
+            -X POST "${API_URL}/api/v1/internal/desktop_releases" \
+            -H "Authorization: Bearer ${DESKTOP_RELEASE_CI_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d "$PAYLOAD")"
+
+          echo "Rails response ($HTTP_CODE):"
+          cat /tmp/register-response.json
+          echo
+
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+            echo "::error::Failed to register desktop release (HTTP $HTTP_CODE)"
+            exit 1
+          fi
