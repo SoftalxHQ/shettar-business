@@ -141,10 +141,8 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
           NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
           NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ steps.env.outputs.paystack_public_key }}
-          # Passwordless key from `tauri signer generate --ci`. Do NOT set
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD to "" — that makes minisign fail
-          # with "Wrong password for that key".
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
           releaseName: ${{ steps.env.outputs.release_name }}
