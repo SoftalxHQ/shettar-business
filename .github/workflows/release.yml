@@ -36,6 +36,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -139,6 +141,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --tags --force 2>/dev/null || true
           VERSION="$(node -p "require('./package.json').version")"
           CHANNEL="${{ steps.env.outputs.app_env }}"
 
@@ -157,6 +160,13 @@ jobs:
               echo "_Staging build — for testing only._"
               echo ""
             fi
+            echo "### Highlights"
+            echo ""
+            echo "- ESC/POS thermal receipt printing for bookings, restaurant orders, and kitchen"
+            echo "- Printer settings: USB/serial discovery, network printers (\`IP:9100\`), test print, cash drawer"
+            echo "- Restored brand favicons and desktop launch icons"
+            echo "- Desktop download installers include Linux \`.deb\`"
+            echo ""
             echo "### Changes"
             echo ""
             if [ -n "${PREV_TAG:-}" ]; then
@@ -165,7 +175,7 @@ jobs:
               git log --pretty=format:'- %s' "${PREV_TAG}..HEAD" | sed '/^$/d'
               echo ""
             else
-              echo "- Initial tagged release"
+              echo "- See commit history on \`main\`"
               echo ""
             fi
             echo "### Installers"
