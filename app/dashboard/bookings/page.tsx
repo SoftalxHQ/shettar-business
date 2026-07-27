@@ -4,9 +4,8 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail, Eye, X, Printer, MoreVertical, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react"
+import { Plus, Search, Calendar, Users, DollarSign, Phone, Mail, Eye, X, Printer, MoreVertical, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, Copy, LogOut } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import {
@@ -60,6 +59,8 @@ interface Reservation {
   checked_out_at?: string
   checked_in_by_name?: string
   checked_out_by_name?: string
+  settled_at?: string | null
+  settlement_type?: string | null
   status?: string
   client_name?: string
   client_email?: string
@@ -342,11 +343,9 @@ function BookingsContent() {
 
     if (data.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            No reservations found
-          </CardContent>
-        </Card>
+        <div className="h-full min-h-0 flex items-center justify-center rounded-xl border border-slate-200 bg-white">
+          <p className="text-sm text-slate-500">No reservations found</p>
+        </div>
       )
     }
 
@@ -362,10 +361,10 @@ function BookingsContent() {
     }
 
     return (
-      <div className="space-y-4">
-        <div className="rounded-md border bg-white">
+      <div className="h-full min-h-0 flex flex-col gap-2">
+        <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200 bg-white">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-white">
               <TableRow>
                 <TableHead className="w-[200px]">Client Name</TableHead>
                 <TableHead>Booking ID</TableHead>
@@ -384,7 +383,27 @@ function BookingsContent() {
                     <div>{reservation.client_name || `${reservation.other_first_name || ''} ${reservation.other_last_name || ''}`}</div>
                     <div className="text-xs text-muted-foreground">{reservation.client_email || reservation.other_email_address || 'N/A'}</div>
                   </TableCell>
-                  <TableCell className="text-indigo-500 font-medium">{reservation.booking_id}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-indigo-500 font-medium font-mono text-sm">
+                        {reservation.booking_id}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-slate-400 hover:text-indigo-600"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(reservation.booking_id).then(() => {
+                            toast.success("Booking code copied")
+                          })
+                        }}
+                        aria-label={`Copy booking code ${reservation.booking_id}`}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">₦{reservation.total_amount?.toLocaleString()}</TableCell>
                   <TableCell>{new Date(reservation.start_date).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(reservation.end_date).toLocaleDateString()}</TableCell>
@@ -395,7 +414,7 @@ function BookingsContent() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -405,6 +424,25 @@ function BookingsContent() {
                         <Eye className="w-4 h-4" />
                         <span className="sr-only">View</span>
                       </Button>
+                      {reservation.checked_in_at &&
+                        !reservation.checked_out_at &&
+                        !reservation.cancelled &&
+                        !reservation.settled_at && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                          className="h-8 w-8 text-muted-foreground hover:text-rose-600"
+                        >
+                          <Link
+                            href={`/dashboard/scan?code=${encodeURIComponent(reservation.booking_id)}`}
+                            title="Check out guest"
+                            aria-label={`Check out ${reservation.booking_id}`}
+                          >
+                            <LogOut className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -424,9 +462,9 @@ function BookingsContent() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2">
-            <div className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, data.length)} of {data.length} entries
+          <div className="shrink-0 flex items-center justify-between px-1">
+            <div className="text-xs text-slate-500">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, data.length)} of {data.length}
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -443,9 +481,6 @@ function BookingsContent() {
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum = i + 1;
                   if (totalPages > 5) {
-                    // Logic to show pages around current page could go here
-                    // simplifying for now to show first 5 or minimal logic
-                    // A proper pagination component is ideal but staying within bounds:
                     if (currentPage > 3) pageNum = currentPage - 2 + i;
                     if (pageNum > totalPages) pageNum = totalPages - (4 - i);
                   }
@@ -486,21 +521,22 @@ function BookingsContent() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      <div className="space-y-6">
-        {/* Header and Search parts remain similar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
-              <p className="text-muted-foreground">Manage all hotel reservations</p>
-            </div>
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+              Dashboard
+            </Link>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Bookings</h1>
+            <p className="text-xs text-slate-500">Manage all hotel reservations</p>
           </div>
           {(user?.role === "admin" || user?.permissions?.bookings?.create) && (
-            <Link href="/dashboard/bookings/new">
-              <Button className="bg-indigo-500 hover:bg-indigo-600">
+            <Link href="/dashboard/bookings/new" className="shrink-0">
+              <Button className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700">
                 <Plus className="w-4 h-4 mr-2" />
                 New Booking
               </Button>
@@ -508,27 +544,26 @@ function BookingsContent() {
           )}
         </div>
 
-        {/* Filters and Date Range */}
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full md:max-w-md">
+        <div className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by guest name, room, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-11 rounded-xl"
+              className="pl-9 h-10 rounded-xl"
             />
           </div>
 
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl justify-between min-w-[200px] w-full md:w-auto">
-                <div className="flex items-center gap-3">
+              <Button variant="outline" className="h-10 px-3 flex items-center gap-3 border-slate-200 shadow-sm bg-white hover:bg-slate-50 rounded-xl justify-between min-w-[200px] shrink-0">
+                <div className="flex items-center gap-2.5">
                   <div className="p-1.5 bg-indigo-50 rounded-lg">
                     <Calendar className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div className="flex flex-col items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1 font-mono">Date Range</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Date Range</span>
                     <span className="text-sm font-semibold text-slate-700">
                       {rangeSelection === "Custom" ? (
                         startDate && endDate ? `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}` : "Custom Range"
@@ -623,9 +658,8 @@ function BookingsContent() {
           </Popover>
         </div>
 
-        {/* Tabs for filtering */}
-        <Tabs defaultValue={filterParam} className="w-full">
-          <TabsList>
+        <Tabs defaultValue={filterParam} className="flex-1 min-h-0 overflow-hidden gap-3">
+          <TabsList className="shrink-0">
             <TabsTrigger value="all" className="gap-2">
               All
               <Badge variant="secondary" className="rounded-full">
@@ -658,30 +692,30 @@ function BookingsContent() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4 mt-6">
+          <TabsContent value="all" className="min-h-0 overflow-hidden mt-0 flex flex-col">
             {isLoading ? (
-              <div className="p-8 text-center">
-                <LoadingSpinner size={32} className="mx-auto" />
-                <p className="text-muted-foreground mt-4">Loading reservations...</p>
+              <div className="flex-1 flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white">
+                <LoadingSpinner size={32} />
+                <p className="text-sm text-slate-500 mt-3">Loading reservations...</p>
               </div>
             ) : (
               <ReservationsTable data={filteredReservations} />
             )}
           </TabsContent>
 
-          <TabsContent value="active" className="space-y-4 mt-6">
+          <TabsContent value="active" className="min-h-0 overflow-hidden mt-0 flex flex-col">
             <ReservationsTable data={activeReservations} />
           </TabsContent>
 
-          <TabsContent value="upcoming" className="space-y-4 mt-6">
+          <TabsContent value="upcoming" className="min-h-0 overflow-hidden mt-0 flex flex-col">
             <ReservationsTable data={upcomingReservations} />
           </TabsContent>
 
-          <TabsContent value="past" className="space-y-4 mt-6">
+          <TabsContent value="past" className="min-h-0 overflow-hidden mt-0 flex flex-col">
             <ReservationsTable data={pastReservations} />
           </TabsContent>
 
-          <TabsContent value="cancelled" className="space-y-4 mt-6">
+          <TabsContent value="cancelled" className="min-h-0 overflow-hidden mt-0 flex flex-col">
             <ReservationsTable data={cancelledReservations} />
           </TabsContent>
         </Tabs>
@@ -854,7 +888,7 @@ function BookingsContent() {
 
 export default function BookingsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+    <Suspense fallback={<div className="h-dvh flex items-center justify-center"><LoadingSpinner size={32} /></div>}>
       <BookingsContent />
     </Suspense>
   )

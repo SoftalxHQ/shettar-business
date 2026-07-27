@@ -50,7 +50,7 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
 
       if (response.ok) {
         const data = await response.json()
-        toast.success(data.message || "Permissions updated successfully!")
+        toast.success(data.message || "Permissions updated. They will be signed out and need to log in again.")
         onSuccess()
       } else {
         if (response.status === 401) {

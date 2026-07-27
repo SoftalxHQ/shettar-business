@@ -266,7 +266,6 @@ export default function NewBookingPage() {
   return (
     <DashboardLayout activeTab="bookings">
       <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
-        {/* Compact page header */}
         <div className="shrink-0">
           <Link
             href="/dashboard"
@@ -281,21 +280,20 @@ export default function NewBookingPage() {
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 overflow-hidden">
-          {/* Main form — scrolls if needed */}
           <form
             id="new-booking-form"
             onSubmit={handleSubmit}
-            className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2 sticky top-0 bg-white/95 backdrop-blur z-10">
-              <UserPlus className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Guest details</h2>
+            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2 sticky top-0 bg-white z-10">
+              <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+              <h2 className="text-sm font-semibold text-slate-900">Guest</h2>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="first_name" className="text-xs">
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="first_name" className="text-xs text-slate-600">
                     First name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -304,11 +302,11 @@ export default function NewBookingPage() {
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     placeholder="John"
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="last_name" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="last_name" className="text-xs text-slate-600">
                     Last name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -317,11 +315,11 @@ export default function NewBookingPage() {
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     placeholder="Doe"
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="email" className="text-xs text-slate-600">
                     Email <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -331,11 +329,11 @@ export default function NewBookingPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="john@example.com"
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="phone" className="text-xs text-slate-600">
                     Phone <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -345,23 +343,18 @@ export default function NewBookingPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+234..."
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
               </div>
 
-              <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-100" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase tracking-wide">
-                  <span className="bg-white px-2 text-slate-400 font-medium">Emergency contact</span>
-                </div>
-              </div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400 pt-1">
+                Emergency contact
+              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="emer_first_name" className="text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="emer_first_name" className="text-xs text-slate-600">
                     First name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -369,11 +362,11 @@ export default function NewBookingPage() {
                     required
                     value={formData.emer_first_name}
                     onChange={(e) => setFormData({ ...formData, emer_first_name: e.target.value })}
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="emer_last_name" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="emer_last_name" className="text-xs text-slate-600">
                     Last name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -381,11 +374,11 @@ export default function NewBookingPage() {
                     required
                     value={formData.emer_last_name}
                     onChange={(e) => setFormData({ ...formData, emer_last_name: e.target.value })}
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="emer_phone" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="emer_phone" className="text-xs text-slate-600">
                     Phone <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -393,21 +386,21 @@ export default function NewBookingPage() {
                     required
                     value={formData.emer_phone}
                     onChange={(e) => setFormData({ ...formData, emer_phone: e.target.value })}
-                    className="h-9"
+                    className="h-10"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="px-4 py-3 border-y border-slate-100 flex items-center gap-2 bg-slate-50/60">
-              <Calendar className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Stay details</h2>
+            <div className="px-4 py-2.5 border-y border-slate-100 flex items-center gap-2 bg-slate-50/80">
+              <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+              <h2 className="text-sm font-semibold text-slate-900">Stay</h2>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="check_in_date" className="text-xs">
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="check_in_date" className="text-xs text-slate-600">
                     Check-in <span className="text-rose-500">*</span>
                   </Label>
                   <Flatpickr
@@ -428,12 +421,12 @@ export default function NewBookingPage() {
                       dateFormat: "Y-m-d",
                       disableMobile: true,
                     }}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Select date"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="check_out_date" className="text-xs">
+                <div className="space-y-1">
+                  <Label htmlFor="check_out_date" className="text-xs text-slate-600">
                     Check-out <span className="text-rose-500">*</span>
                   </Label>
                   <Flatpickr
@@ -454,12 +447,12 @@ export default function NewBookingPage() {
                       dateFormat: "Y-m-d",
                       disableMobile: true,
                     }}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Select date"
                   />
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="room_type_id" className="text-xs">
+                <div className="space-y-1 col-span-2">
+                  <Label htmlFor="room_type_id" className="text-xs text-slate-600">
                     Room type <span className="text-rose-500">*</span>
                   </Label>
                   <Select
@@ -471,7 +464,7 @@ export default function NewBookingPage() {
                       !formData.check_out_date
                     }
                   >
-                    <SelectTrigger className="w-full bg-white h-9">
+                    <SelectTrigger className="w-full bg-white h-10">
                       <SelectValue
                         placeholder={
                           !formData.check_in_date || !formData.check_out_date
@@ -497,38 +490,40 @@ export default function NewBookingPage() {
                     formData.check_out_date &&
                     roomTypes.length === 0 &&
                     !loadingRoomTypes && (
-                      <p className="text-xs text-rose-600 font-medium">No rooms available for these dates</p>
+                      <p className="text-xs text-rose-600 font-medium">
+                        No rooms available for these dates
+                      </p>
                     )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Adults</Label>
+              <div className="grid grid-cols-3 xl:grid-cols-6 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-600">Adults</Label>
                   <Input
                     type="number"
                     min="1"
-                    className="h-9"
+                    className="h-10"
                     value={formData.guests}
                     onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Children</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-600">Children</Label>
                   <Input
                     type="number"
                     min="0"
-                    className="h-9"
+                    className="h-10"
                     value={formData.children}
                     onChange={(e) => setFormData({ ...formData, children: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Rooms</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-600">Rooms</Label>
                   <Input
                     type="number"
                     min="1"
-                    className="h-9"
+                    className="h-10"
                     value={formData.number_of_rooms}
                     onChange={(e) => setFormData({ ...formData, number_of_rooms: e.target.value })}
                   />
@@ -537,14 +532,13 @@ export default function NewBookingPage() {
             </div>
           </form>
 
-          {/* Summary sidebar */}
-          <aside className="lg:w-72 xl:w-80 shrink-0 flex flex-col rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden min-h-0">
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-indigo-600" />
+          <aside className="w-full lg:w-96 shrink-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden min-h-0 lg:h-full">
+            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
+              <DollarSign className="w-3.5 h-3.5 text-indigo-600" />
               <h2 className="text-sm font-semibold text-slate-900">Summary</h2>
             </div>
 
-            <div className="flex-1 p-4 space-y-3 text-sm">
+            <div className="flex-1 p-4 space-y-3 text-sm overflow-y-auto">
               <div className="flex justify-between gap-3">
                 <span className="text-slate-500">Room</span>
                 <span className="font-medium text-right text-slate-900 truncate">
@@ -585,12 +579,12 @@ export default function NewBookingPage() {
 
             <div className="p-4 border-t border-slate-100 bg-slate-50/80 space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Payment method</Label>
+                <Label className="text-xs text-slate-600">Payment</Label>
                 <Select
                   value={formData.payment_method}
                   onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
                 >
-                  <SelectTrigger className="w-full bg-white h-9">
+                  <SelectTrigger className="w-full bg-white h-10">
                     <SelectValue placeholder="Select method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -604,7 +598,7 @@ export default function NewBookingPage() {
               <Button
                 type="button"
                 disabled={isLoading}
-                className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                className="w-full h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
                 onClick={() => {
                   const form = document.getElementById("new-booking-form") as HTMLFormElement | null
                   form?.requestSubmit()

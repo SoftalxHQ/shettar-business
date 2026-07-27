@@ -71,7 +71,7 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
         title: title.trim(),
         permissions,
       })
-      toast.success("Role switched successfully")
+      toast.success("Role switched successfully. They will be signed out and need to log in again.")
       onSuccess()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to switch role")
