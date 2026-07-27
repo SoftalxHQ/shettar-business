@@ -2,8 +2,7 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Check, Printer, Home } from "lucide-react"
+import { Check, Printer, Home, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
@@ -88,9 +87,11 @@ function BookingSuccessContent() {
       setIsLoading(true)
       await Promise.all([
         fetchReservationDetails(),
-        businessId ? fetchBusinessReceiptDetails(businessId).then((data) => {
-          if (!cancelled && data) setBusinessDetails(data)
-        }) : Promise.resolve(),
+        businessId
+          ? fetchBusinessReceiptDetails(businessId).then((data) => {
+              if (!cancelled && data) setBusinessDetails(data)
+            })
+          : Promise.resolve(),
       ])
       if (!cancelled) setIsLoading(false)
     }
@@ -131,82 +132,128 @@ function BookingSuccessContent() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      <div className="relative min-h-[calc(100vh-4rem)] bg-slate-50 flex items-center justify-center p-4 overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-indigo-600/5 to-transparent pointer-events-none" />
-        <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl" />
-
-        <Card className="relative max-w-lg w-full border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm z-10">
-          <CardHeader className="text-center pt-10 pb-6">
-            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm animate-in zoom-in duration-300">
-              <Check className="w-10 h-10 text-emerald-600" strokeWidth={3} />
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+              Dashboard
+            </Link>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
+                <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight text-slate-900 leading-tight">
+                  Booking confirmed
+                </h1>
+                <p className="text-xs text-slate-500">
+                  {bookingId ? (
+                    <>
+                      Ref{" "}
+                      <span className="font-mono font-medium text-slate-700 uppercase">
+                        {bookingId}
+                      </span>
+                    </>
+                  ) : (
+                    "Reservation created successfully"
+                  )}
+                </p>
+              </div>
             </div>
-            <CardTitle className="text-3xl font-bold text-slate-900 mb-2">Booking Confirmed!</CardTitle>
-            <CardDescription className="text-lg text-slate-600">
-              The reservation has been successfully created.
-            </CardDescription>
-          </CardHeader>
+          </div>
 
-          <CardContent className="px-8 pb-10 space-y-8">
+          <div className="hidden sm:flex shrink-0 items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-xl">
+              <Link href="/dashboard/bookings/new">New booking</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-xl">
+              <Link href="/dashboard">
+                <Home className="w-4 h-4 mr-1.5" />
+                Home
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50/60 shadow-sm">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-3 p-6">
                 <LoadingSpinner size={28} />
                 <p className="text-sm text-slate-500">Loading receipt details…</p>
               </div>
             ) : reservation ? (
-              <BookingReceiptCard
-                reservation={reservation}
-                business={businessReceiptContext(businessName, businessDetails)}
-                guestName={reservationGuestName(reservation)}
-                paymentMethodLabel={PAYMENT_METHOD_LABELS[reservation.payment_method] || "Unknown"}
-              />
+              <div className="flex justify-center p-4 sm:p-6">
+                <BookingReceiptCard
+                  className="w-full max-w-sm shadow-md"
+                  reservation={reservation}
+                  business={businessReceiptContext(businessName, businessDetails)}
+                  guestName={reservationGuestName(reservation)}
+                  paymentMethodLabel={
+                    PAYMENT_METHOD_LABELS[reservation.payment_method] || "Unknown"
+                  }
+                />
+              </div>
             ) : (
-              <div className="bg-white border-2 border-dashed border-indigo-100 rounded-xl p-6 text-center">
-                <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Booking Reference
+              <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 p-6 text-center">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Booking reference
                 </p>
-                <p className="text-4xl font-black text-indigo-600 tracking-tight">{bookingId}</p>
-                <p className="text-sm text-slate-500 mt-3">
+                <p className="text-2xl font-semibold font-mono text-indigo-600 tracking-tight">
+                  {bookingId || "—"}
+                </p>
+                <p className="text-sm text-slate-500 max-w-sm">
                   Receipt details could not be loaded. You can still print from the bookings list.
                 </p>
               </div>
             )}
+          </div>
 
-            <div className="space-y-3">
+          <aside className="lg:w-64 xl:w-72 shrink-0 flex flex-col rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-900">Next steps</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Print a slip or continue at the desk</p>
+            </div>
+
+            <div className="flex-1 p-4 space-y-2">
               <Button
                 onClick={() => void handlePrint()}
                 disabled={!canPrint || isPrinting}
-                className="w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60"
+                className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold disabled:opacity-60"
               >
                 {isPrinting ? (
                   <>
-                    <LoadingSpinner size={18} className="mr-2" />
-                    Preparing print…
+                    <LoadingSpinner size={16} className="mr-2" />
+                    Preparing…
                   </>
                 ) : (
                   <>
-                    <Printer className="w-5 h-5 mr-2" />
-                    Print Receipt
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print receipt
                   </>
                 )}
               </Button>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Link href="/dashboard/bookings/new" className="block">
-                  <Button variant="outline" className="w-full h-12 border-slate-200 hover:bg-slate-50 hover:text-indigo-600">
-                    New Booking
-                  </Button>
+              <Button asChild variant="outline" className="w-full h-10 rounded-xl">
+                <Link href="/dashboard/bookings">View all bookings</Link>
+              </Button>
+
+              <Button asChild variant="outline" className="w-full h-10 rounded-xl sm:hidden">
+                <Link href="/dashboard/bookings/new">New booking</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full h-10 rounded-xl sm:hidden">
+                <Link href="/dashboard">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
                 </Link>
-                <Link href="/dashboard" className="block">
-                  <Button variant="outline" className="w-full h-12 border-slate-200 hover:bg-slate-50">
-                    <Home className="w-4 h-4 mr-2" />
-                    Home
-                  </Button>
-                </Link>
-              </div>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </aside>
+        </div>
       </div>
     </DashboardLayout>
   )
@@ -216,9 +263,11 @@ export default function BookingSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner size={32} />
-        </div>
+        <DashboardLayout activeTab="bookings">
+          <div className="h-full flex items-center justify-center">
+            <LoadingSpinner size={32} />
+          </div>
+        </DashboardLayout>
       }
     >
       <BookingSuccessContent />

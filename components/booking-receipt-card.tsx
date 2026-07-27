@@ -118,9 +118,12 @@ export function BookingReceiptCard({
         <p className="text-2xl font-black font-mono tracking-wide">{reservation.booking_id}</p>
       </div>
 
-      <div className="flex gap-2 px-4 -mt-2.5 relative z-[1]">
+      <div className="flex gap-2 px-4 -mt-2.5 relative z-[1] overflow-hidden print:flex">
         {Array.from({ length: 18 }).map((_, i) => (
-          <div key={i} className="w-5 h-5 rounded-full bg-slate-50 shrink-0" />
+          <div
+            key={i}
+            className="w-5 h-5 rounded-full bg-slate-50 border border-slate-200/80 shrink-0 print:bg-white"
+          />
         ))}
       </div>
 

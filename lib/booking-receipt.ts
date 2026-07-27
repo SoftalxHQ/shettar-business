@@ -218,13 +218,19 @@ export const THERMAL_RECEIPT_STYLES = `
     margin: -5px 0;
     position: relative;
     z-index: 2;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .perforated-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #fff;
+    background: #ffffff;
+    border: 0.5px solid #e2e8f0;
     flex-shrink: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .body { padding: 8px 6px 6px; }
   .hotel-row {
@@ -389,7 +395,17 @@ export const THERMAL_RECEIPT_STYLES = `
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .perforated { display: none; }
+    .perforated {
+      display: flex !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .perforated-dot {
+      background: #ffffff !important;
+      border: 0.5px solid #cbd5e1 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 `
 
