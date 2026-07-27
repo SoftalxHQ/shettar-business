@@ -63,6 +63,7 @@ fi
 MAC_ARM_DMG="$(find_url '_aarch64\.dmg$')"
 MAC_X64_DMG="$(find_url '_x64\.dmg$')"
 LINUX_APPIMAGE="$(find_url '\.AppImage$')"
+LINUX_DEB="$(find_url '\.deb$')"
 
 # Updaters: prefer Tauri-generated latest.json (correct url + signature per platform)
 LATEST_URL="$(find_url '^latest\.json$')"
@@ -106,21 +107,18 @@ echo "Mapped installers:"
 echo "  windows=$WIN_INSTALLER"
 echo "  macos_arm=$MAC_ARM_DMG"
 echo "  macos_x64=$MAC_X64_DMG"
-echo "  linux=$LINUX_APPIMAGE"
+echo "  linux_appimage=$LINUX_APPIMAGE"
+echo "  linux_deb=$LINUX_DEB"
 echo "Mapped updaters:"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"
 echo "  macos_x64=$MAC_X64_UPD"
 echo "  linux=$LINUX_UPD"
 
-if [ -z "$WIN_INSTALLER$MAC_ARM_DMG$MAC_X64_DMG$LINUX_APPIMAGE" ]; then
+if [ -z "$WIN_INSTALLER$MAC_ARM_DMG$MAC_X64_DMG$LINUX_APPIMAGE$LINUX_DEB" ]; then
   echo "::error::Failed to map any installer URLs" >&2
   exit 1
 fi
-
-null_if_empty() {
-  if [ -n "$1" ]; then printf '%s' "$1"; fi
-}
 
 PAYLOAD="$(jq -n \
   --arg version "$VERSION" \
@@ -131,6 +129,7 @@ PAYLOAD="$(jq -n \
   --arg macos_x64_installer_url "$MAC_X64_DMG" \
   --arg macos_arm_installer_url "$MAC_ARM_DMG" \
   --arg linux_installer_url "$LINUX_APPIMAGE" \
+  --arg linux_deb_installer_url "$LINUX_DEB" \
   --arg windows_updater_url "$WIN_UPDATER" \
   --arg windows_updater_sig "$WIN_SIG" \
   --arg macos_x64_updater_url "$MAC_X64_UPD" \
@@ -150,6 +149,7 @@ PAYLOAD="$(jq -n \
       macos_x64_installer_url: (if $macos_x64_installer_url == "" then null else $macos_x64_installer_url end),
       macos_arm_installer_url: (if $macos_arm_installer_url == "" then null else $macos_arm_installer_url end),
       linux_installer_url: (if $linux_installer_url == "" then null else $linux_installer_url end),
+      linux_deb_installer_url: (if $linux_deb_installer_url == "" then null else $linux_deb_installer_url end),
       windows_updater_url: (if $windows_updater_url == "" then null else $windows_updater_url end),
       windows_updater_sig: (if $windows_updater_sig == "" then null else $windows_updater_sig end),
       macos_x64_updater_url: (if $macos_x64_updater_url == "" then null else $macos_x64_updater_url end),
