@@ -84,17 +84,19 @@ export function RestaurantDashboardLayout({
   const navItems = getRestaurantNavItems(user);
 
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-background">
-      <header className="shrink-0 z-50 h-16 bg-white border-b border-border">
-        <div className="h-full px-6 flex items-center justify-between gap-4">
+    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7]">
+      <header className="shrink-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-slate-200/80">
+        <div className="h-full px-4 md:px-5 flex items-center justify-between gap-4">
           <Link
             href="/dashboard/restaurant"
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity shrink-0"
           >
             <SidebarBrandLogo businessId={businessId} />
-            <div>
-              <h1 className="font-semibold text-base">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground">Restaurant</p>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate max-w-[12rem] sm:max-w-[16rem]">
+                {user.hotelName}
+              </h1>
+              <p className="text-[10px] text-slate-400 tracking-wide">Restaurant</p>
             </div>
           </Link>
 
@@ -104,10 +106,10 @@ export function RestaurantDashboardLayout({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors",
                   activeTab === item.tab
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 {item.name}
@@ -115,28 +117,28 @@ export function RestaurantDashboardLayout({
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <TopBarNotifications businessId={businessId} />
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-3 h-auto py-2 px-3 shrink-0">
+              <Button variant="ghost" className="gap-2.5 h-auto py-1.5 px-2 rounded-xl hover:bg-slate-50 shrink-0">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                  <p className="text-[13px] font-medium text-slate-900 leading-tight">{user.name}</p>
+                  <p className="text-[11px] text-slate-400 capitalize leading-tight">{user.role}</p>
                 </div>
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-8 w-8">
                   {user.profilePicture && !imgError && (
                     <Image
                       src={user.profilePicture}
                       alt={user.name}
-                      width={36}
-                      height={36}
+                      width={32}
+                      height={32}
                       className="rounded-full object-cover"
                       onError={() => setImgError(true)}
                       unoptimized={user.profilePicture.startsWith("data:")}
                     />
                   )}
-                  <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm font-medium">
+                  <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -178,7 +180,7 @@ export function RestaurantDashboardLayout({
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-4 gap-2">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 gap-2">
         <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
       </main>
     </div>

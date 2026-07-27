@@ -28,7 +28,6 @@ import {
 import {
   LayoutDashboard,
   CalendarCheck,
-  DoorOpen,
   CreditCard,
   Users,
   BarChart3,
@@ -65,25 +64,47 @@ interface DashboardLayoutProps {
   activeTab?: string
 }
 
-const adminNavigation = [
-  { name: "Dashboard", href: "/dashboard/business", icon: Building2 },
-  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Finance", href: "/dashboard/finance", icon: CreditCard },
-  { name: "Ads", href: "/dashboard/ads", icon: Megaphone },
-  { name: "Promos", href: "/dashboard/promos", icon: Tag },
-  { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, restaurantNav: "menu" as const },
-  { name: "Restaurant Orders", href: "/dashboard/restaurant/orders", icon: ClipboardList, restaurantNav: "orders" as const },
-  { name: "Restaurant Kitchen", href: "/dashboard/restaurant/kitchen", icon: ChefHat, restaurantNav: "kitchen" as const },
-  { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck },
-  { name: "Rooms", href: "/dashboard/rooms", icon: Hotel },
-  { name: "Staffs", href: "/dashboard/staff", icon: Users },
-  { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare },
-  { name: "Activity", href: "/dashboard/activity", icon: Activity },
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
-  { name: "Support", href: "/dashboard/support", icon: HelpCircle },
-  { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
-  { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
-  { name: "Printer", href: "/dashboard/business/settings/printer", icon: Printer },
+type AdminNavItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  section: "overview" | "operations" | "commerce" | "people" | "system"
+  restaurantNav?: "menu" | "orders" | "kitchen"
+}
+
+const adminNavigation: AdminNavItem[] = [
+  { name: "Dashboard", href: "/dashboard/business", icon: Building2, section: "overview" },
+  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, section: "overview" },
+  { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck, section: "operations" },
+  { name: "Rooms", href: "/dashboard/rooms", icon: Hotel, section: "operations" },
+  { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, section: "operations", restaurantNav: "menu" },
+  { name: "Restaurant Orders", href: "/dashboard/restaurant/orders", icon: ClipboardList, section: "operations", restaurantNav: "orders" },
+  { name: "Restaurant Kitchen", href: "/dashboard/restaurant/kitchen", icon: ChefHat, section: "operations", restaurantNav: "kitchen" },
+  { name: "Finance", href: "/dashboard/finance", icon: CreditCard, section: "commerce" },
+  { name: "Ads", href: "/dashboard/ads", icon: Megaphone, section: "commerce" },
+  { name: "Promos", href: "/dashboard/promos", icon: Tag, section: "commerce" },
+  { name: "Staffs", href: "/dashboard/staff", icon: Users, section: "people" },
+  { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare, section: "people" },
+  { name: "Activity", href: "/dashboard/activity", icon: Activity, section: "system" },
+  { name: "Notifications", href: "/dashboard/notifications", icon: Bell, section: "system" },
+  { name: "Support", href: "/dashboard/support", icon: HelpCircle, section: "system" },
+  { name: "Settings", href: "/dashboard/business/settings", icon: Settings, section: "system" },
+  { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark, section: "system" },
+  { name: "Printer", href: "/dashboard/business/settings/printer", icon: Printer, section: "system" },
+]
+
+const adminSectionLabels: Record<AdminNavItem["section"], string> = {
+  overview: "Overview",
+  operations: "Operations",
+  commerce: "Commerce",
+  people: "People",
+  system: "System",
+}
+
+const staffNavigation = [
+  { name: "Front desk", href: "/dashboard", tab: "staffdashboard", icon: LayoutDashboard },
+  { name: "Bookings", href: "/dashboard/bookings", tab: "bookings", icon: CalendarCheck },
+  { name: "Scan", href: "/dashboard/scan", tab: "scancode", icon: QrCode },
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
@@ -111,7 +132,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   if (!user || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-dvh flex items-center justify-center bg-slate-50">
         <LoadingSpinner size={40} />
       </div>
     )
@@ -174,116 +195,119 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   const isAdmin = user.role === "admin" || user.role === "manager"
 
+  const visibleAdminNav = adminNavigation.filter((item) => {
+    if (item.restaurantNav) {
+      if (!user.restaurantEnabled) return false
+      if (user.role === "admin") return true
+      if (!user.permissions?.restaurant?.view) return false
+      if (item.restaurantNav === "menu") {
+        return user.permissions.restaurant?.manage_menu || user.permissions.restaurant?.view
+      }
+      if (item.restaurantNav === "orders") {
+        return user.permissions.restaurant?.create_orders || user.permissions.restaurant?.view
+      }
+      if (item.restaurantNav === "kitchen") {
+        return user.permissions.restaurant?.kitchen
+      }
+      return false
+    }
+
+    if (user.role === "admin") return true
+    if (!user.permissions) return true
+
+    switch (item.name) {
+      case "Dashboard":
+        return true
+      case "Analytics":
+        return user.permissions.dashboard?.view_analytics
+      case "Finance":
+        return user.permissions.finance?.view
+      case "Ads":
+        return user.permissions.ads?.view || user.permissions.ads?.manage
+      case "Bookings":
+        return user.permissions.bookings?.view
+      case "Rooms":
+        return user.permissions.rooms?.view
+      case "Staffs":
+        return user.permissions.staff?.view
+      case "Promos":
+        return user.permissions.promos?.view
+      case "Settings":
+        return !!user.permissions?.settings?.view || canViewGuestPolicies(user)
+      case "Bank Details":
+        return !!user.permissions?.settings?.view
+      case "Printer":
+        return !!user.permissions?.settings?.view
+      default:
+        return true
+    }
+  })
+
+  const adminSections = (Object.keys(adminSectionLabels) as AdminNavItem["section"][]).filter((section) =>
+    visibleAdminNav.some((item) => item.section === section),
+  )
+
   if (isAdmin) {
-    // Admin layout with sidebar
     return (
-      <div className="min-h-screen bg-background">
-        {/* Sidebar */}
-        <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col">
-          {/* Logo */}
-          <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
-            <Link href="/dashboard" className="flex items-center gap-3">
+      <div className="h-dvh overflow-hidden flex bg-[#f4f5f7]">
+        <aside className="w-[15.5rem] shrink-0 h-full border-r border-slate-200/80 bg-white flex flex-col">
+          <div className="h-14 shrink-0 flex items-center gap-2.5 px-4 border-b border-slate-100">
+            <Link href="/dashboard/business" className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity">
               <SidebarBrandLogo businessId={businessId} />
+              <div className="min-w-0">
+                <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate">{user.hotelName}</h1>
+                <p className="text-[10px] text-slate-400 font-mono truncate tracking-wide">{businessId || "N/A"}</p>
+              </div>
             </Link>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-sm truncate">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground truncate">{businessId || "N/A"}</p>
-            </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {adminNavigation.filter(item => {
-              const restaurantNav = (item as { restaurantNav?: string }).restaurantNav
-              if (restaurantNav) {
-                if (!user.restaurantEnabled) return false
-                if (user.role === "admin") return true
-                if (!user.permissions?.restaurant?.view) return false
-                if (restaurantNav === "menu") {
-                  return user.permissions.restaurant?.manage_menu || user.permissions.restaurant?.view
-                }
-                if (restaurantNav === "orders") {
-                  return user.permissions.restaurant?.create_orders || user.permissions.restaurant?.view
-                }
-                if (restaurantNav === "kitchen") {
-                  return user.permissions.restaurant?.kitchen
-                }
-                return false
-              }
+          <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-4">
+            {adminSections.map((section) => (
+              <div key={section}>
+                <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  {adminSectionLabels[section]}
+                </p>
+                <div className="space-y-0.5">
+                  {visibleAdminNav
+                    .filter((item) => item.section === section)
+                    .map((item) => {
+                      let isActive = item.restaurantNav
+                        ? activeTab === item.restaurantNav
+                        : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
 
-              if (user.role === 'admin') return true;
+                      if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
+                        isActive = true
+                      }
 
-              // If no permissions object but role is manager/staff, default to safe subset or hidden?
-              // Assuming if permissions are present we strictly follow them.
-              if (!user.permissions) return true;
-
-              switch (item.name) {
-                case "Dashboard":
-                  // Keep access to dashboard main page if they can view revenue or analytics, or generic
-                  return true;
-                case "Analytics":
-                  return user.permissions.dashboard?.view_analytics;
-                case "Finance":
-                  return user.permissions.finance?.view;
-                case "Ads":
-                  return user.permissions.ads?.view || user.permissions.ads?.manage;
-                case "Bookings":
-                  return user.permissions.bookings?.view;
-                case "Rooms":
-                  return user.permissions.rooms?.view;
-                case "Staffs":
-                  return user.permissions.staff?.view;
-                case "Promos":
-                  return user.permissions.promos?.view;
-                case "Settings":
-                  // Admins already returned true above; managers need settings or guest-policy access.
-                  return !!user.permissions?.settings?.view || canViewGuestPolicies(user);
-                case "Bank Details":
-                  return !!user.permissions?.settings?.view;
-                case "Printer":
-                  return !!user.permissions?.settings?.view;
-                default:
-                  return true;
-              }
-            }).map((item) => {
-              const restaurantNav = (item as { restaurantNav?: string }).restaurantNav
-              let isActive = restaurantNav
-                ? activeTab === restaurantNav
-                : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
-
-              // Special case for Dashboard (matches "dashboard" or "business")
-              if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
-                isActive = true
-              }
-
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {item.name}
-                  {item.name === "Support" && <SupportUnreadBadge />}
-                </Link>
-              )
-            })}
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors",
+                            isActive
+                              ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                          )}
+                        >
+                          <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
+                          <span className="truncate flex-1">{item.name}</span>
+                          {item.name === "Support" && <SupportUnreadBadge />}
+                        </Link>
+                      )
+                    })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <div className="px-4 py-2 border-t border-border flex justify-end">
-            <TopBarNotifications businessId={businessId} />
-          </div>
-
-          {/* User menu */}
-          <div className="p-4 border-t border-border">
+          <div className="shrink-0 border-t border-slate-100 p-2.5 space-y-2">
+            <div className="flex items-center justify-end px-1">
+              <TopBarNotifications businessId={businessId} />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-2">
+                <Button variant="ghost" className="w-full justify-start gap-2.5 h-auto px-2 py-2 rounded-xl hover:bg-slate-50">
                   <Avatar className="h-8 w-8">
                     {user.profilePicture && !imgError && (
                       <Image
@@ -293,14 +317,14 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                         height={32}
                         className="rounded-full object-cover"
                         onError={() => setImgError(true)}
-                        unoptimized={user.profilePicture.startsWith('data:')}
+                        unoptimized={user.profilePicture.startsWith("data:")}
                       />
                     )}
-                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize truncate">{user.role}</p>
+                    <p className="text-[13px] font-medium text-slate-900 truncate">{user.name}</p>
+                    <p className="text-[11px] text-slate-400 capitalize truncate">{user.role}</p>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -324,24 +348,24 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-
-          {verificationStatus && (
-            <div className="px-4 pb-4 pt-0">
+            {verificationStatus && (
               <BusinessVerificationBadge
                 status={verificationStatus}
                 className="w-full justify-center py-1.5 text-[11px]"
               />
-            </div>
-          )}
+            )}
+          </div>
         </aside>
 
-        {/* Main content */}
-        <div className="pl-64">
-          <main className="p-8">
-            <UpdateBanner />
-            <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
-            {children}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+          <main className="flex-1 min-h-0 overflow-hidden p-3 flex flex-col gap-2">
+            <div className="shrink-0 space-y-2">
+              <UpdateBanner />
+              <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <div className="h-full min-h-0 overflow-y-auto p-4 md:p-5">{children}</div>
+            </div>
           </main>
         </div>
 
@@ -358,40 +382,63 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     )
   }
 
-  // Staff layout with top navigation — locked to viewport for desktop-app feel
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-background">
-      <header className="shrink-0 z-50 h-16 bg-white border-b border-border">
-        <div className="h-full px-6 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7]">
+      <header className="shrink-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-slate-200/80">
+        <div className="h-full px-4 md:px-5 flex items-center justify-between gap-4">
+          <Link href="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity shrink-0">
             <SidebarBrandLogo businessId={businessId} />
-            <div>
-              <h1 className="font-semibold text-base">{user.hotelName}</h1>
-              <p className="text-xs text-muted-foreground">{businessId || 'N/A'}</p>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate max-w-[12rem] sm:max-w-[16rem]">
+                {user.hotelName}
+              </h1>
+              <p className="text-[10px] text-slate-400 font-mono tracking-wide truncate">{businessId || "N/A"}</p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
-            <TopBarNotifications businessId={businessId} />
+          <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
+            {staffNavigation.map((item) => {
+              const isActive = activeTab === item.tab
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors",
+                    isActive
+                      ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <item.icon className={cn("w-4 h-4", isActive ? "text-indigo-600" : "text-slate-400")} />
+                  {item.name}
+                </Link>
+              )
+            })}
+          </nav>
 
+          <div className="flex items-center gap-1.5 shrink-0">
+            <TopBarNotifications businessId={businessId} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-3 h-auto py-2 px-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                <Button variant="ghost" className="gap-2.5 h-auto py-1.5 px-2 rounded-xl hover:bg-slate-50">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[13px] font-medium text-slate-900 leading-tight">{user.name}</p>
+                    <p className="text-[11px] text-slate-400 capitalize leading-tight">{user.role}</p>
                   </div>
-                  <Avatar className="h-9 w-9">
-                    {user.profilePicture && (
+                  <Avatar className="h-8 w-8">
+                    {user.profilePicture && !imgError && (
                       <Image
                         src={user.profilePicture}
                         alt={user.name}
-                        width={36}
-                        height={36}
+                        width={32}
+                        height={32}
                         className="rounded-full object-cover"
+                        onError={() => setImgError(true)}
+                        unoptimized={user.profilePicture.startsWith("data:")}
                       />
                     )}
-                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm font-medium">
+                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -414,6 +461,17 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <div className="md:hidden px-1 py-1">
+                  <DropdownMenuSeparator />
+                  {staffNavigation.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className="cursor-pointer w-full">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -427,13 +485,11 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
       <EmailVerificationBanner />
 
-      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-4 gap-2">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 gap-2">
         <div className="shrink-0">
           <UpdateBanner />
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
       </main>
     </div>
   )
