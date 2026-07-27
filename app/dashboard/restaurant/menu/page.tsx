@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -316,17 +315,19 @@ export default function RestaurantMenuPage() {
 
   return (
     <RestaurantLayoutWrapper activeTab="menu">
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <UtensilsCrossed className="w-7 h-7 text-indigo-600" />
-              Restaurant menu
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <UtensilsCrossed className="w-5 h-5 text-indigo-600" />
+              Menu
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Categories and items for staff order taking</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Categories and items for staff order taking
+            </p>
           </div>
           {canEdit && (
-            <Button onClick={openNewCategory} className="gap-2">
+            <Button onClick={openNewCategory} size="sm" className="h-9 gap-2 shrink-0 rounded-xl">
               <Plus className="w-4 h-4" />
               Add category
             </Button>
@@ -334,102 +335,113 @@ export default function RestaurantMenuPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+          <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
           </div>
         ) : categories.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No menu categories yet. Add a category to get started.
-            </CardContent>
-          </Card>
+          <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+            No menu categories yet. Add a category to get started.
+          </div>
         ) : (
-          categories.map((cat) => (
-            <Card key={cat.id}>
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div>
-                  <CardTitle>{cat.name}</CardTitle>
-                  <CardDescription>{(cat.items || []).length} items</CardDescription>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="rounded-xl border border-slate-200 bg-white overflow-hidden"
+              >
+                <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900">{cat.name}</p>
+                    <p className="text-[11px] text-slate-500">
+                      {(cat.items || []).length} items
+                    </p>
+                  </div>
+                  {canEdit && (
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openEditCategory(cat)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() =>
+                          setPendingDelete({ kind: "category", id: cat.id, name: cat.name })
+                        }
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                      <Button size="sm" className="h-8 gap-1" onClick={() => openNewItem(cat.id)}>
+                        <Plus className="w-3.5 h-3.5" />
+                        Item
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {canEdit && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEditCategory(cat)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setPendingDelete({ kind: "category", id: cat.id, name: cat.name })
-                      }
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                    <Button size="sm" onClick={() => openNewItem(cat.id)}>
-                      <Plus className="w-4 h-4 mr-1" />
-                      Item
-                    </Button>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(cat.items || []).map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30"
-                  >
-                    {item.image_url ? (
-                      <CachedMenuImage
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-14 h-14 rounded-md object-cover shrink-0 border"
-                        placeholderClassName="w-14 h-14 rounded-md shrink-0 border"
-                        showPlaceholderIcon
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium">{item.name}</p>
-                      {item.description && (
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
-                      )}
-                      <p className="text-sm font-semibold text-indigo-700 mt-1">
-                        ₦{Number(item.price).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={item.available ? "default" : "secondary"}>
-                        {item.available ? "Available" : "Unavailable"}
-                      </Badge>
-                      {canEdit && (
-                        <>
-                          <Switch
-                            checked={item.available}
-                            onCheckedChange={() => toggleItemAvailable(item)}
+                <div className="p-2.5 space-y-1.5">
+                  {(cat.items || []).length === 0 ? (
+                    <p className="text-xs text-slate-500 px-1 py-2">No items in this category</p>
+                  ) : (
+                    (cat.items || []).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg border border-slate-100 bg-slate-50/60"
+                      >
+                        {item.image_url ? (
+                          <CachedMenuImage
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-11 h-11 rounded-md object-cover shrink-0 border"
+                            placeholderClassName="w-11 h-11 rounded-md shrink-0 border"
+                            showPlaceholderIcon
                           />
-                          <Button size="sm" variant="ghost" onClick={() => openEditItem(item)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              setPendingDelete({ kind: "item", id: item.id, name: item.name })
-                            }
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))
+                        ) : (
+                          <div className="w-11 h-11 rounded-md border bg-white flex items-center justify-center shrink-0">
+                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
+                          {item.description && (
+                            <p className="text-[11px] text-slate-500 truncate">{item.description}</p>
+                          )}
+                          <p className="text-xs font-semibold text-indigo-700 mt-0.5">
+                            ₦{Number(item.price).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
+                            {item.available ? "Available" : "Unavailable"}
+                          </Badge>
+                          {canEdit && (
+                            <>
+                              <Switch
+                                checked={item.available}
+                                onCheckedChange={() => toggleItemAvailable(item)}
+                              />
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEditItem(item)}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() =>
+                                  setPendingDelete({ kind: "item", id: item.id, name: item.name })
+                                }
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

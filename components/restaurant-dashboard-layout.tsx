@@ -69,7 +69,7 @@ export function RestaurantDashboardLayout({
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-dvh flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -84,8 +84,8 @@ export function RestaurantDashboardLayout({
   const navItems = getRestaurantNavItems(user);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-border">
+    <div className="h-dvh overflow-hidden flex flex-col bg-background">
+      <header className="shrink-0 z-50 h-16 bg-white border-b border-border">
         <div className="h-full px-6 flex items-center justify-between gap-4">
           <Link
             href="/dashboard/restaurant"
@@ -178,9 +178,9 @@ export function RestaurantDashboardLayout({
         </div>
       </header>
 
-      <div className="pt-16">
-        <main className="p-8">{children}</main>
-      </div>
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-4 gap-2">
+        <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
+      </main>
     </div>
   );
 }

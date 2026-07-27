@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -71,10 +70,10 @@ export default function RestaurantHubPage() {
 
   return (
     <RestaurantLayoutWrapper activeTab="restaurant">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold">Restaurant</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Restaurant</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
             {usesRestaurantPortal(user)
               ? "Orders, kitchen, and menu"
               : "Quick access to restaurant operations"}
@@ -82,62 +81,60 @@ export default function RestaurantHubPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+          <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-muted-foreground">
+          <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+            <div className="shrink-0 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                   Pending today
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{pendingCount}</p>
-              </CardContent>
-            </Card>
-            {canUseKitchenDisplay(user) && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-muted-foreground">
+                </p>
+                <p className="text-2xl font-semibold tabular-nums text-slate-900 mt-1">
+                  {pendingCount}
+                </p>
+              </div>
+              {canUseKitchenDisplay(user) && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                     Kitchen queue
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{kitchenCount}</p>
-                </CardContent>
-              </Card>
-            )}
+                  </p>
+                  <p className="text-2xl font-semibold tabular-nums text-slate-900 mt-1">
+                    {kitchenCount}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap content-start gap-2">
+              {(canCreateRestaurantOrders(user) || canViewRestaurant(user)) && (
+                <Button asChild className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700">
+                  <Link href="/dashboard/restaurant/orders">
+                    <ClipboardList className="w-4 h-4 mr-2" />
+                    Orders
+                  </Link>
+                </Button>
+              )}
+              {canUseKitchenDisplay(user) && (
+                <Button asChild variant="secondary" className="h-10 rounded-xl">
+                  <Link href="/dashboard/restaurant/kitchen">
+                    <ChefHat className="w-4 h-4 mr-2" />
+                    Kitchen
+                  </Link>
+                </Button>
+              )}
+              {(canManageRestaurantMenu(user) || canViewRestaurant(user)) && (
+                <Button asChild variant="outline" className="h-10 rounded-xl">
+                  <Link href="/dashboard/restaurant/menu">
+                    <UtensilsCrossed className="w-4 h-4 mr-2" />
+                    Menu
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
         )}
-
-        <div className="flex flex-wrap gap-3">
-          {(canCreateRestaurantOrders(user) || canViewRestaurant(user)) && (
-            <Button asChild>
-              <Link href="/dashboard/restaurant/orders">
-                <ClipboardList className="w-4 h-4 mr-2" />
-                Orders
-              </Link>
-            </Button>
-          )}
-          {canUseKitchenDisplay(user) && (
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/restaurant/kitchen">
-                <ChefHat className="w-4 h-4 mr-2" />
-                Kitchen
-              </Link>
-            </Button>
-          )}
-          {(canManageRestaurantMenu(user) || canViewRestaurant(user)) && (
-            <Button asChild variant="outline">
-              <Link href="/dashboard/restaurant/menu">
-                <UtensilsCrossed className="w-4 h-4 mr-2" />
-                Menu
-              </Link>
-            </Button>
-          )}
-        </div>
       </div>
     </RestaurantLayoutWrapper>
   );

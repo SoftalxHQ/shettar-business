@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
 import { RestaurantOrderItemLine, RestaurantOrderNotes } from "@/components/restaurant-order-notes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -266,7 +266,7 @@ export default function RestaurantOrdersPage() {
     setOrdersLoading(true);
     try {
       const orderList = await fetchOrders(bid, {
-        today: todayOnly,
+        today: searchApplied.trim() ? false : todayOnly,
         status: statusFilter !== "all" ? statusFilter : undefined,
         payment_status: paymentFilter !== "all" ? paymentFilter : undefined,
         q: searchApplied.trim() || undefined,
@@ -582,8 +582,8 @@ export default function RestaurantOrdersPage() {
   };
 
   const ordersToolbar = (
-    <Card className="border-2 border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/30 dark:bg-indigo-950/20">
-      <CardContent className="pt-4 pb-4 space-y-3">
+    <div className="shrink-0 rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="p-3 space-y-2.5">
         <div className="flex flex-col lg:flex-row gap-2">
           <div className="relative flex-1 flex gap-2">
             <div className="relative flex-1">
@@ -593,16 +593,16 @@ export default function RestaurantOrdersPage() {
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && applySearch()}
-                className="pl-9 bg-background"
+                className="pl-9 h-9 bg-background"
               />
             </div>
-            <Button type="button" variant="secondary" onClick={applySearch}>
+            <Button type="button" variant="secondary" size="sm" className="h-9" onClick={applySearch}>
               Search
             </Button>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px] bg-background">
+              <SelectTrigger className="w-[130px] h-9 bg-background">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -615,7 +615,7 @@ export default function RestaurantOrdersPage() {
               </SelectContent>
             </Select>
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger className="w-[140px] bg-background">
+              <SelectTrigger className="w-[140px] h-9 bg-background">
                 <SelectValue placeholder="Payment" />
               </SelectTrigger>
               <SelectContent>
@@ -631,31 +631,34 @@ export default function RestaurantOrdersPage() {
               type="button"
               variant={todayOnly ? "default" : "outline"}
               size="sm"
+              className="h-9"
               onClick={() => setTodayOnly((v) => !v)}
             >
               {todayOnly ? "Today" : "All dates"}
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-2 flex-wrap border-t pt-3">
-          <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2 flex-wrap border-t border-slate-100 pt-2.5">
+          <p className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
             <span>
               {ordersLoading ? "Loading…" : `${orders.length} order${orders.length === 1 ? "" : "s"}`}
-              {searchApplied && (
+              {searchApplied ? (
                 <span className="ml-1">
-                  · matching &quot;{searchApplied}&quot;
+                  · matching &quot;{searchApplied}&quot; (all dates)
                 </span>
-              )}
+              ) : todayOnly ? (
+                <span className="ml-1">· today</span>
+              ) : null}
             </span>
             {cableLive && (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                 <Radio className="w-3 h-3" />
                 Live
               </span>
             )}
           </p>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground mr-1">View</span>
+            <span className="text-[11px] text-slate-500 mr-1">View</span>
             <Button
               type="button"
               size="sm"
@@ -688,265 +691,263 @@ export default function RestaurantOrdersPage() {
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   return (
     <RestaurantLayoutWrapper activeTab="orders">
-      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ClipboardList className="w-7 h-7 text-indigo-600" />
-              Restaurant orders
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-indigo-600" />
+              Orders
               {cableLive && (
-                <span className="inline-flex items-center gap-1 text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                   <Radio className="w-3 h-3" />
                   Live
                 </span>
               )}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Search and filter orders, or build a new order with menu grid/list
+            <p className="text-xs text-slate-500 mt-0.5">
+              Search and filter orders, or build a new order
             </p>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 h-10">
-            <TabsTrigger value="orders" className="gap-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+          <TabsList className={cn("shrink-0 grid h-9", canCreate ? "w-full max-w-sm grid-cols-2" : "w-fit")}>
+            <TabsTrigger value="orders" className="gap-2 text-sm">
               <ClipboardList className="w-4 h-4" />
               Orders
             </TabsTrigger>
             {canCreate && (
-              <TabsTrigger value="new-order" className="gap-2">
+              <TabsTrigger value="new-order" className="gap-2 text-sm">
                 <ShoppingCart className="w-4 h-4" />
                 New order
               </TabsTrigger>
             )}
           </TabsList>
 
-          <TabsContent value="orders" className="mt-4 space-y-4">
+          <TabsContent value="orders" className="mt-0 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden data-[state=inactive]:hidden">
             {ordersToolbar}
 
             {ordersLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-200 bg-white">
+                <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
               </div>
             ) : orders.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  No orders match your filters. Try &quot;All dates&quot; or clear search.
-                </CardContent>
-              </Card>
-            ) : ordersView === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {orders.map((order) => {
-                  const canMark =
-                    canMarkPaid &&
-                    order.payment_status === "unpaid" &&
-                    order.status !== "cancelled";
-                  const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
-                  const canCancelOrder =
-                    canCancel &&
-                    canCancelRestaurantOrderStatus(order) &&
-                    order.status !== "cancelled" &&
-                    order.status !== "served";
-                  return (
-                    <Card
-                      key={order.id}
-                      className={cn(
-                        "h-full transition-colors",
-                        highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
-                      )}
-                    >
-                      <CardContent className="pt-4">
-                        <OrderCardContent
-                          order={order}
-                          canMark={canMark}
-                          canRefundOrder={canRefundOrder}
-                          canCancelOrder={canCancelOrder}
-                          onPrint={() => void handlePrintOrder(order)}
-                          onMarkPaid={() => {
-                            setMarkPaidOrder(order);
-                            setMarkPaidMethod("cash");
-                          }}
-                          onRefund={() => openRefundDialog(order)}
-                          onCancel={() => setCancelOrderTarget(order)}
-                        />
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+              <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+                No orders match your filters. Try &quot;All dates&quot; or clear search.
               </div>
             ) : (
-              <div className="space-y-3">
-                {orders.map((order) => {
-                  const canMark =
-                    canMarkPaid &&
-                    order.payment_status === "unpaid" &&
-                    order.status !== "cancelled";
-                  const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
-                  const canCancelOrder =
-                    canCancel &&
-                    canCancelRestaurantOrderStatus(order) &&
-                    order.status !== "cancelled" &&
-                    order.status !== "served";
-                  return (
-                    <Card
-                      key={order.id}
-                      className={cn(
-                        "transition-colors",
-                        highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
-                      )}
-                    >
-                      <CardContent className="pt-4">
-                        <OrderCardContent
-                          order={order}
-                          canMark={canMark}
-                          canRefundOrder={canRefundOrder}
-                          canCancelOrder={canCancelOrder}
-                          onPrint={() => void handlePrintOrder(order)}
-                          onMarkPaid={() => {
-                            setMarkPaidOrder(order);
-                            setMarkPaidMethod("cash");
-                          }}
-                          onRefund={() => openRefundDialog(order)}
-                          onCancel={() => setCancelOrderTarget(order)}
-                        />
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+              <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3">
+                {ordersView === "grid" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {orders.map((order) => {
+                      const canMark =
+                        canMarkPaid &&
+                        order.payment_status === "unpaid" &&
+                        order.status !== "cancelled";
+                      const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
+                      const canCancelOrder =
+                        canCancel &&
+                        canCancelRestaurantOrderStatus(order) &&
+                        order.status !== "cancelled" &&
+                        order.status !== "served";
+                      return (
+                        <Card
+                          key={order.id}
+                          className={cn(
+                            "h-full transition-colors shadow-none",
+                            highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
+                          )}
+                        >
+                          <CardContent className="pt-4">
+                            <OrderCardContent
+                              order={order}
+                              canMark={canMark}
+                              canRefundOrder={canRefundOrder}
+                              canCancelOrder={canCancelOrder}
+                              onPrint={() => void handlePrintOrder(order)}
+                              onMarkPaid={() => {
+                                setMarkPaidOrder(order);
+                                setMarkPaidMethod("cash");
+                              }}
+                              onRefund={() => openRefundDialog(order)}
+                              onCancel={() => setCancelOrderTarget(order)}
+                            />
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {orders.map((order) => {
+                      const canMark =
+                        canMarkPaid &&
+                        order.payment_status === "unpaid" &&
+                        order.status !== "cancelled";
+                      const canRefundOrder = canRefundRestaurantOrderForOrder(user, order);
+                      const canCancelOrder =
+                        canCancel &&
+                        canCancelRestaurantOrderStatus(order) &&
+                        order.status !== "cancelled" &&
+                        order.status !== "served";
+                      return (
+                        <Card
+                          key={order.id}
+                          className={cn(
+                            "transition-colors shadow-none",
+                            highlightIds.has(order.id) && "ring-2 ring-indigo-400 bg-indigo-50/50"
+                          )}
+                        >
+                          <CardContent className="pt-4">
+                            <OrderCardContent
+                              order={order}
+                              canMark={canMark}
+                              canRefundOrder={canRefundOrder}
+                              canCancelOrder={canCancelOrder}
+                              onPrint={() => void handlePrintOrder(order)}
+                              onMarkPaid={() => {
+                                setMarkPaidOrder(order);
+                                setMarkPaidMethod("cash");
+                              }}
+                              onRefund={() => openRefundDialog(order)}
+                              onCancel={() => setCancelOrderTarget(order)}
+                            />
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
 
           {canCreate && (
-            <TabsContent value="new-order" className="mt-4 space-y-4">
+            <TabsContent value="new-order" className="mt-0 flex-1 min-h-0 overflow-hidden data-[state=inactive]:hidden">
               {menuLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <div className="h-full flex items-center justify-center rounded-xl border border-slate-200 bg-white">
+                  <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
                 </div>
               ) : availableItems.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    No menu items available. Add items in Menu first.
-                  </CardContent>
-                </Card>
+                <div className="h-full flex items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+                  No menu items available. Add items in Menu first.
+                </div>
               ) : (
-                <div className="grid lg:grid-cols-3 gap-4">
-                  <Card className="lg:col-span-2">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <CardTitle className="text-base">Menu</CardTitle>
-                        <div className="flex gap-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={menuView === "grid" ? "default" : "outline"}
-                            className="h-8 gap-1"
-                            onClick={() => setMenuView("grid")}
-                          >
-                            <Grid3X3 className="w-4 h-4" />
-                            Grid
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={menuView === "list" ? "default" : "outline"}
-                            className="h-8 gap-1"
-                            onClick={() => setMenuView("list")}
-                          >
-                            <LayoutList className="w-4 h-4" />
-                            List
-                          </Button>
-                        </div>
+                <div className="h-full min-h-0 grid lg:grid-cols-3 gap-3 overflow-hidden">
+                  <div className="lg:col-span-2 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+                    <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-slate-900">Menu</p>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={menuView === "grid" ? "default" : "outline"}
+                          className="h-8 gap-1"
+                          onClick={() => setMenuView("grid")}
+                        >
+                          <Grid3X3 className="w-4 h-4" />
+                          Grid
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={menuView === "list" ? "default" : "outline"}
+                          className="h-8 gap-1"
+                          onClick={() => setMenuView("list")}
+                        >
+                          <LayoutList className="w-4 h-4" />
+                          List
+                        </Button>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Input
-                          placeholder="Search menu by name or description…"
-                          value={menuSearch}
-                          onChange={(e) => setMenuSearch(e.target.value)}
-                        />
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                          <SelectTrigger className="sm:w-[180px]">
-                            <SelectValue placeholder="Category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All categories</SelectItem>
-                            {menu.map((c) => (
-                              <SelectItem key={c.id} value={String(c.id)}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div
-                        className={
-                          menuView === "grid"
-                            ? "grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[min(60vh,520px)] overflow-y-auto border rounded-lg p-2"
-                            : "max-h-[min(60vh,520px)] overflow-y-auto space-y-1 border rounded-lg p-2"
-                        }
-                      >
-                        {filteredMenuItems.length === 0 ? (
-                          <p className="text-sm text-muted-foreground col-span-full p-4 text-center">
-                            No items match your search.
-                          </p>
-                        ) : (
-                          filteredMenuItems.map((item) =>
-                            menuView === "grid" ? (
-                              <button
-                                key={item.id}
-                                type="button"
-                                className="text-left rounded-lg border p-2 hover:bg-muted hover:border-indigo-300 transition-colors"
-                                onClick={() => addToCart(item)}
-                              >
-                                <CachedMenuImage
-                                  src={item.image_url}
-                                  alt={item.name}
-                                  className="w-full h-20 object-cover rounded mb-1"
-                                  placeholderClassName="w-full h-20 rounded mb-1"
-                                />
-                                <p className="text-sm font-medium truncate">{item.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  ₦{Number(item.price).toLocaleString()}
-                                </p>
-                              </button>
-                            ) : (
-                              <button
-                                key={item.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted flex items-center gap-3 border border-transparent hover:border-indigo-200"
-                                onClick={() => addToCart(item)}
-                              >
-                                <CachedMenuImage
-                                  src={item.image_url}
-                                  alt={item.name}
-                                  className="w-12 h-12 rounded object-cover shrink-0"
-                                  placeholderClassName="w-12 h-12 rounded shrink-0"
-                                />
-                                <span className="flex-1 font-medium text-sm">{item.name}</span>
-                                <span className="text-sm font-semibold text-indigo-600">
-                                  ₦{Number(item.price).toLocaleString()}
-                                </span>
-                              </button>
-                            )
+                    </div>
+                    <div className="shrink-0 p-3 flex flex-col sm:flex-row gap-2 border-b border-slate-100">
+                      <Input
+                        placeholder="Search menu by name or description…"
+                        value={menuSearch}
+                        onChange={(e) => setMenuSearch(e.target.value)}
+                        className="h-9"
+                      />
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="sm:w-[180px] h-9">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All categories</SelectItem>
+                          {menu.map((c) => (
+                            <SelectItem key={c.id} value={String(c.id)}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex-1 min-h-0 overflow-y-auto p-3",
+                        menuView === "grid"
+                          ? "grid grid-cols-2 sm:grid-cols-3 gap-2 content-start"
+                          : "space-y-1"
+                      )}
+                    >
+                      {filteredMenuItems.length === 0 ? (
+                        <p className="text-sm text-slate-500 col-span-full p-4 text-center">
+                          No items match your search.
+                        </p>
+                      ) : (
+                        filteredMenuItems.map((item) =>
+                          menuView === "grid" ? (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className="text-left rounded-lg border border-slate-200 p-2 hover:bg-slate-50 hover:border-indigo-300 transition-colors"
+                              onClick={() => addToCart(item)}
+                            >
+                              <CachedMenuImage
+                                src={item.image_url}
+                                alt={item.name}
+                                className="w-full h-20 object-cover rounded mb-1"
+                                placeholderClassName="w-full h-20 rounded mb-1"
+                              />
+                              <p className="text-sm font-medium truncate">{item.name}</p>
+                              <p className="text-xs text-slate-500">
+                                ₦{Number(item.price).toLocaleString()}
+                              </p>
+                            </button>
+                          ) : (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-3 border border-transparent hover:border-indigo-200"
+                              onClick={() => addToCart(item)}
+                            >
+                              <CachedMenuImage
+                                src={item.image_url}
+                                alt={item.name}
+                                className="w-12 h-12 rounded object-cover shrink-0"
+                                placeholderClassName="w-12 h-12 rounded shrink-0"
+                              />
+                              <span className="flex-1 font-medium text-sm">{item.name}</span>
+                              <span className="text-sm font-semibold text-indigo-600">
+                                ₦{Number(item.price).toLocaleString()}
+                              </span>
+                            </button>
                           )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                        )
+                      )}
+                    </div>
+                  </div>
 
-                  <Card className="lg:col-span-1 h-fit sticky top-4">
-                    <CardHeader>
-                      <CardTitle className="text-base">Order details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  <div className="lg:col-span-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+                    <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+                      <p className="text-sm font-semibold text-slate-900">Order details</p>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -968,19 +969,20 @@ export default function RestaurantOrdersPage() {
                         </Button>
                       </div>
                       {orderMode === "table" ? (
-                        <div className="space-y-2">
-                          <Label>Table number</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Table number</Label>
                           <Input
                             value={tableLabel}
                             onChange={(e) => setTableLabel(e.target.value)}
                             placeholder="e.g. 12"
+                            className="h-9"
                           />
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          <Label>Checked-in room</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Checked-in room</Label>
                           {roomTargets.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-slate-500">
                               No checked-in guests.
                             </p>
                           ) : (
@@ -988,7 +990,7 @@ export default function RestaurantOrdersPage() {
                               value={selectedTargetId}
                               onValueChange={setSelectedTargetId}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Select room" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1005,13 +1007,17 @@ export default function RestaurantOrdersPage() {
                           )}
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Notes</Label>
+                        <Input
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       {cart.length > 0 && (
-                        <div className="space-y-2 border-t pt-3">
-                          <Label>Cart ({cart.length})</Label>
+                        <div className="space-y-2 border-t border-slate-100 pt-3">
+                          <Label className="text-xs">Cart ({cart.length})</Label>
                           {cart.map((line) => (
                             <div
                               key={line.menu_item_id}
@@ -1041,11 +1047,13 @@ export default function RestaurantOrdersPage() {
                               </div>
                             </div>
                           ))}
-                          <p className="font-bold text-right text-lg">
+                          <p className="font-semibold text-right text-base text-slate-900">
                             ₦{cartTotal.toLocaleString()}
                           </p>
                         </div>
                       )}
+                    </div>
+                    <div className="shrink-0 p-3 border-t border-slate-100">
                       <Button
                         className="w-full"
                         onClick={submitOrder}
@@ -1057,8 +1065,8 @@ export default function RestaurantOrdersPage() {
                           "Place order"
                         )}
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               )}
             </TabsContent>

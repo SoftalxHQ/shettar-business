@@ -40,24 +40,44 @@ export function canCancelRestaurantOrder(user: User | null | undefined) {
 }
 
 const REFUND_EARLY_STATUSES = ["pending", "preparing"] as const;
-const REFUND_WINDOW_MS = 30 * 60 * 1000;
 
-/** Paid orders in pending/preparing need cancel_orders (or admin); later statuses need refund permission. */
+/**
+ * Refund visibility:
+ * - unpaid / cancelled / fully refunded / nothing left to refund → hidden
+ * - served → hidden (too late once food is out)
+ * - pending / preparing → cancel_orders (or admin)
+ * - ready → refund permission (or admin)
+ */
 export function canRefundRestaurantOrderForOrder(
   user: User | null | undefined,
-  order: { status: string; payment_status?: string | null; served_at?: string | null }
+  order: {
+    status: string;
+    payment_status?: string | null;
+    served_at?: string | null;
+    items?: Array<{
+      quantity: number;
+      refunded_quantity?: number;
+      refundable_quantity?: number;
+    }>;
+  }
 ) {
   if (!isRestaurantModuleEnabled(user)) return false;
   const paid =
     order.payment_status === "paid" || order.payment_status === "partially_refunded";
-  if (!paid || order.status === "cancelled" || order.payment_status === "refunded") {
+  if (!paid || order.status === "cancelled" || order.status === "served" || order.payment_status === "refunded") {
     return false;
   }
-  if (order.status === "served" && order.served_at) {
-    if (Date.now() - new Date(order.served_at).getTime() > REFUND_WINDOW_MS) {
-      return false;
-    }
+
+  const hasRefundableItems = (order.items || []).some((item) => {
+    const remaining =
+      item.refundable_quantity ??
+      Math.max(0, item.quantity - (item.refunded_quantity ?? 0));
+    return remaining > 0;
+  });
+  if (order.items && order.items.length > 0 && !hasRefundableItems) {
+    return false;
   }
+
   if (REFUND_EARLY_STATUSES.includes(order.status as (typeof REFUND_EARLY_STATUSES)[number])) {
     return canCancelRestaurantOrder(user);
   }
