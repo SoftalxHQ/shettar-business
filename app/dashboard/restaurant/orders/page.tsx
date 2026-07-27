@@ -911,8 +911,8 @@ export default function RestaurantOrdersPage() {
                               <CachedMenuImage
                                 src={item.image_url}
                                 alt={item.name}
-                                className="w-full h-20 object-cover rounded mb-1"
-                                placeholderClassName="w-full h-20 rounded mb-1"
+                                className="w-full h-36 object-cover rounded mb-1"
+                                placeholderClassName="w-full h-36 rounded mb-1"
                               />
                               <p className="text-sm font-medium truncate">{item.name}</p>
                               <p className="text-xs text-slate-500">
