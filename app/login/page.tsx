@@ -4,23 +4,29 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
-import { login as loginAction, selectBusinessId as selectStoredBusinessId, selectBusinessName as selectStoredBusinessName, selectIsFirstTimeSetup } from "@/lib/store/slices/authSlice"
+import {
+  login as loginAction,
+  selectBusinessId as selectStoredBusinessId,
+  selectBusinessName as selectStoredBusinessName,
+  selectIsFirstTimeSetup,
+} from "@/lib/store/slices/authSlice"
 import {
   setAuthToken,
   setUserData,
   setStoredBusinessId,
   setStoredBusinessName,
 } from "@/lib/storage"
-import { Hotel, AlertCircle, Info } from "lucide-react"
+import { AlertCircle, Info } from "lucide-react"
 import { api } from "@/lib/api-client"
-import Image from "next/image"
 import { toast } from "sonner"
 import { getDefaultDashboardPath } from "@/lib/portal-access"
+
+const fieldClass =
+  "form-input w-full shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -39,7 +45,6 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    // If this is first time setup, business ID is required
     const businessIdToUse = storedBusinessId || businessId
 
     if (isFirstTimeSetup && !businessId) {
@@ -50,44 +55,47 @@ export default function LoginPage() {
 
     try {
       const data: any = await api.login(email, password, businessIdToUse)
-      console.log("Login API Response:", data)
 
       const user = {
-          id: data.data.id,
-          email: data.data.email,
-          name: `${data.data.first_name} ${data.data.last_name}`,
-          first_name: data.data.first_name,
-          last_name: data.data.last_name,
-          phone_number: data.data.phone_number,
-          address: data.data.address,
-          zip_code: data.data.zip_code,
-          profilePicture: data.data.avatar_url,
-          role: (() => {
-            const apiRole = (data.data.business?.role || "staff").toLowerCase()
-            const title = (data.data.business?.title || "").toLowerCase()
-            if (apiRole === "admin") return "admin"
-            if (title.includes("manager")) return "manager"
-            return apiRole
-          })() as "admin" | "manager" | "staff",
-          hotelId: data.data.business?.id.toString() || "",
-          hotelName: data.data.business?.name || "",
-          businessId: data.data.business?.business_unique_id || businessIdToUse || "",
-          permissions: data.data.business?.permissions,
-          restaurantEnabled: !!data.data.business?.restaurant_enabled,
-        }
+        id: data.data.id,
+        email: data.data.email,
+        name: `${data.data.first_name} ${data.data.last_name}`,
+        first_name: data.data.first_name,
+        last_name: data.data.last_name,
+        phone_number: data.data.phone_number,
+        address: data.data.address,
+        zip_code: data.data.zip_code,
+        profilePicture: data.data.avatar_url,
+        role: (() => {
+          const apiRole = (data.data.business?.role || "staff").toLowerCase()
+          const title = (data.data.business?.title || "").toLowerCase()
+          if (apiRole === "admin") return "admin"
+          if (title.includes("manager")) return "manager"
+          return apiRole
+        })() as "admin" | "manager" | "staff",
+        hotelId: data.data.business?.id.toString() || "",
+        hotelName: data.data.business?.name || "",
+        businessId: data.data.business?.business_unique_id || businessIdToUse || "",
+        permissions: data.data.business?.permissions,
+        restaurantEnabled: !!data.data.business?.restaurant_enabled,
+      }
       const resolvedBusinessId = data.data.business?.business_unique_id || businessIdToUse || ""
       const resolvedBusinessName = data.data.business?.name || "Your Business"
 
-      // Dispatch to Redux store
-      dispatch(loginAction({ user, token: data.token, businessId: resolvedBusinessId, businessName: resolvedBusinessName }))
+      dispatch(
+        loginAction({
+          user,
+          token: data.token,
+          businessId: resolvedBusinessId,
+          businessName: resolvedBusinessName,
+        }),
+      )
 
-      // Keep api-client.ts working (reads directly from localStorage)
       setAuthToken(data.token)
       setUserData(user)
       setStoredBusinessId(resolvedBusinessId)
       setStoredBusinessName(resolvedBusinessName)
 
-      // Use backend message if available
       const backendMessage = data?.status?.message || "Signed in successfully"
       toast.success(backendMessage, {
         description: `Welcome back to ${resolvedBusinessName}, ${user.name}!`,
@@ -103,22 +111,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="h-dvh overflow-hidden grid lg:grid-cols-2">
       {/* Left side - Login form */}
-      <div className="flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md space-y-8">
-          {/* Logo and branding */}
+      <div className="h-full min-h-0 overflow-y-auto flex items-center justify-center p-6 sm:p-8 bg-white">
+        <div className="w-full max-w-md space-y-8 py-4">
           <div className="space-y-4">
-            <Image 
-              src="/shettar-logo.png" 
-              alt="Shettar Logo" 
-              width={48} 
-              height={48} 
+            <Image
+              src="/shettar-logo.png"
+              alt="Shettar Logo"
+              width={48}
+              height={48}
               className="mb-4"
+              priority
             />
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-800">
-                {isFirstTimeSetup ? "Welcome to Shettar! ✨" : "Welcome back! ✨"}
+                {isFirstTimeSetup ? "Welcome to Shettar" : "Welcome back"}
               </h1>
               <p className="text-slate-500 mt-2">
                 {isFirstTimeSetup
@@ -131,80 +139,104 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-rose-100 text-rose-600 px-3 py-2 rounded text-sm mb-4 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
               </div>
             )}
 
-            {/* Business ID field - only shown on first time setup */}
             {isFirstTimeSetup && (
               <div className="space-y-2">
-                <Label htmlFor="businessId" className="block text-sm font-medium mb-1 text-slate-800">Business ID</Label>
+                <Label htmlFor="businessId" className="block text-sm font-medium mb-1 text-slate-800">
+                  Business ID
+                </Label>
                 <input
                   id="businessId"
-                  className="form-input w-full font-mono uppercase shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
+                  className={`${fieldClass} font-mono uppercase`}
                   type="text"
                   placeholder="e.g., GPHF8A2C1"
                   value={businessId}
                   onChange={(e) => setBusinessId(e.target.value.toUpperCase())}
                   required
+                  autoComplete="organization"
                 />
                 <div className="text-xs text-slate-500 flex items-start gap-1">
-                  <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
                   <span>
-                    Enter your business unique ID. This device will be bound to this business. Contact your
-                    administrator if you don't have this ID.
+                    Enter your business unique ID. This device will be bound to this business. Contact
+                    your administrator if you don&apos;t have this ID.
                   </span>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="block text-sm font-medium mb-1 text-slate-800">Email Address</Label>
+              <Label htmlFor="email" className="block text-sm font-medium mb-1 text-slate-800">
+                Email Address
+              </Label>
               <input
                 id="email"
-                className="form-input w-full shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
+                className={fieldClass}
                 type="email"
                 placeholder="your.email@hotel.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="username"
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="block text-sm font-medium mb-1 text-slate-800">Password</Label>
-                <Link href="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                <Label htmlFor="password" className="block text-sm font-medium mb-1 text-slate-800">
+                  Password
+                </Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                >
                   Forgot password?
                 </Link>
               </div>
               <input
                 id="password"
-                className="form-input w-full shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
+                className={fieldClass}
                 type="password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
 
-            <Button type="submit" className="w-full btn bg-indigo-500 hover:bg-indigo-600 text-white shadow-none rounded-md" disabled={isLoading}>
-              {isLoading ? "Signing in..." : isFirstTimeSetup ? "Set Up & Sign In" : "Sign In"}
+            <Button
+              type="submit"
+              className="w-full btn bg-indigo-500 hover:bg-indigo-600 text-white shadow-none rounded-md"
+              disabled={isLoading}
+            >
+              {isLoading
+                ? "Signing in..."
+                : isFirstTimeSetup
+                  ? "Set Up & Sign In"
+                  : "Sign In"}
             </Button>
           </form>
 
-          {/* Additional Links/Footer Info */}
           <div className="pt-4 mt-6 border-t border-slate-100 space-y-4">
             {isFirstTimeSetup && (
               <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-                <p className="text-sm text-emerald-800 font-medium mb-1">Don't have a business account?</p>
+                <p className="text-sm text-emerald-800 font-medium mb-1">
+                  Don&apos;t have a business account?
+                </p>
                 <p className="text-xs text-emerald-600 mb-3">
                   Create your business and administrator account to get started with Shettar.
                 </p>
                 <Link href="/signup">
-                  <Button type="button" variant="outline" className="w-full text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 bg-white">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 bg-white"
+                  >
                     Create Business Account
                   </Button>
                 </Link>
@@ -214,31 +246,30 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right side - Business cover image */}
-      <div className="hidden lg:block relative overflow-hidden">
-        {/* Background Image with Overlay */}
+      {/* Right side - Formal brand panel */}
+      <div className="hidden lg:block relative h-full min-h-0 overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-10000 hover:scale-105"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920')",
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920')",
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 via-indigo-800/80 to-violet-900/90" />
 
-        {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-10 left-10 w-64 h-64 border border-white rounded-full" />
           <div className="absolute bottom-20 right-20 w-96 h-96 border border-white rounded-full" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:40px_40px]" />
         </div>
 
-        <div className="relative h-full flex flex-col items-center justify-center p-16 text-white text-center">
-          <div className="mb-8 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl animate-in zoom-in duration-700">
-            <Image 
-              src="/shettar-logo.png" 
-              alt="Shettar Logo" 
-              width={64} 
-              height={64} 
+        <div className="relative h-full flex flex-col items-center justify-center p-12 xl:p-16 text-white text-center overflow-y-auto">
+          <div className="mb-8 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
+            <Image
+              src="/shettar-logo.png"
+              alt="Shettar Logo"
+              width={64}
+              height={64}
               className="brightness-0 invert"
             />
           </div>
@@ -249,36 +280,40 @@ export default function LoginPage() {
           </h2>
 
           <p className="text-lg xl:text-xl text-indigo-100/90 max-w-md mb-12 leading-relaxed text-balance">
-            Elevate your guest experience and streamline operations with Shettar's intelligent hospitality cloud.
+            Elevate your guest experience and streamline operations with Shettar&apos;s intelligent
+            hospitality cloud.
           </p>
 
           <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
             <div className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10">
               <div className="text-2xl font-bold text-white mb-0.5">Real-time</div>
-              <div className="text-xs text-indigo-200 uppercase tracking-widest font-semibold">Analytics</div>
+              <div className="text-xs text-indigo-200 uppercase tracking-widest font-semibold">
+                Analytics
+              </div>
             </div>
             <div className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10">
               <div className="text-2xl font-bold text-white mb-0.5">Automated</div>
-              <div className="text-xs text-indigo-200 uppercase tracking-widest font-semibold">Bookings</div>
+              <div className="text-xs text-indigo-200 uppercase tracking-widest font-semibold">
+                Bookings
+              </div>
             </div>
           </div>
 
           {isFirstTimeSetup && (
-            <div className="mt-12 p-6 bg-indigo-500/20 backdrop-blur-md rounded-2xl max-w-md border border-white/10 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <h3 className="font-semibold mb-2 flex items-center justify-center gap-2 text-indigo-100">
-                <span className="p-1 bg-indigo-400/30 rounded">🔐</span> Device-First Security
-              </h3>
+            <div className="mt-12 p-6 bg-indigo-500/20 backdrop-blur-md rounded-2xl max-w-md border border-white/10 shadow-xl">
+              <h3 className="font-semibold mb-2 text-indigo-100">Device-First Security</h3>
               <p className="text-sm text-indigo-50/80 leading-relaxed">
-                This device will be securely bound to your business after your first login. You won't need to enter
-                your business ID on this machine again.
+                This device will be securely bound to your business after your first login. You
+                won&apos;t need to enter your business ID on this machine again.
               </p>
             </div>
           )}
         </div>
 
-        {/* Footer branding */}
-        <div className="absolute bottom-8 left-0 right-0 text-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-medium">Powered by Shettar Intelligence</p>
+        <div className="absolute bottom-8 left-0 right-0 text-center opacity-40 pointer-events-none">
+          <p className="text-xs tracking-widest uppercase font-medium">
+            Powered by Shettar Intelligence
+          </p>
         </div>
       </div>
     </div>
