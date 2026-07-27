@@ -32,8 +32,7 @@ import { reservationGuestName, reservationEmergencyName, reservationEmergencyPho
 import {
   BookingReceiptBusiness,
   PAYMENT_METHOD_LABELS,
-  buildBookingReceiptHtml,
-  printBookingReceipt,
+  printBookingReceiptSmart,
 } from "@/lib/booking-receipt"
 
 interface Reservation {
@@ -306,7 +305,7 @@ function BookingsContent() {
   const handlePrintReceipt = (reservation: Reservation) => {
     if (!reservation) return
 
-    const receiptHtml = buildBookingReceiptHtml({
+    void printBookingReceiptSmart({
       reservation,
       business: {
         name: businessName || businessDetails?.name,
@@ -325,8 +324,6 @@ function BookingsContent() {
           reservation.checked_out_at
       ),
     })
-
-    printBookingReceipt(receiptHtml)
   }
 
   if (user && user.role !== "admin" && !user.permissions?.bookings?.view) {

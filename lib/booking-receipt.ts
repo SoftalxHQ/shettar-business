@@ -1,5 +1,9 @@
 import { isTauri, printHtml } from "@/lib/tauri"
 import { getAuthToken } from "@/lib/storage"
+import {
+  getSavedPrinterPreference,
+  hasConfiguredThermalPrinter,
+} from "@/lib/thermal-printer"
 
 export const PAYMENT_METHOD_LABELS: Record<number, string> = {
   0: "Wallet",
@@ -514,6 +518,21 @@ export function printBookingReceipt(html: string): void {
   printThermalReceipt(html)
 }
 
+/**
+ * Prefer a configured ESC/POS thermal printer in the Tauri desktop app.
+ * Falls back to the HTML / system print dialog otherwise.
+ */
+export async function printBookingReceiptEscPos(
+  options: BookingReceiptOptions
+): Promise<boolean> {
+  if (!hasConfiguredThermalPrinter()) return false
+  const pref = getSavedPrinterPreference()
+  if (!pref) return false
+  const { bookingReceiptToOps, invokePrintOps } = await import("@/lib/thermal-printer")
+  await invokePrintOps(pref, bookingReceiptToOps(options, pref.width))
+  return true
+}
+
 export function printThermalReceipt(html: string): void {
   if (isTauri()) {
     void printHtml(html)
@@ -571,4 +590,19 @@ export function printThermalReceipt(html: string): void {
         })
     )
   ).then(() => setTimeout(triggerPrint, 200))
+}
+
+/**
+ * Print a booking receipt via ESC/POS when a thermal printer is configured,
+ * otherwise fall back to the HTML thermal ticket + system print dialog.
+ */
+export async function printBookingReceiptSmart(
+  options: BookingReceiptOptions
+): Promise<void> {
+  try {
+    if (await printBookingReceiptEscPos(options)) return
+  } catch (err) {
+    console.error("ESC/POS print failed, falling back to system print:", err)
+  }
+  printThermalReceipt(buildBookingReceiptHtml(options))
 }

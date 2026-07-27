@@ -506,7 +506,7 @@ export default function RestaurantOrdersPage() {
       if (details) setBusinessDetails(details);
     }
 
-    printRestaurantOrderReceipt({
+    void printRestaurantOrderReceipt({
       order,
       business: businessReceiptContext(businessName, details),
     });

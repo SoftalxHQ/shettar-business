@@ -40,6 +40,7 @@ import {
   Bell,
   Settings,
   Landmark,
+  Printer,
   Activity,
   MessageSquare,
   HelpCircle,
@@ -82,6 +83,7 @@ const adminNavigation = [
   { name: "Support", href: "/dashboard/support", icon: HelpCircle },
   { name: "Settings", href: "/dashboard/business/settings", icon: Settings },
   { name: "Bank Details", href: "/dashboard/business/settings/bank", icon: Landmark },
+  { name: "Printer", href: "/dashboard/business/settings/printer", icon: Printer },
 ]
 
 export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
@@ -237,6 +239,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   // Admins already returned true above; managers need settings or guest-policy access.
                   return !!user.permissions?.settings?.view || canViewGuestPolicies(user);
                 case "Bank Details":
+                  return !!user.permissions?.settings?.view;
+                case "Printer":
                   return !!user.permissions?.settings?.view;
                 default:
                   return true;

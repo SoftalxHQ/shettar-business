@@ -24,8 +24,7 @@ import {
 import {
   BookingReceiptBusiness,
   PAYMENT_METHOD_LABELS,
-  buildBookingReceiptHtml,
-  printBookingReceipt,
+  printBookingReceiptSmart,
 } from "@/lib/booking-receipt"
 
 interface Reservation {
@@ -270,7 +269,7 @@ function ScanContent() {
   const handlePrintReceipt = () => {
     if (!reservation) return
 
-    const receiptHtml = buildBookingReceiptHtml({
+    void printBookingReceiptSmart({
       reservation,
       business: {
         name: businessName || businessDetails?.name,
@@ -286,8 +285,6 @@ function ScanContent() {
       detailed: true,
       footerMessage: "Thank you for your stay!",
     })
-
-    printBookingReceipt(receiptHtml)
   }
 
   const isWithinReservationWindow = () => {

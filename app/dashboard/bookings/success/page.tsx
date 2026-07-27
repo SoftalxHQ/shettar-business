@@ -15,10 +15,9 @@ import {
   BookingReceiptBusiness,
   BookingReceiptReservation,
   PAYMENT_METHOD_LABELS,
-  buildBookingReceiptHtml,
   businessReceiptContext,
   fetchBusinessReceiptDetails,
-  printBookingReceipt,
+  printBookingReceiptSmart,
 } from "@/lib/booking-receipt"
 import { BookingReceiptCard } from "@/components/booking-receipt-card"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -116,15 +115,13 @@ function BookingSuccessContent() {
         return
       }
 
-      const receiptHtml = buildBookingReceiptHtml({
+      await printBookingReceiptSmart({
         reservation: target,
         business: businessReceiptContext(businessName, businessDetails),
         guestName: reservationGuestName(target),
         paymentMethodLabel: PAYMENT_METHOD_LABELS[target.payment_method] || "Unknown",
         detailed: Boolean(target.room_number),
       })
-
-      printBookingReceipt(receiptHtml)
     } finally {
       setIsPrinting(false)
     }

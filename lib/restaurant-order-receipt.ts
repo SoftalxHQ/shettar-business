@@ -4,6 +4,12 @@ import {
   THERMAL_RECEIPT_STYLES,
   printThermalReceipt,
 } from "@/lib/booking-receipt"
+import {
+  getSavedPrinterPreference,
+  hasConfiguredThermalPrinter,
+  invokePrintOps,
+  restaurantOrderReceiptToOps,
+} from "@/lib/thermal-printer"
 
 export type RestaurantOrderReceiptOptions = {
   order: RestaurantOrder
@@ -245,7 +251,20 @@ export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptO
 </html>`
 }
 
-export function printRestaurantOrderReceipt(options: RestaurantOrderReceiptOptions): void {
+export async function printRestaurantOrderReceipt(
+  options: RestaurantOrderReceiptOptions
+): Promise<void> {
+  try {
+    if (hasConfiguredThermalPrinter()) {
+      const pref = getSavedPrinterPreference()
+      if (pref) {
+        await invokePrintOps(pref, restaurantOrderReceiptToOps(options, pref.width))
+        return
+      }
+    }
+  } catch (err) {
+    console.error("ESC/POS print failed, falling back to system print:", err)
+  }
   printThermalReceipt(buildRestaurantOrderReceiptHtml(options))
 }
 

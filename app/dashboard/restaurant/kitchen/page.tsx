@@ -182,7 +182,7 @@ export default function RestaurantKitchenPage() {
       if (details) setBusinessDetails(details);
     }
 
-    printRestaurantOrderReceipt({
+    void printRestaurantOrderReceipt({
       order,
       business: businessReceiptContext(businessName, details),
     });
