@@ -160,13 +160,6 @@ jobs:
               echo "_Staging build — for testing only._"
               echo ""
             fi
-            echo "### Highlights"
-            echo ""
-            echo "- ESC/POS thermal receipt printing for bookings, restaurant orders, and kitchen"
-            echo "- Printer settings: USB/serial discovery, network printers (\`IP:9100\`), test print, cash drawer"
-            echo "- Restored brand favicons and desktop launch icons"
-            echo "- Desktop download installers include Linux \`.deb\`"
-            echo ""
             echo "### Changes"
             echo ""
             if [ -n "${PREV_TAG:-}" ]; then
@@ -184,7 +177,7 @@ jobs:
             echo "- Windows"
             echo "- Linux (AppImage, .deb, .rpm)"
             echo ""
-            echo "After installing, open **Settings → Printer** to configure a thermal receipt printer."
+            echo "Configure a thermal receipt printer under **Settings → Printer** after installing."
           } > /tmp/release-notes.md
 
           {
