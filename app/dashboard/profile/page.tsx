@@ -1,18 +1,30 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
-import { ArrowLeft, User, Mail, Phone, MapPin, Building2, Save, Lock, Eye, EyeOff, Camera } from "lucide-react"
-import Link from "next/link"
-import { useState, useEffect } from "react"
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  Save,
+  Lock,
+  Eye,
+  EyeOff,
+  Camera,
+} from "lucide-react"
 import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
-import Image from "next/image"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuth()
@@ -41,13 +53,11 @@ export default function ProfilePage() {
     confirm_password: "",
   })
 
-  // Update formData when user loads or changes
   useEffect(() => {
     if (user) {
-      // Parse name if first_name/last_name not available
-      const nameParts = user.name?.split(' ') || []
+      const nameParts = user.name?.split(" ") || []
       const firstName = user.first_name || nameParts[0] || ""
-      const lastName = user.last_name || nameParts.slice(1).join(' ') || ""
+      const lastName = user.last_name || nameParts.slice(1).join(" ") || ""
 
       setFormData({
         first_name: firstName,
@@ -61,7 +71,7 @@ export default function ProfilePage() {
   }, [user])
 
   const initials = user?.name
-    .split(" ")
+    ?.split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -70,19 +80,16 @@ export default function ProfilePage() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file")
       return
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image must be less than 5MB")
       return
     }
 
-    // Store file and create preview
     setSelectedAvatar(file)
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -97,17 +104,15 @@ export default function ProfilePage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      // Create FormData to send both profile data and avatar in one request
       const submitData = new FormData()
-      submitData.append('user[first_name]', formData.first_name)
-      submitData.append('user[last_name]', formData.last_name)
-      submitData.append('user[phone_number]', formData.phone_number)
-      submitData.append('user[address]', formData.address)
-      submitData.append('user[zip_code]', formData.zip_code)
+      submitData.append("user[first_name]", formData.first_name)
+      submitData.append("user[last_name]", formData.last_name)
+      submitData.append("user[phone_number]", formData.phone_number)
+      submitData.append("user[address]", formData.address)
+      submitData.append("user[zip_code]", formData.zip_code)
 
-      // Add avatar if selected
       if (selectedAvatar) {
-        submitData.append('avatar', selectedAvatar)
+        submitData.append("avatar", selectedAvatar)
       }
 
       const response = await fetch(`${API_URL}/api/v1/users/profile`, {
@@ -125,17 +130,26 @@ export default function ProfilePage() {
         setSelectedAvatar(null)
         setAvatarPreview(null)
 
-        // Reload to get fresh data everywhere
-        // Update user in context with new avatar
         let profilePic = data.user.avatar_url || user?.profilePicture
-        if (profilePic && profilePic.startsWith('/')) {
+        if (profilePic && profilePic.startsWith("/")) {
           profilePic = `${API_URL}${profilePic}`
         }
-        updateUser({ profilePicture: profilePic })
+        updateUser({
+          profilePicture: profilePic,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          name: `${formData.first_name} ${formData.last_name}`.trim(),
+          phone_number: formData.phone_number,
+          address: formData.address,
+          zip_code: formData.zip_code,
+        })
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
-          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+          if (
+            errorData.errors?.[0]?.id === "expiration" ||
+            errorData.message === "Signature has expired"
+          ) {
             toast.error("Session expired. Please login again.")
             logout()
             return
@@ -153,7 +167,6 @@ export default function ProfilePage() {
   }
 
   const handlePasswordChange = async () => {
-    // Validate passwords
     if (passwordData.new_password !== passwordData.confirm_password) {
       toast.error("New passwords don't match!")
       return
@@ -192,7 +205,10 @@ export default function ProfilePage() {
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
-          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+          if (
+            errorData.errors?.[0]?.id === "expiration" ||
+            errorData.message === "Signature has expired"
+          ) {
             toast.error("Session expired. Please login again.")
             logout()
             return
@@ -209,356 +225,441 @@ export default function ProfilePage() {
     }
   }
 
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setSelectedAvatar(null)
+    setAvatarPreview(null)
+    if (user) {
+      const nameParts = user.name?.split(" ") || []
+      setFormData({
+        first_name: user.first_name || nameParts[0] || "",
+        last_name: user.last_name || nameParts.slice(1).join(" ") || "",
+        email: user.email || "",
+        phone_number: user.phone_number || "",
+        address: user.address || "",
+        zip_code: user.zip_code || "",
+      })
+    }
+  }
+
   return (
     <DashboardLayout activeTab="profile">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header with back button */}
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
-            <p className="text-muted-foreground">Manage your account information</p>
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+              Dashboard
+            </Link>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Profile</h1>
+            <p className="text-xs text-slate-500">Manage your account details and password</p>
           </div>
+
+          {!isEditing && !isChangingPassword && (
+            <Button
+              onClick={() => setIsEditing(true)}
+              size="sm"
+              className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 shrink-0"
+            >
+              Edit profile
+            </Button>
+          )}
         </div>
 
-        {/* Profile Header Card */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
-                  {avatarPreview ? (
-                    <Image
-                      src={avatarPreview}
-                      alt="Preview"
-                      width={80}
-                      height={80}
-                      className="rounded-full object-cover"
-                      unoptimized
-                    />
-                  ) : (user?.profilePicture && !imgError) ? (
-                    <Image
-                      src={user.profilePicture}
-                      alt={user.name}
-                      width={80}
-                      height={80}
-                      className="rounded-full object-cover"
-                      onError={() => setImgError(true)}
-                      unoptimized={user.profilePicture.startsWith('data:')}
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-purple-100 text-purple-700 text-2xl font-semibold">
-                      {initials}
-                    </AvatarFallback>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* Main column */}
+            <div className="flex-1 min-w-0 space-y-3">
+              {/* Identity */}
+              <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
+                    <Avatar className="h-16 w-16">
+                      {avatarPreview ? (
+                        <Image
+                          src={avatarPreview}
+                          alt="Preview"
+                          width={64}
+                          height={64}
+                          className="rounded-full object-cover"
+                          unoptimized
+                        />
+                      ) : user?.profilePicture && !imgError ? (
+                        <Image
+                          src={user.profilePicture}
+                          alt={user.name}
+                          width={64}
+                          height={64}
+                          className="rounded-full object-cover"
+                          onError={() => setImgError(true)}
+                          unoptimized={user.profilePicture.startsWith("data:")}
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xl font-semibold">
+                          {initials}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+
+                    {isEditing && (
+                      <>
+                        <label
+                          htmlFor="avatar-upload"
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full cursor-pointer hover:bg-black/60 transition-colors"
+                        >
+                          <Camera className="w-5 h-5 text-white" />
+                        </label>
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarSelect}
+                          className="hidden"
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base font-semibold text-slate-900 truncate">{user?.name}</h2>
+                    <p className="text-xs text-slate-500 capitalize truncate">
+                      {user?.role} · {user?.hotelName}
+                    </p>
+                    {avatarPreview && (
+                      <p className="text-[11px] text-emerald-600 mt-1">
+                        New photo selected — save to apply
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Personal information */}
+              <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-900">Personal information</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Name, contact, and address</p>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="first_name" className="text-xs">
+                        First name
+                      </Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="first_name"
+                          value={formData.first_name}
+                          onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                          disabled={!isEditing}
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="last_name" className="text-xs">
+                        Last name
+                      </Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="last_name"
+                          value={formData.last_name}
+                          onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                          disabled={!isEditing}
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs">
+                        Email
+                      </Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          className="h-9 pl-9 bg-slate-50"
+                          title="Email cannot be changed"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400">Email cannot be changed</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone_number" className="text-xs">
+                        Phone
+                      </Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="phone_number"
+                          type="tel"
+                          value={formData.phone_number}
+                          onChange={(e) =>
+                            setFormData({ ...formData, phone_number: e.target.value })
+                          }
+                          disabled={!isEditing}
+                          placeholder="+234..."
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="address" className="text-xs">
+                        Address
+                      </Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="address"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="Street address"
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="zip_code" className="text-xs">
+                        Zip code
+                      </Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          id="zip_code"
+                          value={formData.zip_code}
+                          onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="Zip / postal"
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {isEditing && (
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        {isSaving ? (
+                          <LoadingSpinner size={16} className="text-white" />
+                        ) : (
+                          <>
+                            <Save className="w-3.5 h-3.5 mr-1.5" />
+                            Save changes
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={cancelEditing}
+                        variant="outline"
+                        className="h-9 rounded-xl"
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   )}
-                </Avatar>
-
-                {/* Upload button - only in edit mode */}
-                {isEditing && (
-                  <>
-                    <label
-                      htmlFor="avatar-upload"
-                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full cursor-pointer hover:bg-black/60 transition-colors"
-                    >
-                      <Camera className="w-6 h-6 text-white" />
-                    </label>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarSelect}
-                      className="hidden"
-                    />
-                  </>
-                )}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold">{user?.name}</h2>
-                <p className="text-muted-foreground capitalize">
-                  {user?.role} • {user?.hotelName}
-                </p>
-                {avatarPreview && (
-                  <p className="text-xs text-green-600 mt-1">
-                    ✓ New photo selected - click Save to update
-                  </p>
-                )}
-              </div>
-              {!isEditing && !isChangingPassword && (
-                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Update your personal details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="first_name"
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    disabled={!isEditing}
-                    className="pl-9"
-                  />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="last_name"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    disabled={!isEditing}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    disabled
-                    className="pl-9 bg-muted"
-                    title="Email cannot be changed"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone_number">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone_number"
-                    type="tel"
-                    value={formData.phone_number}
-                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder="+1 (555) 000-0000"
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zip_code">Zip Code</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="zip_code"
-                    value={formData.zip_code}
-                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder="Enter zip code"
-                    className="pl-9"
-                  />
-                </div>
-              </div>
+              </section>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your address"
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            {isEditing && (
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleSave} className="flex-1" disabled={isSaving}>
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsEditing(false)
-                    setSelectedAvatar(null)
-                    setAvatarPreview(null)
-                  }}
-                  variant="outline"
-                  className="flex-1 bg-transparent"
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Change Password Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="w-5 h-5" />
-              Change Password
-            </CardTitle>
-            <CardDescription>Update your password to keep your account secure</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isChangingPassword ? (
-              <Button onClick={() => setIsChangingPassword(true)} variant="outline">
-                Change Password
-              </Button>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="current_password">Current Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            {/* Side column */}
+            <div className="lg:w-80 xl:w-96 shrink-0 space-y-3">
+              {/* Work info */}
+              <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-900">Work information</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Role and property</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Role</Label>
                     <Input
-                      id="current_password"
-                      type={showCurrentPassword ? "text" : "password"}
-                      value={passwordData.current_password}
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, current_password: e.target.value })
-                      }
-                      placeholder="Enter current password"
-                      className="pl-9 pr-10"
+                      value={user?.role || ""}
+                      disabled
+                      className="h-9 capitalize bg-slate-50"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    >
-                      {showCurrentPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="new_password">New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="new_password"
-                      type={showNewPassword ? "text" : "password"}
-                      value={passwordData.new_password}
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, new_password: e.target.value })
-                      }
-                      placeholder="Enter new password"
-                      className="pl-9 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Property</Label>
+                    <Input value={user?.hotelName || ""} disabled className="h-9 bg-slate-50" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Must be at least 8 characters long
+                  <p className="text-[11px] text-slate-400">
+                    Contact your administrator to update work details.
                   </p>
                 </div>
+              </section>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w- 4 text-muted-foreground" />
-                    <Input
-                      id="confirm_password"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={passwordData.confirm_password}
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, confirm_password: e.target.value })
-                      }
-                      placeholder="Confirm new password"
-                      className="pl-9 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
+              {/* Password */}
+              <section className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <Lock className="w-3.5 h-3.5 text-indigo-600" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-900">Password</h2>
+                    <p className="text-xs text-slate-500">Keep your account secure</p>
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button onClick={handlePasswordChange} className="flex-1" disabled={isSaving}>
-                    {isSaving ? "Changing..." : "Change Password"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setIsChangingPassword(false)
-                      setPasswordData({ current_password: "", new_password: "", confirm_password: "" })
-                    }}
-                    variant="outline"
-                    className="flex-1 bg-transparent"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                <div className="p-4 space-y-3">
+                  {!isChangingPassword ? (
+                    <Button
+                      onClick={() => setIsChangingPassword(true)}
+                      variant="outline"
+                      className="w-full h-9 rounded-xl"
+                    >
+                      Change password
+                    </Button>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="current_password" className="text-xs">
+                          Current password
+                        </Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                          <Input
+                            id="current_password"
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={passwordData.current_password}
+                            onChange={(e) =>
+                              setPasswordData({
+                                ...passwordData,
+                                current_password: e.target.value,
+                              })
+                            }
+                            placeholder="Current password"
+                            className="h-9 pl-9 pr-9"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
 
-        {/*Work Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Information</CardTitle>
-            <CardDescription>Your role and property details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Input value={user?.role || ""} disabled className="capitalize bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <Label>Property</Label>
-                <Input value={user?.hotelName || ""} disabled className="bg-muted" />
-              </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="new_password" className="text-xs">
+                          New password
+                        </Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                          <Input
+                            id="new_password"
+                            type={showNewPassword ? "text" : "password"}
+                            value={passwordData.new_password}
+                            onChange={(e) =>
+                              setPasswordData({ ...passwordData, new_password: e.target.value })
+                            }
+                            placeholder="At least 8 characters"
+                            className="h-9 pl-9 pr-9"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                          >
+                            {showNewPassword ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="confirm_password" className="text-xs">
+                          Confirm password
+                        </Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                          <Input
+                            id="confirm_password"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={passwordData.confirm_password}
+                            onChange={(e) =>
+                              setPasswordData({
+                                ...passwordData,
+                                confirm_password: e.target.value,
+                              })
+                            }
+                            placeholder="Confirm new password"
+                            className="h-9 pl-9 pr-9"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          onClick={handlePasswordChange}
+                          disabled={isSaving}
+                          className="flex-1 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          {isSaving ? (
+                            <LoadingSpinner size={16} className="text-white" />
+                          ) : (
+                            "Update"
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setIsChangingPassword(false)
+                            setPasswordData({
+                              current_password: "",
+                              new_password: "",
+                              confirm_password: "",
+                            })
+                          }}
+                          variant="outline"
+                          className="h-9 rounded-xl"
+                          disabled={isSaving}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Contact your administrator to update work-related information
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )
