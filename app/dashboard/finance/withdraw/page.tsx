@@ -8,7 +8,6 @@ import { logout as storageLogout } from "@/lib/storage"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle, ArrowLeft, Wallet, Building2 } from "lucide-react"
@@ -142,202 +141,237 @@ export default function WithdrawalPage() {
 
   return (
     <DashboardLayout activeTab="finance">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div>
-          <Button variant="ghost" className="mb-4 pl-0" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Finance
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Withdraw Funds</h1>
-          <p className="text-muted-foreground">Transfer funds to your verified company account</p>
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-1 h-7 -ml-2 px-2 text-xs text-slate-500 hover:text-slate-800"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              Back to Finance
+            </Button>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Withdraw funds</h1>
+            <p className="text-xs text-slate-500">Transfer to a verified company account</p>
+          </div>
         </div>
 
-        <Card className="border-0 shadow-lg bg-white/95 backdrop-blur">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-indigo-600" />
-              Available Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-slate-900">{fmt(balance)}</div>
-            <p className="text-sm text-muted-foreground mt-1">Funds available for immediate withdrawal</p>
-          </CardContent>
-        </Card>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-xl flex-col gap-3 pb-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-4 py-3">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Available balance</p>
+                <Wallet className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{fmt(balance)}</p>
+              <p className="mt-1 text-[11px] text-slate-500">Ready for immediate withdrawal</p>
+            </div>
 
-        <form onSubmit={handleWithdraw}>
-          <Card className="border-0 shadow-lg bg-white/95 backdrop-blur">
-            <CardHeader>
-              <CardTitle>{isOtpStep ? "Verify Withdrawal" : "Withdrawal Details"}</CardTitle>
-              <CardDescription>
-                {isOtpStep ? "Enter the 6-digit code sent to your email to confirm this transaction." : "Select a destination account and amount"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {!isOtpStep ? (
-                <>
-                  <div className="space-y-3">
-                    <Label>Select Company Account</Label>
-                    <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                      <SelectTrigger className="h-12 border-slate-200">
-                        <SelectValue placeholder="Select verified bank account" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bankAccounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id.toString()}>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-medium">{acc.bank_name}</span>
-                              <span className="text-muted-foreground text-xs">• {acc.account_number.slice(-4)}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        {bankAccounts.length === 0 && (
-                          <div className="p-2 text-center text-xs text-muted-foreground">No bank accounts found</div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {selectedAccount && (
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Bank Name</p>
-                            <p className="font-semibold text-slate-700">{selectedAccount.bank_name}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Account Number</p>
-                            <p className="font-semibold text-slate-700 font-mono">{selectedAccount.account_number}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Account Name</p>
-                            <p className="font-semibold text-slate-700">{selectedAccount.account_name}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="amount" className="text-slate-900">Amount (₦)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="0.00"
-                      className="h-12 text-lg border-slate-200 rounded-xl"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                    {amount && !isNaN(Number(amount)) && Number(amount) > balance && (
-                      <p className="text-xs text-red-600 font-medium">Amount exceeds available balance</p>
-                    )}
-                  </div>
-
-                  {/* Live commission breakdown */}
-                  {(preview || previewLoading) && parseFloat(amount) > 0 && (
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-2">
-                      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3">Transaction Breakdown</p>
-                      {previewLoading ? (
-                        <div className="flex items-center gap-2 text-sm text-indigo-500">
-                          <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                          Calculating...
-                        </div>
-                      ) : preview && (
-                        <>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Withdrawal amount</span>
-                            <span className="font-semibold">{fmt(preview.amount)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Commission ({preview.commission_rate}%)</span>
-                            <span className="font-semibold text-red-600">− {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}</span>
-                          </div>
-                          {(preview.flat_fee ?? 0) > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">Paystack transfer fee</span>
-                              <span className="font-semibold text-red-600">− {fmt(preview.flat_fee)}</span>
-                            </div>
-                          )}
-                          <div className="border-t border-indigo-200 pt-2 flex justify-between text-sm">
-                            <span className="font-bold text-slate-800">You will receive</span>
-                            <span className="font-bold text-green-700 text-base">{fmt(preview.net_amount)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="otp" className="text-slate-900 text-center block">Verification Code</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      placeholder="Enter 6-digit code"
-                      className="h-14 text-2xl text-center font-bold tracking-[0.5em] border-slate-200 rounded-xl bg-slate-50 focus:bg-white transition-all"
-                      value={otp}
-                      maxLength={6}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                      autoFocus
-                    />
-                  </div>
-                  {preview && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Withdrawal amount</span>
-                        <span className="font-semibold">{fmt(preview.amount)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
-                        <span className="font-semibold text-red-600">− {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}</span>
-                      </div>
-                      {(preview.flat_fee ?? 0) > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">Paystack transfer fee</span>
-                          <span className="font-semibold text-red-600">− {fmt(preview.flat_fee)}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-slate-200 pt-2 flex justify-between text-sm">
-                        <span className="font-bold">You will receive</span>
-                        <span className="font-bold text-green-700">{fmt(preview.net_amount)}</span>
-                      </div>
-                      <p className="text-xs text-slate-400 text-center pt-1">
-                        Sending to {selectedAccount?.bank_name} — {selectedAccount?.account_number}
-                      </p>
-                    </div>
-                  )}
-                  <Button type="button" variant="ghost" className="w-full text-xs text-slate-400 hover:text-indigo-600"
-                    onClick={() => { setIsOtpStep(false); setOtp("") }}>
-                    Wait, go back and edit details
-                  </Button>
-                </div>
-              )}
-
-              <Alert className="bg-blue-50 text-blue-800 border-blue-200 rounded-2xl">
-                <AlertCircle className="h-4 w-4 text-blue-800" />
-                <AlertTitle>Important</AlertTitle>
-                <AlertDescription className="text-xs mt-1">
+            <form onSubmit={handleWithdraw} className="rounded-xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <h2 className="text-sm font-semibold text-slate-900">
+                  {isOtpStep ? "Verify withdrawal" : "Withdrawal details"}
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">
                   {isOtpStep
-                    ? "Never share your verification code with anyone. Our staff will never ask for it."
-                    : "Withdrawals are processed instantly via Paystack. Please ensure your account details are correct."}
-                </AlertDescription>
-              </Alert>
+                    ? "Enter the 6-digit code sent to your email."
+                    : "Select a destination account and amount"}
+                </p>
+              </div>
+              <div className="space-y-4 p-4">
+                {!isOtpStep ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-slate-600">Company account</Label>
+                      <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                        <SelectTrigger className="h-9 rounded-lg border-slate-200 text-sm">
+                          <SelectValue placeholder="Select verified bank account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((acc) => (
+                            <SelectItem key={acc.id} value={acc.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="font-medium">{acc.bank_name}</span>
+                                <span className="text-xs text-slate-400">• {acc.account_number.slice(-4)}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          {bankAccounts.length === 0 && (
+                            <div className="p-2 text-center text-xs text-slate-400">No bank accounts found</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {selectedAccount && (
+                        <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Bank</p>
+                              <p className="font-medium text-slate-700">{selectedAccount.bank_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Account</p>
+                              <p className="font-mono font-medium text-slate-700">{selectedAccount.account_number}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Name</p>
+                              <p className="font-medium text-slate-700">{selectedAccount.account_name}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all hover:scale-[1.01] active:scale-[0.99]"
-                disabled={loading || !selectedAccountId || !amount || Number(amount) > balance || (isOtpStep && otp.length < 6)}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    Processing...
+                    <div className="space-y-2">
+                      <Label htmlFor="amount" className="text-xs text-slate-600">Amount (₦)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="0.00"
+                        className="h-9 rounded-lg border-slate-200 text-sm tabular-nums"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                      />
+                      {amount && !isNaN(Number(amount)) && Number(amount) > balance && (
+                        <p className="text-xs font-medium text-red-600">Amount exceeds available balance</p>
+                      )}
+                    </div>
+
+                    {(preview || previewLoading) && parseFloat(amount) > 0 && (
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Breakdown
+                        </p>
+                        {previewLoading ? (
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
+                            Calculating…
+                          </div>
+                        ) : preview && (
+                          <>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-slate-500">Withdrawal amount</span>
+                              <span className="font-medium tabular-nums text-slate-800">{fmt(preview.amount)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
+                              <span className="font-medium tabular-nums text-rose-600">
+                                − {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}
+                              </span>
+                            </div>
+                            {(preview.flat_fee ?? 0) > 0 && (
+                              <div className="flex justify-between text-xs">
+                                <span className="text-slate-500">Paystack transfer fee</span>
+                                <span className="font-medium tabular-nums text-rose-600">− {fmt(preview.flat_fee)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
+                              <span className="font-semibold text-slate-800">You will receive</span>
+                              <span className="font-semibold tabular-nums text-emerald-700">{fmt(preview.net_amount)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3 py-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="otp" className="block text-center text-xs text-slate-600">
+                        Verification code
+                      </Label>
+                      <Input
+                        id="otp"
+                        type="text"
+                        placeholder="••••••"
+                        className="h-11 rounded-lg border-slate-200 bg-slate-50 text-center text-lg font-semibold tracking-[0.35em] focus:bg-white"
+                        value={otp}
+                        maxLength={6}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        autoFocus
+                      />
+                    </div>
+                    {preview && (
+                      <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">Withdrawal amount</span>
+                          <span className="font-medium tabular-nums">{fmt(preview.amount)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
+                          <span className="font-medium tabular-nums text-rose-600">
+                            − {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}
+                          </span>
+                        </div>
+                        {(preview.flat_fee ?? 0) > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Paystack transfer fee</span>
+                            <span className="font-medium tabular-nums text-rose-600">− {fmt(preview.flat_fee)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
+                          <span className="font-semibold">You will receive</span>
+                          <span className="font-semibold tabular-nums text-emerald-700">{fmt(preview.net_amount)}</span>
+                        </div>
+                        <p className="pt-1 text-center text-[10px] text-slate-400">
+                          Sending to {selectedAccount?.bank_name} — {selectedAccount?.account_number}
+                        </p>
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-full text-xs text-slate-400 hover:text-indigo-600"
+                      onClick={() => {
+                        setIsOtpStep(false)
+                        setOtp("")
+                      }}
+                    >
+                      Go back and edit details
+                    </Button>
                   </div>
-                ) : (isOtpStep ? "Verify & Confirm Withdrawal" : "Initiate Withdrawal")}
-              </Button>
-            </CardContent>
-          </Card>
-        </form>
+                )}
+
+                <Alert className="rounded-lg border-slate-200 bg-slate-50 text-slate-700">
+                  <AlertCircle className="h-3.5 w-3.5 text-slate-500" />
+                  <AlertTitle className="text-xs font-semibold">Important</AlertTitle>
+                  <AlertDescription className="text-[11px] text-slate-500">
+                    {isOtpStep
+                      ? "Never share your verification code. Our staff will never ask for it."
+                      : "Withdrawals process instantly via Paystack. Confirm account details before submitting."}
+                  </AlertDescription>
+                </Alert>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 w-full rounded-lg bg-indigo-600 text-xs text-white hover:bg-indigo-700"
+                  disabled={
+                    loading ||
+                    !selectedAccountId ||
+                    !amount ||
+                    Number(amount) > balance ||
+                    (isOtpStep && otp.length < 6)
+                  }
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                      Processing…
+                    </div>
+                  ) : isOtpStep ? (
+                    "Verify & confirm"
+                  ) : (
+                    "Initiate withdrawal"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )

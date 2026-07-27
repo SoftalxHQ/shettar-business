@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { useAppSelector } from "@/lib/store/hooks"
 import { selectBusinessId, selectUser } from "@/lib/store/slices/authSlice"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,7 +46,7 @@ export default function AdsFundPage() {
   if (!canManage) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">You do not have permission to fund ads.</p>
+        <p className="text-xs text-slate-500">You do not have permission to fund ads.</p>
       </DashboardLayout>
     )
   }
@@ -164,29 +163,31 @@ export default function AdsFundPage() {
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="max-w-lg space-y-6">
-        <Button asChild variant="ghost" className="gap-2 px-0">
-          <Link href="/dashboard/ads">
-            <ArrowLeft className="h-4 w-4" /> Back to ads
-          </Link>
-        </Button>
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden max-w-lg">
+        <div className="shrink-0">
+          <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
+            <Link href="/dashboard/ads">
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to ads
+            </Link>
+          </Button>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            {isOtpStep ? "Verify transfer" : "Fund ads wallet"}
+          </h1>
+          <p className="text-xs text-slate-500">
+            {isOtpStep
+              ? `Enter the 6-digit code sent to ${user?.email || "your email"} to confirm funding ₦${numericAmount.toLocaleString()}.`
+              : `Ads balance: ₦${(account?.ads_balance ?? 0).toLocaleString()} · Withdrawable: ₦${(
+                  account?.withdrawable_balance ?? 0
+                ).toLocaleString()}`}
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{isOtpStep ? "Verify transfer" : "Fund ads wallet"}</CardTitle>
-            <CardDescription>
-              {isOtpStep
-                ? `Enter the 6-digit code sent to ${user?.email || "your email"} to confirm funding ₦${numericAmount.toLocaleString()}.`
-                : `Ads balance: ₦${(account?.ads_balance ?? 0).toLocaleString()} · Withdrawable: ₦${(
-                    account?.withdrawable_balance ?? 0
-                  ).toLocaleString()}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-4">
             {isOtpStep ? (
               <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="otp" className="text-center block">
+                  <Label htmlFor="otp" className="text-center block text-xs text-slate-600">
                     Verification code
                   </Label>
                   <Input
@@ -195,7 +196,7 @@ export default function AdsFundPage() {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     placeholder="Enter 6-digit code"
-                    className="h-14 text-2xl text-center font-bold tracking-[0.5em]"
+                    className="h-14 text-2xl text-center font-bold tracking-[0.5em] rounded-lg border-slate-200"
                     value={otp}
                     maxLength={6}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
@@ -204,16 +205,16 @@ export default function AdsFundPage() {
                   />
                 </div>
 
-                <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
+                <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Transfer amount</span>
-                    <span className="font-semibold">₦{numericAmount.toLocaleString()}</span>
+                    <span className="text-slate-500">Transfer amount</span>
+                    <span className="font-semibold text-slate-900">₦{numericAmount.toLocaleString()}</span>
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm"
                   disabled={transferLoading || otp.length !== 6}
                 >
                   {transferLoading ? "Verifying…" : "Confirm funding"}
@@ -232,7 +233,7 @@ export default function AdsFundPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="w-full text-xs text-muted-foreground"
+                  className="w-full text-xs text-slate-500"
                   disabled={transferLoading}
                   onClick={resetTransferFlow}
                 >
@@ -242,7 +243,7 @@ export default function AdsFundPage() {
             ) : (
               <>
                 <div>
-                  <Label htmlFor="amount">Amount to add (₦)</Label>
+                  <Label htmlFor="amount" className="text-xs text-slate-600">Amount to add (₦)</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -251,8 +252,9 @@ export default function AdsFundPage() {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="1000"
                     disabled={isBusy}
+                    className="mt-1.5 h-9 rounded-lg border-slate-200"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Minimum ₦{MIN_TOPUP}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Minimum ₦{MIN_TOPUP}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -263,6 +265,7 @@ export default function AdsFundPage() {
                       variant="outline"
                       size="sm"
                       disabled={isBusy}
+                      className="h-7 rounded-lg border-slate-200 text-xs"
                       onClick={() => setAmount(String(value))}
                     >
                       ₦{value.toLocaleString()}
@@ -271,17 +274,17 @@ export default function AdsFundPage() {
                 </div>
 
                 {feeBreakdown && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-4 space-y-2 text-sm">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2 text-xs">
                     <p className="font-medium text-amber-900 dark:text-amber-100">Card payment breakdown</p>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ads wallet credit</span>
+                      <span className="text-slate-500">Ads wallet credit</span>
                       <span>₦{feeBreakdown.target_amount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Paystack processing fee</span>
-                      <span className="text-destructive">+₦{feeBreakdown.paystack_fee.toLocaleString()}</span>
+                      <span className="text-slate-500">Paystack processing fee</span>
+                      <span className="text-rose-600">+₦{feeBreakdown.paystack_fee.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between border-t pt-2 font-medium">
+                    <div className="flex justify-between border-t border-amber-200 pt-2 font-medium">
                       <span>You will be charged</span>
                       <span>₦{feeBreakdown.charge_amount.toLocaleString()}</span>
                     </div>
@@ -291,7 +294,7 @@ export default function AdsFundPage() {
                 <Button
                   onClick={handleCardTopup}
                   disabled={isBusy || !amount || numericAmount < MIN_TOPUP}
-                  className="w-full gap-2"
+                  className="w-full h-9 gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm"
                 >
                   <CreditCard className="h-4 w-4" />
                   {cardLoading ? "Processing…" : "Pay with card (Paystack)"}
@@ -299,10 +302,10 @@ export default function AdsFundPage() {
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-slate-200" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  <div className="relative flex justify-center text-[10px] uppercase">
+                    <span className="bg-white px-2 text-slate-400">or</span>
                   </div>
                 </div>
 
@@ -310,20 +313,20 @@ export default function AdsFundPage() {
                   onClick={handleTransferClick}
                   disabled={isBusy || !amount || numericAmount < MIN_TOPUP}
                   variant="outline"
-                  className="w-full gap-2"
+                  className="w-full h-9 gap-2 rounded-lg border-slate-200 text-sm"
                 >
                   <Wallet className="h-4 w-4" />
                   Transfer from withdrawable balance
                 </Button>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px] text-slate-500">
                   Wallet transfers require an email verification code. Card payments open Paystack
                   securely in a popup.
                 </p>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -336,30 +339,30 @@ export default function AdsFundPage() {
         loading={transferLoading}
         onConfirm={handleTransfer}
       >
-        <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
+        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Transfer amount</span>
-            <span className="font-semibold">₦{numericAmount.toLocaleString()}</span>
+            <span className="text-slate-500">Transfer amount</span>
+            <span className="font-semibold text-slate-900">₦{numericAmount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Code will be sent to</span>
+            <span className="text-slate-500">Code will be sent to</span>
             <span className="font-medium truncate max-w-[55%] text-right">{user?.email}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Current withdrawable</span>
+            <span className="text-slate-500">Current withdrawable</span>
             <span>₦{(account?.withdrawable_balance ?? 0).toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Current ads balance</span>
+            <span className="text-slate-500">Current ads balance</span>
             <span>₦{(account?.ads_balance ?? 0).toLocaleString()}</span>
           </div>
-          <div className="flex justify-between border-t pt-2 font-medium">
+          <div className="flex justify-between border-t border-slate-200 pt-2 font-medium">
             <span>New ads balance</span>
             <span className="text-emerald-600">
               ₦{((account?.ads_balance ?? 0) + numericAmount).toLocaleString()}
             </span>
           </div>
-          <div className="flex justify-between text-muted-foreground">
+          <div className="flex justify-between text-slate-500">
             <span>Remaining withdrawable</span>
             <span>₦{Math.max(0, (account?.withdrawable_balance ?? 0) - numericAmount).toLocaleString()}</span>
           </div>

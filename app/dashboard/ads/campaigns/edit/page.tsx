@@ -9,7 +9,6 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ArrowLeft } from "lucide-react"
 import {
@@ -31,7 +30,7 @@ const PLACEMENTS = [
 const EDITABLE_STATUSES = new Set(["active", "paused", "pending_review", "draft"])
 
 function FieldHelp({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-muted-foreground mt-1">{children}</p>
+  return <p className="text-[11px] text-slate-500 mt-1">{children}</p>
 }
 
 function geoToForm(targetGeo?: AdGeoTarget[]) {
@@ -162,7 +161,7 @@ function AdCampaignEditContent() {
   if (!canManage) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">You do not have permission to edit campaigns.</p>
+        <p className="text-xs text-slate-500">You do not have permission to edit campaigns.</p>
       </DashboardLayout>
     )
   }
@@ -170,7 +169,7 @@ function AdCampaignEditContent() {
   if (!campaignId) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">Campaign not found.</p>
+        <p className="text-xs text-slate-500">Campaign not found.</p>
       </DashboardLayout>
     )
   }
@@ -178,7 +177,7 @@ function AdCampaignEditContent() {
   if (loading || !campaign) {
     return (
       <DashboardLayout activeTab="ads">
-        <div className="flex justify-center py-12">
+        <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
           <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
@@ -188,13 +187,13 @@ function AdCampaignEditContent() {
   if (!EDITABLE_STATUSES.has(campaign.status)) {
     return (
       <DashboardLayout activeTab="ads">
-        <div className="space-y-4 max-w-xl">
-          <Button asChild variant="ghost" className="gap-2 px-0">
+        <div className="flex h-full min-h-0 flex-col gap-3 max-w-xl">
+          <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 gap-1.5 px-2 text-xs text-slate-500 w-fit">
             <Link href={`/dashboard/ads/campaigns/detail?id=${campaignId}`}>
-              <ArrowLeft className="h-4 w-4" /> Back
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
             </Link>
           </Button>
-          <p className="text-muted-foreground">
+          <p className="text-xs text-slate-500">
             This campaign cannot be edited while it is {campaign.status.replace(/_/g, " ")}.
           </p>
         </div>
@@ -204,25 +203,25 @@ function AdCampaignEditContent() {
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="max-w-xl space-y-4">
-        <Button asChild variant="ghost" className="gap-2 px-0">
-          <Link href={`/dashboard/ads/campaigns/detail?id=${campaignId}`}>
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
-        </Button>
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden max-w-xl">
+        <div className="shrink-0">
+          <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
+            <Link href={`/dashboard/ads/campaigns/detail?id=${campaignId}`}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </Link>
+          </Button>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Edit campaign</h1>
+          <p className="text-xs text-slate-500">
+            Adjust budgets, bidding, placements, or geo targeting. Status:{" "}
+            <span className="capitalize">{campaign.status.replace(/_/g, " ")}</span>
+            {" · "}Spent ₦{campaign.spent_amount.toLocaleString()}
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit campaign</CardTitle>
-            <CardDescription>
-              Adjust budgets, bidding, placements, or geo targeting. Status:{" "}
-              <span className="capitalize">{campaign.status.replace(/_/g, " ")}</span>
-              {" · "}Spent ₦{campaign.spent_amount.toLocaleString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5">
             {(campaign.status === "paused" || campaign.status === "active") && (
-              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                 {campaign.status === "paused" ? (
                   <>
                     Campaign is paused. Increase total or daily budget if limits were reached, then activate
@@ -239,18 +238,19 @@ function AdCampaignEditContent() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <Label htmlFor="name">Campaign name</Label>
+                <Label htmlFor="name" className="text-xs text-slate-600">Campaign name</Label>
                 <Input
                   id="name"
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="mt-1.5 h-9 rounded-lg border-slate-200"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="daily_budget">Daily budget (₦)</Label>
+                  <Label htmlFor="daily_budget" className="text-xs text-slate-600">Daily budget (₦)</Label>
                   <Input
                     id="daily_budget"
                     type="number"
@@ -258,11 +258,12 @@ function AdCampaignEditContent() {
                     step="0.01"
                     value={form.daily_budget}
                     onChange={(e) => setForm({ ...form, daily_budget: e.target.value })}
+                    className="mt-1.5 h-9 rounded-lg border-slate-200"
                   />
                   <FieldHelp>Maximum spend per day. Leave empty for no daily cap.</FieldHelp>
                 </div>
                 <div>
-                  <Label htmlFor="total_budget">Total budget (₦)</Label>
+                  <Label htmlFor="total_budget" className="text-xs text-slate-600">Total budget (₦)</Label>
                   <Input
                     id="total_budget"
                     type="number"
@@ -270,6 +271,7 @@ function AdCampaignEditContent() {
                     step="0.01"
                     value={form.total_budget}
                     onChange={(e) => setForm({ ...form, total_budget: e.target.value })}
+                    className="mt-1.5 h-9 rounded-lg border-slate-200"
                   />
                   <FieldHelp>
                     Minimum ₦{minTotalBudget.toLocaleString()} based on spend so far. Leave empty for no
@@ -279,7 +281,7 @@ function AdCampaignEditContent() {
               </div>
 
               <div>
-                <Label htmlFor="max_bid">Max CPM bid (₦ per 1,000 impressions)</Label>
+                <Label htmlFor="max_bid" className="text-xs text-slate-600">Max CPM bid (₦ per 1,000 impressions)</Label>
                 <Input
                   id="max_bid"
                   type="number"
@@ -287,11 +289,12 @@ function AdCampaignEditContent() {
                   step="0.01"
                   value={form.max_bid}
                   onChange={(e) => setForm({ ...form, max_bid: e.target.value })}
+                  className="mt-1.5 h-9 rounded-lg border-slate-200"
                 />
               </div>
 
               <div>
-                <Label>Placements</Label>
+                <Label className="text-xs text-slate-600">Placements</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {PLACEMENTS.map((p) => (
                     <Button
@@ -299,6 +302,7 @@ function AdCampaignEditContent() {
                       type="button"
                       size="sm"
                       variant={form.placements.includes(p.id) ? "default" : "outline"}
+                      className={form.placements.includes(p.id) ? "h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs" : "h-7 rounded-lg border-slate-200 text-xs"}
                       onClick={() => togglePlacement(p.id)}
                     >
                       {p.label}
@@ -307,9 +311,9 @@ function AdCampaignEditContent() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-lg border p-4">
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/40 p-3">
                 <div>
-                  <Label>Geo targeting</Label>
+                  <Label className="text-xs text-slate-600">Geo targeting</Label>
                   <FieldHelp>Nationwide or a specific state/city in Nigeria.</FieldHelp>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -317,6 +321,7 @@ function AdCampaignEditContent() {
                     type="button"
                     size="sm"
                     variant={form.targetingMode === "nationwide" ? "default" : "outline"}
+                    className={form.targetingMode === "nationwide" ? "h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs" : "h-7 rounded-lg border-slate-200 text-xs"}
                     onClick={() => setForm({ ...form, targetingMode: "nationwide", state: "", city: "" })}
                   >
                     Nationwide
@@ -325,6 +330,7 @@ function AdCampaignEditContent() {
                     type="button"
                     size="sm"
                     variant={form.targetingMode === "specific" ? "default" : "outline"}
+                    className={form.targetingMode === "specific" ? "h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs" : "h-7 rounded-lg border-slate-200 text-xs"}
                     onClick={() => setForm({ ...form, targetingMode: "specific" })}
                   >
                     Specific area
@@ -333,14 +339,14 @@ function AdCampaignEditContent() {
                 {form.targetingMode === "specific" && (
                   <div className="grid gap-3">
                     <div>
-                      <Label>Country</Label>
-                      <Input value="Nigeria" readOnly disabled />
+                      <Label className="text-xs text-slate-600">Country</Label>
+                      <Input value="Nigeria" readOnly disabled className="mt-1.5 h-9 rounded-lg border-slate-200" />
                     </div>
                     <div>
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="state" className="text-xs text-slate-600">State</Label>
                       <select
                         id="state"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="mt-1.5 flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                         value={form.state}
                         onChange={(e) => setForm({ ...form, state: e.target.value, city: "" })}
                       >
@@ -353,10 +359,10 @@ function AdCampaignEditContent() {
                       </select>
                     </div>
                     <div>
-                      <Label htmlFor="city">City / town</Label>
+                      <Label htmlFor="city" className="text-xs text-slate-600">City / town</Label>
                       <select
                         id="city"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="mt-1.5 flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                         value={form.city}
                         disabled={!form.state}
                         onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -373,12 +379,12 @@ function AdCampaignEditContent() {
                 )}
               </div>
 
-              <Button type="submit" disabled={saving || form.placements.length === 0} className="w-full">
+              <Button type="submit" disabled={saving || form.placements.length === 0} className="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm">
                 {saving ? "Saving…" : "Save changes"}
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )
@@ -389,7 +395,7 @@ export default function EditAdCampaignPage() {
     <Suspense
       fallback={
         <DashboardLayout activeTab="ads">
-          <div className="flex justify-center py-12">
+          <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <LoadingSpinner size={32} />
           </div>
         </DashboardLayout>

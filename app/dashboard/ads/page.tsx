@@ -6,11 +6,34 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
 import { selectBusinessId, selectUser } from "@/lib/store/slices/authSlice"
 import { setAdAccount, setCampaigns } from "@/lib/store/slices/adsSlice"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Megaphone, Wallet, BarChart3 } from "lucide-react"
 import { fetchAdAccount, fetchAdCampaigns } from "@/lib/ads-api"
 import { toast } from "sonner"
+
+function MetricTile({
+  title,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  title: string
+  value: string
+  hint?: string
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+        <Icon className="h-3.5 w-3.5 text-slate-400" />
+      </div>
+      <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{value}</p>
+      {hint && <p className="text-[11px] text-slate-500 mt-1.5">{hint}</p>}
+    </div>
+  )
+}
 
 export default function AdsOverviewPage() {
   const dispatch = useAppDispatch()
@@ -46,96 +69,91 @@ export default function AdsOverviewPage() {
   if (!canView) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">You do not have permission to view ads.</p>
+        <p className="text-xs text-slate-500">You do not have permission to view ads.</p>
+      </DashboardLayout>
+    )
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout activeTab="ads">
+        <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
+          <LoadingSpinner size={32} />
+        </div>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Ads & Promotions</h1>
-            <p className="text-muted-foreground">Promote your property with sponsored listings</p>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Ads & Promotions</h1>
+            <p className="text-xs text-slate-500">Promote your property with sponsored listings</p>
           </div>
           {canManage && (
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs">
                 <Link href="/dashboard/ads/fund">Fund balance</Link>
               </Button>
-              <Button asChild>
+              <Button asChild size="sm" className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs">
                 <Link href="/dashboard/ads/campaigns/new">New campaign</Link>
               </Button>
             </div>
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Ads balance</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {loading ? "—" : `₦${(account?.ads_balance ?? 0).toLocaleString()}`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Lifetime spend ₦{(account?.lifetime_spend ?? 0).toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active campaigns</CardTitle>
-              <Megaphone className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? "—" : activeCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Withdrawable</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ₦{(account?.withdrawable_balance ?? 0).toLocaleString()}
-              </div>
-              <CardDescription className="mt-1">Available to transfer into ads wallet</CardDescription>
-            </CardContent>
-          </Card>
+        <div className="shrink-0 grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <MetricTile
+            title="Ads balance"
+            value={`₦${(account?.ads_balance ?? 0).toLocaleString()}`}
+            hint={`Lifetime spend ₦${(account?.lifetime_spend ?? 0).toLocaleString()}`}
+            icon={Wallet}
+          />
+          <MetricTile
+            title="Active campaigns"
+            value={String(activeCount)}
+            icon={Megaphone}
+          />
+          <MetricTile
+            title="Withdrawable"
+            value={`₦${(account?.withdrawable_balance ?? 0).toLocaleString()}`}
+            hint="Available to transfer into ads wallet"
+            icon={BarChart3}
+          />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent campaigns</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-slate-100">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Recent campaigns</p>
+              <p className="text-[11px] text-slate-500">Latest ad campaigns</p>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 hover:text-indigo-700">
+              <Link href="/dashboard/ads/campaigns">View all</Link>
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {campaigns.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No campaigns yet.</p>
+              <p className="px-3.5 py-6 text-xs text-slate-500">No campaigns yet.</p>
             ) : (
-              <ul className="divide-y">
+              <ul className="divide-y divide-slate-100">
                 {campaigns.slice(0, 5).map((c) => (
-                  <li key={c.id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{c.status.replace("_", " ")}</p>
+                  <li key={c.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-slate-50/60">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{c.name}</p>
+                      <p className="text-[11px] text-slate-500 capitalize">{c.status.replace("_", " ")}</p>
                     </div>
-                    <Button asChild variant="ghost" size="sm">
+                    <Button asChild variant="ghost" size="sm" className="h-7 shrink-0 text-xs">
                       <Link href={`/dashboard/ads/campaigns/detail?id=${c.id}`}>View</Link>
                     </Button>
                   </li>
                 ))}
               </ul>
             )}
-            <Button asChild variant="link" className="px-0 mt-2">
-              <Link href="/dashboard/ads/campaigns">View all campaigns</Link>
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )

@@ -7,11 +7,19 @@ import { useAppSelector } from "@/lib/store/hooks"
 import { selectBusinessId, selectUser } from "@/lib/store/slices/authSlice"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { fetchAdCampaign, updateAdCampaign, formatGeoTargets, type AdCampaign } from "@/lib/ads-api"
 import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
+      <span className="text-xs text-slate-500 shrink-0">{label}</span>
+      <span className="text-xs font-medium text-slate-900 text-right">{value}</span>
+    </div>
+  )
+}
 
 function AdCampaignDetailContent() {
   const searchParams = useSearchParams()
@@ -46,7 +54,7 @@ function AdCampaignDetailContent() {
   if (!campaignId) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">Campaign not found.</p>
+        <p className="text-xs text-slate-500">Campaign not found.</p>
       </DashboardLayout>
     )
   }
@@ -54,7 +62,7 @@ function AdCampaignDetailContent() {
   if (!campaign) {
     return (
       <DashboardLayout activeTab="ads">
-        <div className="flex justify-center py-12">
+        <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
           <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
@@ -63,59 +71,60 @@ function AdCampaignDetailContent() {
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="space-y-4 max-w-2xl">
-        <Button asChild variant="ghost" className="gap-2 px-0">
-          <Link href="/dashboard/ads/campaigns">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
-        </Button>
-
-        <div className="flex justify-between items-start">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden max-w-2xl">
+        <div className="shrink-0 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{campaign.name}</h1>
-            <p className="text-muted-foreground capitalize">{campaign.status.replace("_", " ")}</p>
+            <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
+              <Link href="/dashboard/ads/campaigns">
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
+              </Link>
+            </Button>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{campaign.name}</h1>
+            <p className="text-xs text-slate-500 capitalize">{campaign.status.replace("_", " ")}</p>
           </div>
           <div className="flex gap-2">
             {canManage && ["active", "paused", "pending_review", "draft"].includes(campaign.status) && (
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs">
                 <Link href={`/dashboard/ads/campaigns/edit?id=${campaignId}`}>Edit</Link>
               </Button>
             )}
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs">
               <Link href={`/dashboard/ads/campaigns/reports?id=${campaignId}`}>Reports</Link>
             </Button>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>Billing: {campaign.billing_model.toUpperCase()}</p>
-            <p>Spent: ₦{campaign.spent_amount.toLocaleString()}</p>
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+            <p className="text-sm font-semibold text-slate-900">Details</p>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3.5 py-1">
+            <DetailRow label="Billing" value={campaign.billing_model.toUpperCase()} />
+            <DetailRow label="Spent" value={`₦${campaign.spent_amount.toLocaleString()}`} />
             {campaign.daily_budget != null && (
-              <p>Daily budget: ₦{campaign.daily_budget.toLocaleString()}</p>
+              <DetailRow label="Daily budget" value={`₦${campaign.daily_budget.toLocaleString()}`} />
             )}
             {campaign.total_budget != null && (
-              <p>Total budget: ₦{campaign.total_budget.toLocaleString()}</p>
+              <DetailRow label="Total budget" value={`₦${campaign.total_budget.toLocaleString()}`} />
             )}
-            <p>Max bid: ₦{campaign.max_bid.toLocaleString()}</p>
-            <p>Geo targeting: {formatGeoTargets(campaign.target_geo)}</p>
-            <p>Placements: {campaign.placements.join(", ")}</p>
+            <DetailRow label="Max bid" value={`₦${campaign.max_bid.toLocaleString()}`} />
+            <DetailRow label="Geo targeting" value={formatGeoTargets(campaign.target_geo)} />
+            <DetailRow label="Placements" value={campaign.placements.join(", ")} />
             {campaign.rejection_reason && (
-              <p className="text-destructive">Rejection: {campaign.rejection_reason}</p>
+              <DetailRow label="Rejection" value={<span className="text-rose-600">{campaign.rejection_reason}</span>} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {canManage && (
-          <div className="flex gap-2">
+          <div className="shrink-0 flex gap-2">
             {campaign.status !== "active" && (
-              <Button onClick={() => updateStatus("active")}>Activate</Button>
+              <Button size="sm" className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs" onClick={() => updateStatus("active")}>
+                Activate
+              </Button>
             )}
             {campaign.status === "active" && (
-              <Button variant="outline" onClick={() => updateStatus("paused")}>
+              <Button variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs" onClick={() => updateStatus("paused")}>
                 Pause
               </Button>
             )}
@@ -131,7 +140,7 @@ export default function AdCampaignDetailPage() {
     <Suspense
       fallback={
         <DashboardLayout activeTab="ads">
-          <div className="flex justify-center py-12">
+          <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <LoadingSpinner size={32} />
           </div>
         </DashboardLayout>

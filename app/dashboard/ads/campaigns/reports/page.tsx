@@ -8,7 +8,6 @@ import { selectBusinessId } from "@/lib/store/slices/authSlice"
 import { selectRealtimeCounters } from "@/lib/store/slices/adsSlice"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
@@ -43,6 +42,16 @@ type DeviceRow = {
 }
 
 type RangePreset = "today" | "last7" | "all" | "pick_day"
+
+function MetricTile({ title, value, hint }: { title: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+      <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none mt-2">{value}</p>
+      {hint && <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">{hint}</p>}
+    </div>
+  )
+}
 
 function formatDateParam(d: Date): string {
   const y = d.getFullYear()
@@ -186,79 +195,60 @@ function AdCampaignReportsContent() {
   if (!campaignId) {
     return (
       <DashboardLayout activeTab="ads">
-        <p className="text-muted-foreground">Campaign not found.</p>
+        <p className="text-xs text-slate-500">Campaign not found.</p>
       </DashboardLayout>
     )
   }
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="space-y-6">
-        <Button asChild variant="ghost" className="gap-2 px-0">
-          <Link href={`/dashboard/ads/campaigns/detail?id=${campaignId}`}>
-            <ArrowLeft className="h-4 w-4" /> Back to campaign
-          </Link>
-        </Button>
-
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Impressions</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-bold">
-              {totals.impressions.toLocaleString()}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Clicks</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-bold">{totals.clicks.toLocaleString()}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Spend</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-bold">₦{totals.spend.toLocaleString()}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">ROAS</CardTitle>
-              <p className="text-xs text-muted-foreground font-normal leading-snug">
-                ₦ booking revenue per ₦1 ad spend
-              </p>
-            </CardHeader>
-            <CardContent className="text-2xl font-bold">
-              ₦{totals.roas.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </CardContent>
-          </Card>
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="shrink-0">
+          <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
+            <Link href={`/dashboard/ads/campaigns/detail?id=${campaignId}`}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to campaign
+            </Link>
+          </Button>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            {campaign?.name ?? "Campaign reports"}
+          </h1>
+          <p className="text-xs text-slate-500">Performance metrics and breakdowns</p>
         </div>
 
-        <Card>
-          <CardHeader className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0 grid gap-3 grid-cols-2 xl:grid-cols-4">
+          <MetricTile title="Impressions" value={totals.impressions.toLocaleString()} />
+          <MetricTile title="Clicks" value={totals.clicks.toLocaleString()} />
+          <MetricTile title="Spend" value={`₦${totals.spend.toLocaleString()}`} />
+          <MetricTile
+            title="ROAS"
+            value={`₦${totals.roas.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            hint="₦ booking revenue per ₦1 ad spend"
+          />
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Performance</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {chartSubtitle(rangePreset, granularity, pickedDay)}
-                </p>
+                <p className="text-sm font-semibold text-slate-900">Performance</p>
+                <p className="text-[11px] text-slate-500">{chartSubtitle(rangePreset, granularity, pickedDay)}</p>
               </div>
               <Tabs
                 value={rangePreset}
                 onValueChange={(v) => setRangePreset(v as RangePreset)}
                 className="w-full sm:w-auto"
               >
-                <TabsList className="grid w-full grid-cols-4 sm:w-auto">
-                  <TabsTrigger value="today">Today</TabsTrigger>
-                  <TabsTrigger value="last7">Last 7 days</TabsTrigger>
-                  <TabsTrigger value="all">All time</TabsTrigger>
-                  <TabsTrigger value="pick_day">Pick a day</TabsTrigger>
+                <TabsList className="h-8 grid w-full grid-cols-4 sm:w-auto">
+                  <TabsTrigger value="today" className="text-xs">Today</TabsTrigger>
+                  <TabsTrigger value="last7" className="text-xs">Last 7 days</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs">All time</TabsTrigger>
+                  <TabsTrigger value="pick_day" className="text-xs">Pick a day</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
             {rangePreset === "pick_day" && (
-              <div className="flex items-center gap-3 max-w-xs">
-                <Label htmlFor="stats-day" className="shrink-0 text-sm">
+              <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-3.5 py-2">
+                <Label htmlFor="stats-day" className="shrink-0 text-xs text-slate-600">
                   Date
                 </Label>
                 <Input
@@ -267,112 +257,111 @@ function AdCampaignReportsContent() {
                   max={todayParam()}
                   value={pickedDay}
                   onChange={(e) => setPickedDay(e.target.value)}
+                  className="h-8 max-w-[180px] rounded-lg border-slate-200 text-xs"
                 />
               </div>
             )}
-          </CardHeader>
-          <CardContent className="h-72">
-            {loading ? (
-              <div className="flex h-full items-center justify-center">
-                <LoadingSpinner size={28} />
-              </div>
-            ) : rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data for this range.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={rows}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={xTickFormatter} interval="preserveStartEnd" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip labelFormatter={(v) => String(v)} />
-                  <Line type="monotone" dataKey="impressions" stroke="#6366f1" name="Impressions" />
-                  <Line type="monotone" dataKey="clicks" stroke="#22c55e" name="Clicks" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+            <div className="flex-1 min-h-0 p-3">
+              {loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <LoadingSpinner size={28} />
+                </div>
+              ) : rows.length === 0 ? (
+                <p className="text-xs text-slate-500 py-8 text-center">No data for this range.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={rows}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="date" tickFormatter={xTickFormatter} interval="preserveStartEnd" axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 11 }} />
+                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 11 }} />
+                    <Tooltip labelFormatter={(v) => String(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                    <Line type="monotone" dataKey="impressions" stroke="#6366f1" name="Impressions" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="clicks" stroke="#22c55e" name="Clicks" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance by location</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {geoRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No location data yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4">State</th>
-                      <th className="py-2 pr-4">City</th>
-                      <th className="py-2 pr-4">Impressions</th>
-                      <th className="py-2">Clicks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {geoRows.map((row, idx) => (
-                      <tr key={`${row.state}-${row.city}-${idx}`} className="border-b last:border-0">
-                        <td className="py-2 pr-4">{row.state}</td>
-                        <td className="py-2 pr-4">{row.city || "—"}</td>
-                        <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
-                        <td className="py-2">{row.clicks.toLocaleString()}</td>
+          <div className="shrink-0 grid gap-3 lg:grid-cols-2 min-h-[200px] max-h-[280px]">
+            <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+                <p className="text-sm font-semibold text-slate-900">Performance by location</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {geoRows.length === 0 ? (
+                  <p className="px-3.5 py-4 text-xs text-slate-500">No location data yet.</p>
+                ) : (
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-slate-50">
+                      <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-3 py-2">State</th>
+                        <th className="px-3 py-2">City</th>
+                        <th className="px-3 py-2">Impressions</th>
+                        <th className="px-3 py-2">Clicks</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance by device</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {deviceRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No device data yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4">Platform</th>
-                      <th className="py-2 pr-4">OS</th>
-                      <th className="py-2 pr-4">Device</th>
-                      <th className="py-2 pr-4">Impressions</th>
-                      <th className="py-2 pr-4">Clicks</th>
-                      <th className="py-2">CTR</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deviceRows.map((row, idx) => {
-                      const ctr =
-                        row.impressions > 0
-                          ? `${((row.clicks / row.impressions) * 100).toFixed(1)}%`
-                          : "—"
-                      return (
-                        <tr
-                          key={`${row.platform}-${row.os}-${row.device_type}-${idx}`}
-                          className="border-b last:border-0"
-                        >
-                          <td className="py-2 pr-4 capitalize">{row.platform}</td>
-                          <td className="py-2 pr-4">{row.os}</td>
-                          <td className="py-2 pr-4 capitalize">{row.device_type}</td>
-                          <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
-                          <td className="py-2 pr-4">{row.clicks.toLocaleString()}</td>
-                          <td className="py-2">{ctr}</td>
+                    </thead>
+                    <tbody>
+                      {geoRows.map((row, idx) => (
+                        <tr key={`${row.state}-${row.city}-${idx}`} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                          <td className="px-3 py-2 text-slate-700">{row.state}</td>
+                          <td className="px-3 py-2 text-slate-600">{row.city || "—"}</td>
+                          <td className="px-3 py-2 tabular-nums text-slate-700">{row.impressions.toLocaleString()}</td>
+                          <td className="px-3 py-2 tabular-nums text-slate-700">{row.clicks.toLocaleString()}</td>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+
+            <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+                <p className="text-sm font-semibold text-slate-900">Performance by device</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {deviceRows.length === 0 ? (
+                  <p className="px-3.5 py-4 text-xs text-slate-500">No device data yet.</p>
+                ) : (
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-slate-50">
+                      <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-3 py-2">Platform</th>
+                        <th className="px-3 py-2">OS</th>
+                        <th className="px-3 py-2">Device</th>
+                        <th className="px-3 py-2">Impressions</th>
+                        <th className="px-3 py-2">Clicks</th>
+                        <th className="px-3 py-2">CTR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deviceRows.map((row, idx) => {
+                        const ctr =
+                          row.impressions > 0
+                            ? `${((row.clicks / row.impressions) * 100).toFixed(1)}%`
+                            : "—"
+                        return (
+                          <tr
+                            key={`${row.platform}-${row.os}-${row.device_type}-${idx}`}
+                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60"
+                          >
+                            <td className="px-3 py-2 capitalize text-slate-700">{row.platform}</td>
+                            <td className="px-3 py-2 text-slate-600">{row.os}</td>
+                            <td className="px-3 py-2 capitalize text-slate-600">{row.device_type}</td>
+                            <td className="px-3 py-2 tabular-nums text-slate-700">{row.impressions.toLocaleString()}</td>
+                            <td className="px-3 py-2 tabular-nums text-slate-700">{row.clicks.toLocaleString()}</td>
+                            <td className="px-3 py-2 tabular-nums text-slate-700">{ctr}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )
@@ -383,7 +372,7 @@ export default function AdCampaignReportsPage() {
     <Suspense
       fallback={
         <DashboardLayout activeTab="ads">
-          <div className="flex justify-center py-12">
+          <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <LoadingSpinner size={32} />
           </div>
         </DashboardLayout>
