@@ -180,6 +180,7 @@ export default function CheckInOutPage() {
 
   return (
     <DashboardLayout activeTab="check-in/out">
+      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -481,6 +482,7 @@ export default function CheckInOutPage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
       </div>
     </DashboardLayout>
   )

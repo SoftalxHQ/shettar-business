@@ -132,6 +132,7 @@ export default function BusinessDashboardPage() {
 
   return (
     <DashboardLayout activeTab="business">
+      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
       <div className="space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -308,6 +309,7 @@ export default function BusinessDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {showMapModal && businessInfo && (

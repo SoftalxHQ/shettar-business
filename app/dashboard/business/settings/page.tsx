@@ -1,7 +1,6 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,14 +9,13 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, CreditCard, ArrowRight, LocateFixed, UserPlus, UtensilsCrossed, Megaphone, Plus, Trash2 } from "lucide-react"
+import { Building2, ImageIcon, Upload, X, Loader2, Save, MapPin, Clock, Check, ArrowRight, LocateFixed, UserPlus, UtensilsCrossed, Megaphone, Plus, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Image from "next/image"
 import { BusinessVerificationBadge } from "@/components/business-verification-badge"
 import { getDeviceLocation } from "@/lib/tauri"
@@ -121,6 +119,7 @@ export default function BusinessSettingsPage() {
   const [showMapModal, setShowMapModal] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
   const [referrerCode, setReferrerCode] = useState("")
+  const [settingsTab, setSettingsTab] = useState("general")
 
   useEffect(() => {
     if (user && !canAccessBusinessSettings(user)) {
@@ -448,8 +447,10 @@ export default function BusinessSettingsPage() {
   if (isLoading) {
     return (
       <DashboardLayout activeTab="settings">
-        <div className="flex items-center justify-center h-96">
-          <LoadingSpinner size={32} />
+        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -458,8 +459,10 @@ export default function BusinessSettingsPage() {
   if (!businessData) {
     return (
       <DashboardLayout activeTab="settings">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Business data not found</p>
+        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <p className="text-sm text-slate-500">Business data not found</p>
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -473,35 +476,39 @@ export default function BusinessSettingsPage() {
 
   return (
     <DashboardLayout activeTab="settings">
-      <div className="space-y-6">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold tracking-tight">Business Settings</h1>
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight text-slate-900">Business Settings</h1>
               {businessData.verification_display_status && (
                 <BusinessVerificationBadge status={businessData.verification_display_status} />
               )}
             </div>
-            <p className="text-muted-foreground mt-1">
+            <p className="mt-0.5 text-xs text-slate-500">
               {editDetails
                 ? "Manage your business information, branding, and amenities"
                 : "Manage guest notices and hotel policies shown on your public listing"}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Business ID:</span>
-            <code className="px-2 py-1 bg-muted rounded font-mono text-xs">
+          <div className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Business ID</span>
+            <code className="mt-0.5 block font-mono text-xs text-slate-700">
               {businessData.business_unique_id}
             </code>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="general" className="space-y-6">
+        <form className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden" onSubmit={handleSubmit}>
+          <Tabs
+            value={settingsTab}
+            onValueChange={setSettingsTab}
+            className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+          >
             <TabsList
               className={cn(
-                "grid w-full lg:w-[400px]",
+                "h-8 w-fit shrink-0 rounded-xl border border-slate-200 bg-slate-50/40 p-0.5 grid",
                 1 + (editBranding ? 1 : 0) + (editAmenities ? 1 : 0) === 3
                   ? "grid-cols-3"
                   : 1 + (editBranding ? 1 : 0) + (editAmenities ? 1 : 0) === 2
@@ -509,47 +516,50 @@ export default function BusinessSettingsPage() {
                     : "grid-cols-1"
               )}
             >
-              <TabsTrigger value="general">General</TabsTrigger>
-              {editBranding && <TabsTrigger value="branding">Branding</TabsTrigger>}
-              {editAmenities && <TabsTrigger value="amenities">Amenities</TabsTrigger>}
+              <TabsTrigger value="general" className="text-xs">General</TabsTrigger>
+              {editBranding && <TabsTrigger value="branding" className="text-xs">Branding</TabsTrigger>}
+              {editAmenities && <TabsTrigger value="amenities" className="text-xs">Amenities</TabsTrigger>}
             </TabsList>
 
-            {/* General Information Tab */}
-            <TabsContent value="general" className="space-y-6">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {/* General Information Tab — plain panels (not TabsContent) to avoid default flex-1 stretch */}
+            {settingsTab === "general" && (
+            <div className="space-y-3">
               {editDetails && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Building2 className="h-4 w-4" />
                     Basic Information
-                  </CardTitle>
-                  <CardDescription>Update your business name and description</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Business Name *</Label>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Update your business name and description</p>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="text-xs text-slate-600">Business Name *</Label>
                       <Input
                         id="name"
                         value={businessData.name}
                         onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                         required
                         placeholder="Enter business name"
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="category" className="text-xs text-slate-600">Category</Label>
                       <Input
                         id="category"
                         value="Hotel"
                         disabled
-                        className="bg-muted"
+                        className="h-9 rounded-lg border-slate-200 bg-slate-50"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="description" className="text-xs text-slate-600">Description *</Label>
                     <Textarea
                       id="description"
                       value={businessData.description}
@@ -557,32 +567,33 @@ export default function BusinessSettingsPage() {
                       required
                       rows={4}
                       placeholder="Describe your business"
+                      className="rounded-lg border-slate-200"
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
               )}
 
               {viewGuestPolicies && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Megaphone className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Megaphone className="h-4 w-4" />
                     Guest notices &amp; policies
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
                     Shown on your public hotel page. Multiple notices rotate in a slider for guests.
                     {editDetails
                       ? " Check-in and check-out times use the fields in the Location & hours section."
                       : " Check-in and check-out times are managed by admins with business details access."}
                     {guestPoliciesReadOnly && (
-                      <span className="block mt-1 text-amber-600">You have view-only access. Ask an admin to grant create, edit, or delete permissions.</span>
+                      <span className="mt-1 block text-amber-600">You have view-only access. Ask an admin to grant create, edit, or delete permissions.</span>
                     )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <Label>Guest notices</Label>
+                  </p>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-600">Guest notices</Label>
                     {(businessData?.guest_notices || []).map((notice, idx) => (
                       <div key={idx} className="flex gap-2">
                         <Textarea
@@ -590,6 +601,7 @@ export default function BusinessSettingsPage() {
                           rows={2}
                           disabled={!canEditGuest && !canCreateGuest}
                           placeholder="e.g. Please follow all health and safety guidelines during your stay."
+                          className="rounded-lg border-slate-200"
                           onChange={(e) => {
                             const next = [...(businessData?.guest_notices || [])]
                             next[idx] = e.target.value
@@ -601,13 +613,13 @@ export default function BusinessSettingsPage() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0"
+                          className="h-9 w-9 shrink-0 rounded-lg border-slate-200"
                           onClick={() => {
                             const next = (businessData?.guest_notices || []).filter((_, i) => i !== idx)
                             setBusinessData({ ...businessData!, guest_notices: next })
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         )}
                       </div>
@@ -617,6 +629,7 @@ export default function BusinessSettingsPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="h-8 rounded-lg border-slate-200 text-xs"
                       onClick={() =>
                         setBusinessData({
                           ...businessData!,
@@ -624,19 +637,19 @@ export default function BusinessSettingsPage() {
                         })
                       }
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="mr-1 h-3.5 w-3.5" />
                       Add notice
                     </Button>
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    <Label>Policy highlights</Label>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-600">Policy highlights</Label>
+                    <p className="text-[11px] text-slate-500">
                       Green = allowed / required. Red = not allowed.
                     </p>
                     {(businessData?.policy_highlights || []).map((row, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row gap-2">
+                      <div key={idx} className="flex flex-col gap-2 sm:flex-row">
                         <Select
                           value={row.kind}
                           disabled={!canEditGuest}
@@ -646,7 +659,7 @@ export default function BusinessSettingsPage() {
                             setBusinessData({ ...businessData!, policy_highlights: next })
                           }}
                         >
-                          <SelectTrigger className="w-full sm:w-[140px]">
+                          <SelectTrigger className="h-9 w-full rounded-lg border-slate-200 sm:w-[140px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -655,7 +668,7 @@ export default function BusinessSettingsPage() {
                           </SelectContent>
                         </Select>
                         <Input
-                          className="flex-1"
+                          className="h-9 flex-1 rounded-lg border-slate-200"
                           value={row.text}
                           disabled={!canEditGuest}
                           placeholder="Policy statement"
@@ -670,13 +683,13 @@ export default function BusinessSettingsPage() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0"
+                          className="h-9 w-9 shrink-0 rounded-lg border-slate-200"
                           onClick={() => {
                             const next = (businessData?.policy_highlights || []).filter((_, i) => i !== idx)
                             setBusinessData({ ...businessData!, policy_highlights: next })
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         )}
                       </div>
@@ -686,6 +699,7 @@ export default function BusinessSettingsPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="h-8 rounded-lg border-slate-200 text-xs"
                       onClick={() =>
                         setBusinessData({
                           ...businessData!,
@@ -696,20 +710,21 @@ export default function BusinessSettingsPage() {
                         })
                       }
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="mr-1 h-3.5 w-3.5" />
                       Add highlight
                     </Button>
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    <Label>Additional policy lines</Label>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-600">Additional policy lines</Label>
                     {(businessData?.policy_bullets || []).map((bullet, idx) => (
                       <div key={idx} className="flex gap-2">
                         <Input
                           value={bullet}
                           disabled={!canEditGuest}
                           placeholder="e.g. No pets"
+                          className="h-9 rounded-lg border-slate-200"
                           onChange={(e) => {
                             const next = [...(businessData?.policy_bullets || [])]
                             next[idx] = e.target.value
@@ -721,13 +736,13 @@ export default function BusinessSettingsPage() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0"
+                          className="h-9 w-9 shrink-0 rounded-lg border-slate-200"
                           onClick={() => {
                             const next = (businessData?.policy_bullets || []).filter((_, i) => i !== idx)
                             setBusinessData({ ...businessData!, policy_bullets: next })
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         )}
                       </div>
@@ -737,6 +752,7 @@ export default function BusinessSettingsPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="h-8 rounded-lg border-slate-200 text-xs"
                       onClick={() =>
                         setBusinessData({
                           ...businessData!,
@@ -744,46 +760,47 @@ export default function BusinessSettingsPage() {
                         })
                       }
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="mr-1 h-3.5 w-3.5" />
                       Add policy line
                     </Button>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="policy_footer">Footer disclaimer</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="policy_footer" className="text-xs text-slate-600">Footer disclaimer</Label>
                     <Textarea
                       id="policy_footer"
                       rows={2}
                       disabled={!canEditGuest}
                       value={businessData?.policy_footer || ""}
                       placeholder="The hotel reserves the right of admission..."
+                      className="rounded-lg border-slate-200"
                       onChange={(e) =>
                         setBusinessData({ ...businessData!, policy_footer: e.target.value })
                       }
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
               )}
 
               {editDetails && (
               <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UtensilsCrossed className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <UtensilsCrossed className="h-4 w-4" />
                     Restaurant operations
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
                     Enable menu, order taking, and kitchen display for your on-site restaurant. This is separate from the
                     &quot;Restaurant&quot; amenity shown to guests when browsing hotels.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Enable restaurant &amp; kitchen module</p>
-                    <p className="text-xs text-muted-foreground">
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-4 p-4">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-slate-900">Enable restaurant &amp; kitchen module</p>
+                    <p className="text-[11px] text-slate-500">
                       Staff with restaurant permissions can manage the menu and kitchen workflow.
                     </p>
                   </div>
@@ -793,127 +810,133 @@ export default function BusinessSettingsPage() {
                       setBusinessData({ ...businessData, restaurant_enabled: checked })
                     }
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {canEnterReferrer && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserPlus className="w-5 h-5" />
+                <div className="rounded-xl border border-slate-200 bg-white">
+                  <div className="border-b border-slate-100 px-4 py-2.5">
+                    <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <UserPlus className="h-4 w-4" />
                       Marketer Referral
-                    </CardTitle>
-                    <CardDescription>
+                    </h2>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
                       If a Shettar marketer referred you, enter their code within {REFERRER_WINDOW_DAYS} days of registration. This can only be set once.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Label htmlFor="referrer_code">Referrer code</Label>
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 p-4">
+                    <Label htmlFor="referrer_code" className="text-xs text-slate-600">Referrer code</Label>
                     <Input
                       id="referrer_code"
                       type="text"
                       placeholder="STRXXXXXX"
                       value={referrerCode}
                       onChange={(e) => setReferrerCode(e.target.value.toUpperCase())}
-                      className="font-mono uppercase"
+                      className="h-9 rounded-lg border-slate-200 font-mono uppercase"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-slate-500">
                       Save settings to apply. Once linked, the referrer code cannot be changed.
                     </p>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <MapPin className="h-4 w-4" />
                     Location
-                  </CardTitle>
-                  <CardDescription>Your business address details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Street Address *</Label>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Your business address details</p>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address" className="text-xs text-slate-600">Street Address *</Label>
                     <Input
                       id="address"
                       value={businessData.address}
                       onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
                       required
                       placeholder="123 Main Street"
+                      className="h-9 rounded-lg border-slate-200"
                     />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City *</Label>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city" className="text-xs text-slate-600">City *</Label>
                       <Input
                         id="city"
                         value={businessData.city}
                         onChange={(e) => setBusinessData({ ...businessData, city: e.target.value })}
                         required
                         placeholder="City"
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State *</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state" className="text-xs text-slate-600">State *</Label>
                       <Input
                         id="state"
                         value={businessData.state}
                         onChange={(e) => setBusinessData({ ...businessData, state: e.target.value })}
                         required
                         placeholder="State"
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zip_code">ZIP Code *</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="zip_code" className="text-xs text-slate-600">ZIP Code *</Label>
                       <Input
                         id="zip_code"
                         value={businessData.zip_code}
                         onChange={(e) => setBusinessData({ ...businessData, zip_code: e.target.value })}
                         required
                         placeholder="12345"
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="latitude">Latitude</Label>
+                  <div className="flex flex-col space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="latitude" className="text-xs text-slate-600">Latitude</Label>
                         <Input
                           id="latitude"
                           value={businessData.latitude || ""}
                           onChange={(e) => setBusinessData({ ...businessData, latitude: e.target.value })}
                           placeholder="6.5244"
+                          className="h-9 rounded-lg border-slate-200"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="longitude">Longitude</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="longitude" className="text-xs text-slate-600">Longitude</Label>
                         <Input
                           id="longitude"
                           value={businessData.longitude || ""}
                           onChange={(e) => setBusinessData({ ...businessData, longitude: e.target.value })}
                           placeholder="3.3792"
+                          className="h-9 rounded-lg border-slate-200"
                         />
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={getCurrentLocation}
                         disabled={isGettingLocation}
-                        className="w-full md:w-auto"
+                        className="h-9 rounded-lg border-slate-200"
                       >
                         {isGettingLocation ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Getting Location...
                           </>
                         ) : (
                           <>
-                            <LocateFixed className="w-4 h-4 mr-2" />
+                            <LocateFixed className="mr-2 h-4 w-4" />
                             Use Current Location
                           </>
                         )}
@@ -923,83 +946,86 @@ export default function BusinessSettingsPage() {
                         variant="secondary"
                         onClick={() => setShowMapModal(true)}
                         disabled={!businessData.latitude || !businessData.longitude}
-                        className="w-full md:w-auto"
+                        className="h-9 rounded-lg"
                       >
-                        <MapPin className="w-4 h-4 mr-2" />
+                        <MapPin className="mr-2 h-4 w-4" />
                         Preview on Map
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Clock className="h-4 w-4" />
                     Operating Hours
-                  </CardTitle>
-                  <CardDescription>Check-in and check-out times</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="check_in">Check-in Time *</Label>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Check-in and check-out times</p>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="check_in" className="text-xs text-slate-600">Check-in Time *</Label>
                       <Input
                         id="check_in"
                         type="time"
                         value={businessData.check_in}
                         onChange={(e) => setBusinessData({ ...businessData, check_in: e.target.value })}
                         required
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="check_out">Check-out Time *</Label>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="check_out" className="text-xs text-slate-600">Check-out Time *</Label>
                       <Input
                         id="check_out"
                         type="time"
                         value={businessData.check_out}
                         onChange={(e) => setBusinessData({ ...businessData, check_out: e.target.value })}
                         required
+                        className="h-9 rounded-lg border-slate-200"
                       />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
               </>
               )}
-            </TabsContent>
+            </div>
+            )}
 
             {/* Branding Tab */}
-            {editBranding && (
-            <TabsContent value="branding" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5" />
+            {editBranding && settingsTab === "branding" && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <ImageIcon className="h-4 w-4" />
                     Business Logo
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
                     Upload your business logo. Recommended size: 512x512px, PNG or JPG format
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </p>
+                </div>
+                <div className="space-y-3 p-4">
                   {logoPreview ? (
-                    <div className="relative w-40 h-40 border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <div className="relative h-32 w-32 overflow-hidden rounded-lg border border-slate-200">
                       <Image src={logoPreview} alt="Logo preview" fill className="object-cover" />
                       <button
                         type="button"
                         onClick={removeLogoPreview}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
+                        className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500 p-1 text-white transition-colors hover:bg-red-600"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                      <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-2">No logo uploaded</p>
-                      <p className="text-xs text-muted-foreground">Click below to upload</p>
+                    <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center">
+                      <ImageIcon className="mx-auto mb-2 h-8 w-8 text-slate-400" />
+                      <p className="text-xs text-slate-500">No logo uploaded</p>
+                      <p className="mt-0.5 text-[11px] text-slate-400">Click below to upload</p>
                     </div>
                   )}
                   <div>
@@ -1011,32 +1037,32 @@ export default function BusinessSettingsPage() {
                       className="hidden"
                     />
                     <Label htmlFor="logo">
-                      <Button type="button" variant="outline" asChild>
+                      <Button type="button" variant="outline" asChild className="h-9 rounded-lg border-slate-200">
                         <span className="cursor-pointer">
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="mr-2 h-4 w-4" />
                           {logoPreview ? "Change Logo" : "Upload Logo"}
                         </span>
                       </Button>
                     </Label>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="w-5 h-5" />
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Upload className="h-4 w-4" />
                     Business Images
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
                     Upload images of your business. Recommended size: 1920x1080px, JPG or PNG format
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </p>
+                </div>
+                <div className="space-y-3 p-4">
                   {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                       {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative aspect-video border-2 border-gray-200 rounded-lg overflow-hidden">
+                        <div key={index} className="relative aspect-video overflow-hidden rounded-lg border border-slate-200">
                           <Image
                             src={preview}
                             alt={`Image ${index + 1}`}
@@ -1047,9 +1073,9 @@ export default function BusinessSettingsPage() {
                           <button
                             type="button"
                             onClick={() => removeImagePreview(index)}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
+                            className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500 p-1 text-white transition-colors hover:bg-red-600"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       ))}
@@ -1065,32 +1091,32 @@ export default function BusinessSettingsPage() {
                       className="hidden"
                     />
                     <Label htmlFor="images">
-                      <Button type="button" variant="outline" asChild>
+                      <Button type="button" variant="outline" asChild className="h-9 rounded-lg border-slate-200">
                         <span className="cursor-pointer">
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="mr-2 h-4 w-4" />
                           {imagePreviews.length > 0 ? "Add More Images" : "Upload Images"}
                         </span>
                       </Button>
                     </Label>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </div>
+            </div>
             )}
 
             {/* Amenities Tab */}
-            {editAmenities && (
-            <TabsContent value="amenities" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Check className="w-5 h-5" />
+            {editAmenities && settingsTab === "amenities" && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Check className="h-4 w-4" />
                     Available Amenities
-                  </CardTitle>
-                  <CardDescription>Select all amenities available at your business</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Select all amenities available at your business</p>
+                </div>
+                <div className="p-4">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {[
                       { key: 'swimming_pool', label: 'Swimming Pool' },
                       { key: 'gym', label: 'Gym' },
@@ -1129,43 +1155,44 @@ export default function BusinessSettingsPage() {
                         />
                         <Label
                           htmlFor={amenity.key}
-                          className="text-sm font-normal cursor-pointer"
+                          className="cursor-pointer text-xs font-normal text-slate-600"
                         >
                           {amenity.label}
                         </Label>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </div>
+            </div>
             )}
+            </div>
           </Tabs>
 
           {(editDetails || writeGuestPolicies || editBranding || editAmenities) && (
-          <div className="sticky bottom-4 mt-6">
-            <Card className="shadow-lg">
-              <CardContent className="flex items-center justify-between p-4">
-                <p className="text-sm text-muted-foreground">
-                  {writeGuestPolicies && !editDetails
-                    ? "Save guest notices and policies for your public hotel page"
-                    : "Make sure all required fields are filled before saving"}
-                </p>
-                <Button type="submit" disabled={isSaving} className="min-w-[120px]">
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+            <p className="text-xs text-slate-500">
+              {writeGuestPolicies && !editDetails
+                ? "Save guest notices and policies for your public hotel page"
+                : "Make sure all required fields are filled before saving"}
+            </p>
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="h-9 min-w-[120px] rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
           </div>
           )}
         </form>
@@ -1174,17 +1201,17 @@ export default function BusinessSettingsPage() {
       {/* Map Modal */}
       {showMapModal && businessData && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => { setShowMapModal(false); setMapLoading(true); }}
         >
           <div
-            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-300"
+            className="w-full max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">{(businessData as any)?.name} - Location Preview</h3>
-                <p className="text-sm text-slate-500 mt-1">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-slate-900">{(businessData as any)?.name} — Location Preview</h3>
+                <p className="mt-0.5 truncate text-xs text-slate-500">
                   {(businessData as any)?.address}, {(businessData as any)?.city}, {(businessData as any)?.state} {(businessData as any)?.zip_code}
                 </p>
               </div>
@@ -1192,31 +1219,31 @@ export default function BusinessSettingsPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => { setShowMapModal(false); setMapLoading(true); }}
-                className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-8 w-8 shrink-0 rounded-lg hover:bg-slate-100"
               >
-                <X className="w-6 h-6" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Latitude</p>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{(businessData as any)?.latitude}</p>
+            <div className="max-h-[calc(100vh-160px)] overflow-y-auto p-4">
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Latitude</p>
+                    <p className="text-xs font-semibold text-slate-900">{(businessData as any)?.latitude}</p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Longitude</p>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{(businessData as any)?.longitude}</p>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Longitude</p>
+                    <p className="text-xs font-semibold text-slate-900">{(businessData as any)?.longitude}</p>
                   </div>
                 </div>
 
-                <div className="w-full h-[450px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative bg-slate-100 dark:bg-slate-800 shadow-inner">
+                <div className="relative h-[360px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                   {mapLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 z-10 transition-opacity duration-300">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-indigo-200 dark:border-indigo-900/30 border-t-indigo-600 rounded-full animate-spin"></div>
-                        <p className="text-sm font-medium text-slate-500 animate-pulse">Loading interactive map...</p>
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                        <p className="text-xs font-medium text-slate-500">Loading interactive map...</p>
                       </div>
                     </div>
                   )}
@@ -1232,10 +1259,10 @@ export default function BusinessSettingsPage() {
                   ></iframe>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button
                     asChild
-                    className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                    className="h-9 w-full rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
                   >
                     <a
                       href={`https://www.google.com/maps?q=${(businessData as any)?.latitude},${(businessData as any)?.longitude}`}
@@ -1243,14 +1270,14 @@ export default function BusinessSettingsPage() {
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2"
                     >
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="h-4 w-4" />
                       Open in Google Maps
                     </a>
                   </Button>
                   <Button
                     variant="outline"
                     asChild
-                    className="w-full h-12 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="h-9 w-full rounded-lg border-slate-200 hover:bg-slate-50"
                   >
                     <a
                       href={`https://maps.apple.com/?q=${(businessData as any)?.latitude},${(businessData as any)?.longitude}`}
@@ -1258,7 +1285,7 @@ export default function BusinessSettingsPage() {
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2"
                     >
-                      <ArrowRight className="w-4 h-4 text-slate-400" />
+                      <ArrowRight className="h-4 w-4 text-slate-400" />
                       Open in Apple Maps
                     </a>
                   </Button>

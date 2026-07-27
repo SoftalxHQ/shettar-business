@@ -256,7 +256,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <SidebarBrandLogo businessId={businessId} />
               <div className="min-w-0">
                 <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate">{user.hotelName}</h1>
-                <p className="text-[10px] text-slate-400 font-mono truncate tracking-wide">{businessId || "N/A"}</p>
+                <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+                  <p className="text-[10px] text-slate-400 font-mono truncate tracking-wide">{businessId || "N/A"}</p>
+                  {verificationStatus && (
+                    <BusinessVerificationBadge status={verificationStatus} compact className="shrink-0" />
+                  )}
+                </div>
               </div>
             </Link>
           </div>
@@ -348,12 +353,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {verificationStatus && (
-              <BusinessVerificationBadge
-                status={verificationStatus}
-                className="w-full justify-center py-1.5 text-[11px]"
-              />
-            )}
           </div>
         </aside>
 
@@ -364,7 +363,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
             </div>
             <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="h-full min-h-0 overflow-y-auto p-4 md:p-5">{children}</div>
+              <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-5">{children}</div>
             </div>
           </main>
         </div>
@@ -392,7 +391,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate max-w-[12rem] sm:max-w-[16rem]">
                 {user.hotelName}
               </h1>
-              <p className="text-[10px] text-slate-400 font-mono tracking-wide truncate">{businessId || "N/A"}</p>
+              <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+                <p className="text-[10px] text-slate-400 font-mono tracking-wide truncate">{businessId || "N/A"}</p>
+                {verificationStatus && (
+                  <BusinessVerificationBadge status={verificationStatus} compact className="shrink-0" />
+                )}
+              </div>
             </div>
           </Link>
 
