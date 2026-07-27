@@ -16,24 +16,22 @@ on:
           - staging
         default: production
 
+permissions:
+  contents: write
+
 jobs:
-  publish-tauri:
+  prepare-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: "macos-latest" # for Arm based macs (M1 and above)
-            args: "--target aarch64-apple-darwin"
-          - platform: "macos-latest" # for Intel based macs
-            args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04"
-            args: ""
-          - platform: "windows-latest"
-            args: ""
-
-    runs-on: ${{ matrix.platform }}
+    outputs:
+      api_url: ${{ steps.env.outputs.api_url }}
+      app_env: ${{ steps.env.outputs.app_env }}
+      paystack_public_key: ${{ steps.env.outputs.paystack_public_key }}
+      tag_name: ${{ steps.env.outputs.tag_name }}
+      release_name: ${{ steps.env.outputs.release_name }}
+      prerelease: ${{ steps.env.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,29 +41,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-
-      - name: install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # Those targets are only used on macos runners so it's skip on linux and windows
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: install frontend dependencies
-        run: pnpm install
 
       - name: Resolve target environment
         id: env
@@ -80,6 +55,9 @@ jobs:
           fi
 
           echo "Resolved environment: $ENVIRONMENT"
+
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
           read_paystack_from_env_file() {
             local file="$1"
@@ -104,8 +82,8 @@ jobs:
               echo "api_url=https://api.stg.shettar.com"
               echo "app_env=staging"
               echo "paystack_public_key=$PAYSTACK_KEY"
-              echo "tag_name=v__VERSION__-staging"
-              echo "release_name=Shettar Business v__VERSION__ (staging)"
+              echo "tag_name=v${VERSION}-staging"
+              echo "release_name=Shettar Business v${VERSION} (staging)"
               echo "prerelease=true"
             } >> "$GITHUB_OUTPUT"
           else
@@ -124,33 +102,29 @@ jobs:
               echo "api_url=https://api-v1.shettar.com"
               echo "app_env=production"
               echo "paystack_public_key=$PAYSTACK_KEY"
-              echo "tag_name=v__VERSION__"
-              echo "release_name=Shettar Business v__VERSION__"
+              echo "tag_name=v${VERSION}"
+              echo "release_name=Shettar Business v${VERSION}"
               echo "prerelease=false"
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Configure updater endpoint for environment
+      - name: Generate release notes and create release
         env:
-          NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
-          NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
-        run: pnpm configure:updater
-
-      - name: Generate release notes
-        id: notes
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANNEL: ${{ steps.env.outputs.app_env }}
+          TAG: ${{ steps.env.outputs.tag_name }}
+          RELEASE_NAME: ${{ steps.env.outputs.release_name }}
+          PRERELEASE: ${{ steps.env.outputs.prerelease }}
+          VERSION: ${{ steps.env.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
           git fetch --tags --force 2>/dev/null || true
-          VERSION="$(node -p "require('./package.json').version")"
-          CHANNEL="${{ steps.env.outputs.app_env }}"
 
           if [ "$CHANNEL" = "staging" ]; then
-            CURRENT_TAG="v${VERSION}-staging"
-            PREV_TAG="$(git tag -l 'v*-staging' --sort=-v:refname | awk -v cur="$CURRENT_TAG" '$0 != cur { print; exit }')"
+            PREV_TAG="$(git tag -l 'v*-staging' --sort=-v:refname | awk -v cur="$TAG" '$0 != cur { print; exit }')"
           else
-            CURRENT_TAG="v${VERSION}"
-            PREV_TAG="$(git tag -l 'v*' --sort=-v:refname | grep -v '\-staging$' | awk -v cur="$CURRENT_TAG" '$0 != cur { print; exit }')"
+            PREV_TAG="$(git tag -l 'v*' --sort=-v:refname | grep -v '\-staging$' | awk -v cur="$TAG" '$0 != cur { print; exit }')"
           fi
 
           {
@@ -180,35 +154,107 @@ jobs:
             echo "Configure a thermal receipt printer under **Settings → Printer** after installing."
           } > /tmp/release-notes.md
 
-          {
-            echo "body<<EOF"
-            cat /tmp/release-notes.md
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-          echo "Generated release notes (prev=${PREV_TAG:-none}):"
+          echo "Release notes (prev=${PREV_TAG:-none}):"
           cat /tmp/release-notes.md
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — updating notes"
+            gh release edit "$TAG" --title "$RELEASE_NAME" --notes-file /tmp/release-notes.md
+          else
+            PRE_ARGS=()
+            if [ "$PRERELEASE" = "true" ]; then
+              PRE_ARGS+=(--prerelease)
+            fi
+            gh release create "$TAG" \
+              --title "$RELEASE_NAME" \
+              --notes-file /tmp/release-notes.md \
+              "${PRE_ARGS[@]}"
+          fi
+
+  publish-tauri:
+    needs: prepare-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest" # for Arm based macs (M1 and above)
+            args: "--target aarch64-apple-darwin"
+          - platform: "macos-latest" # for Intel based macs
+            args: "--target x86_64-apple-darwin"
+          - platform: "ubuntu-22.04"
+            args: ""
+          - platform: "windows-latest"
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libudev-dev \
+            pkg-config
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Those targets are only used on macos runners so it's skip on linux and windows
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: Configure updater endpoint for environment
+        env:
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+        run: pnpm configure:updater
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # API URL + env are baked into the static Next.js export at build time.
-          NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
-          NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
-          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ steps.env.outputs.paystack_public_key }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ needs.prepare-release.outputs.paystack_public_key }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
-          releaseName: ${{ steps.env.outputs.release_name }}
-          releaseBody: ${{ steps.notes.outputs.body }}
+          # Release already created by prepare-release; tauri-action uploads assets to it.
+          # Use literal tag (no __VERSION__) so it matches the prepared release exactly.
+          tagName: ${{ needs.prepare-release.outputs.tag_name }}
+          releaseName: ${{ needs.prepare-release.outputs.release_name }}
+          releaseBody: "See release notes."
           releaseDraft: false
-          prerelease: ${{ steps.env.outputs.prerelease }}
+          prerelease: ${{ needs.prepare-release.outputs.prerelease }}
           args: ${{ matrix.args }}
 
   register-release:
     name: Register release with Rails API
-    needs: publish-tauri
+    needs: [prepare-release, publish-tauri]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -219,14 +265,7 @@ jobs:
         id: env
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ENVIRONMENT="${{ github.event.inputs.environment }}"
-          elif [[ "${{ github.ref_name }}" == *-staging ]]; then
-            ENVIRONMENT="staging"
-          else
-            ENVIRONMENT="production"
-          fi
-
+          ENVIRONMENT="${{ needs.prepare-release.outputs.app_env }}"
           VERSION="$(node -p "require('./package.json').version")"
           if [ "$ENVIRONMENT" = "staging" ]; then
             {
