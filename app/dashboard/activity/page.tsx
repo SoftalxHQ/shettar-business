@@ -287,24 +287,50 @@ export default function ActivityPage() {
 
   return (
     <DashboardLayout activeTab="activity">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
 
         {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="w-6 h-6 text-indigo-600" />
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-slate-600" />
               Activity Log
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Real-time record of all business operations
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* ── Activity type filter ── */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="h-8 gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {isExporting ? "Exporting..." : "Export Excel"}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchActivities(page, filter, true)}
+              disabled={refreshing}
+              className="h-8 gap-1.5 rounded-lg border-slate-200"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Filters toolbar ── */}
+        <div className="shrink-0 rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select defaultValue="all" onValueChange={handleFilterChange}>
-              <SelectTrigger className="w-44 h-11 text-sm border-slate-200 shadow-sm rounded-xl">
+              <SelectTrigger className="w-full sm:w-44 h-8 text-xs border-slate-200 rounded-lg">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
@@ -316,25 +342,24 @@ export default function ActivityPage() {
               </SelectContent>
             </Select>
 
-            {/* ── Analytics-style date filter ── */}
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-11 px-4 flex items-center gap-6 border-slate-200 shadow-sm bg-white hover:bg-slate-50 transition-all rounded-xl justify-between min-w-[160px]"
+                  className="h-9 px-3 flex items-center gap-2.5 border-slate-200 bg-white hover:bg-slate-50 rounded-lg justify-between min-w-[180px] shrink-0"
                 >
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
-                      Time Period
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide leading-none mb-0.5">
+                      Time period
                     </span>
-                    <span className="font-semibold text-slate-700 text-sm">{dateLabel}</span>
+                    <span className="text-xs font-medium text-slate-700">{dateLabel}</span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform duration-200", popoverOpen && "rotate-180")} />
                 </Button>
               </PopoverTrigger>
 
-              <PopoverContent className="w-80 p-1.5 rounded-2xl shadow-sm border-slate-100" align="end">
-                <div className="space-y-1">
+              <PopoverContent className="w-80 p-1.5 rounded-xl border-slate-200" align="end">
+                <div className="space-y-0.5">
                   {[
                     { label: "Today", value: format(new Date(), "d MMM") },
                     { label: "Yesterday", value: format(subDays(new Date(), 1), "d MMM") },
@@ -347,44 +372,42 @@ export default function ActivityPage() {
                       key={item.label}
                       onClick={() => setRange(item.label)}
                       className={cn(
-                        "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all group",
+                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors",
                         rangeSelection === item.label && !isCustomMode
-                          ? "bg-indigo-50 text-indigo-700"
+                          ? "bg-slate-100 text-slate-900"
                           : "text-slate-600 hover:bg-slate-50"
                       )}
                     >
-                      <span className="group-hover:translate-x-0.5 transition-transform">{item.label}</span>
-                      <span className="text-xs text-slate-400 font-normal">{item.value}</span>
+                      <span>{item.label}</span>
+                      <span className="text-[11px] text-slate-400 font-normal">{item.value}</span>
                     </button>
                   ))}
 
-                  {/* Custom range */}
                   <button
                     onClick={() => setRange("Custom")}
                     className={cn(
-                      "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all group",
+                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors",
                       isCustomMode || rangeSelection === "Custom"
-                        ? "bg-indigo-50 text-indigo-700"
+                        ? "bg-slate-100 text-slate-900"
                         : "text-slate-600 hover:bg-slate-50"
                     )}
                   >
-                    <span className="group-hover:translate-x-0.5 transition-transform">Custom Range</span>
+                    <span>Custom range</span>
                   </button>
 
                   {(isCustomMode || rangeSelection === "Custom") && (
-                    <div className="p-4 mt-2 bg-slate-50 rounded-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in-95 duration-200 shadow-inner">
-                      {/* Start date */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">
+                    <div className="p-3 mt-1 bg-slate-50 rounded-xl space-y-3 border border-slate-100">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
                           Start date
                         </label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                            <Button variant="outline" className="w-full justify-start text-left h-8 px-3 bg-white border-slate-200 rounded-lg text-xs">
                               {tempStartDate ? format(tempStartDate, "PPP") : "Select start date"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                          <PopoverContent className="w-auto p-0 rounded-xl border-slate-200" align="start">
                             <CalendarComponent
                               mode="single"
                               selected={tempStartDate}
@@ -395,18 +418,17 @@ export default function ActivityPage() {
                         </Popover>
                       </div>
 
-                      {/* End date */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
                           End date
                         </label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left h-10 px-3 bg-white border-slate-200 rounded-xl">
+                            <Button variant="outline" className="w-full justify-start text-left h-8 px-3 bg-white border-slate-200 rounded-lg text-xs">
                               {tempEndDate ? format(tempEndDate, "PPP") : "Select end date"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 rounded-2xl shadow-sm border-slate-100" align="start">
+                          <PopoverContent className="w-auto p-0 rounded-xl border-slate-200" align="start">
                             <CalendarComponent
                               mode="single"
                               selected={tempEndDate}
@@ -420,7 +442,8 @@ export default function ActivityPage() {
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-lg"
+                          variant="outline"
+                          className="flex-1 h-8 rounded-lg border-slate-200"
                           onClick={applyCustomFilter}
                         >
                           Apply
@@ -428,7 +451,7 @@ export default function ActivityPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="flex-1 rounded-lg"
+                          className="flex-1 h-8 rounded-lg"
                           onClick={() => setIsCustomMode(false)}
                         >
                           Cancel
@@ -439,177 +462,160 @@ export default function ActivityPage() {
                 </div>
               </PopoverContent>
             </Popover>
-
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="h-11 gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-sm"
-            >
-              <Download className="w-3.5 h-3.5" />
-              {isExporting ? "Exporting..." : "Export Excel"}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchActivities(page, filter, true)}
-              disabled={refreshing}
-              className="h-11 gap-1.5 rounded-xl border-slate-200 shadow-sm"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
           </div>
         </div>
 
-        {/* ── Stats strip ── */}
-        {pagination && (
-          <div className="text-sm text-slate-500 flex items-center gap-2 flex-wrap">
-            Showing{" "}
-            <span className="font-semibold text-slate-800">{activities.length}</span> of{" "}
-            <span className="font-semibold text-slate-800">{pagination.count}</span> events
-            {filter && (
-              <><span className="text-slate-300">·</span><Badge variant="outline" className="text-indigo-600 border-indigo-200">{ACTION_LABELS[filter]}</Badge></>
-            )}
-            {hasDateFilter && (
-              <><span className="text-slate-300">·</span>
-                <Badge variant="outline" className="text-slate-600 border-slate-200 gap-1">
-                  {dateLabel}
-                  <button onClick={() => setRange("All time")} className="ml-1 hover:text-red-500 transition-colors">
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                </Badge></>
+        {/* ── Timeline panel ── */}
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+            {pagination ? (
+              <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+                Showing{" "}
+                <span className="font-semibold text-slate-800">{activities.length}</span> of{" "}
+                <span className="font-semibold text-slate-800">{pagination.count}</span> events
+                {filter && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <Badge variant="outline" className="text-slate-600 border-slate-200 text-[10px] h-5 px-1.5">{ACTION_LABELS[filter]}</Badge>
+                  </>
+                )}
+                {hasDateFilter && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <Badge variant="outline" className="text-slate-600 border-slate-200 gap-1 text-[10px] h-5 px-1.5">
+                      {dateLabel}
+                      <button onClick={() => setRange("All time")} className="ml-0.5 hover:text-red-500 transition-colors">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </Badge>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">Activity timeline</p>
             )}
           </div>
-        )}
 
-        {/* ── Activity timeline ── */}
-        {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <LoadingSpinner size={36} />
-          </div>
-        ) : activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <Activity className="w-8 h-8 text-slate-400" />
+          {loading ? (
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <LoadingSpinner size={32} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-1">No activity found</h3>
-            <p className="text-sm text-slate-500">
-              {hasDateFilter
-                ? `No events in the "${dateLabel}" period.`
-                : "Activity will appear here as staff perform operations."}
-            </p>
-            {hasDateFilter && (
-              <Button variant="outline" size="sm" onClick={() => setRange("All time")} className="mt-4 gap-1.5">
-                <X className="w-3.5 h-3.5" /> Clear date filter
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-5 top-0 bottom-0 w-px bg-slate-100" />
+          ) : activities.length === 0 ? (
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center px-4">
+              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                <Activity className="w-5 h-5 text-slate-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-0.5">No activity found</h3>
+              <p className="text-xs text-slate-500 max-w-sm">
+                {hasDateFilter
+                  ? `No events in the "${dateLabel}" period.`
+                  : "Activity will appear here as staff perform operations."}
+              </p>
+              {hasDateFilter && (
+                <Button variant="outline" size="sm" onClick={() => setRange("All time")} className="mt-3 h-8 gap-1.5 rounded-lg border-slate-200">
+                  <X className="w-3.5 h-3.5" /> Clear date filter
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto relative px-1">
+              <div className="absolute left-[18px] top-0 bottom-0 w-px bg-slate-100" />
 
-            <div className="space-y-1">
-              {activities.map((activity, idx) => {
-                const Icon = getIcon(activity.action_type)
-                const isToday = new Date(activity.occurred_at).toDateString() === new Date().toDateString()
-                const timeAgo = formatDistanceToNow(new Date(activity.occurred_at), { addSuffix: true })
-                const fullTime = format(new Date(activity.occurred_at), "dd MMM yyyy, HH:mm")
+              <div>
+                {activities.map((activity, idx) => {
+                  const Icon = getIcon(activity.action_type)
+                  const isToday = new Date(activity.occurred_at).toDateString() === new Date().toDateString()
+                  const timeAgo = formatDistanceToNow(new Date(activity.occurred_at), { addSuffix: true })
+                  const fullTime = format(new Date(activity.occurred_at), "dd MMM yyyy, HH:mm")
 
-                const showDateSeparator =
-                  idx === 0 ||
-                  new Date(activity.occurred_at).toDateString() !==
-                  new Date(activities[idx - 1].occurred_at).toDateString()
+                  const showDateSeparator =
+                    idx === 0 ||
+                    new Date(activity.occurred_at).toDateString() !==
+                    new Date(activities[idx - 1].occurred_at).toDateString()
 
-                return (
-                  <div key={activity.id}>
-                    {showDateSeparator && (
-                      <div className="flex items-center gap-3 py-3 pl-14">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                          {isToday ? "Today" : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
-                        </span>
-                        <div className="flex-1 h-px bg-slate-100" />
-                      </div>
-                    )}
-
-                    <div className="relative flex items-start gap-4 pl-2 pr-4 py-3 rounded-xl hover:bg-slate-50/80 transition-colors group">
-                      {/* Icon bubble */}
-                      <div
-                        className="relative z-10 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center shadow-sm ring-2 ring-white"
-                        style={{ backgroundColor: activity.color + "20", color: activity.color }}
-                      >
-                        <Icon className="w-3.5 h-3.5" style={{ stroke: activity.color }} />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
-                        {activity.metadata?.notes && (
-                          <p className="text-xs text-slate-500 mt-1">
-                            Notes: {String(activity.metadata.notes)}
-                          </p>
-                        )}
-                        <div className="flex items-center flex-wrap gap-2 mt-1">
-                          {activity.actor && (
-                            <span className="text-xs text-slate-500">
-                              by <span className="font-medium text-slate-700">{activity.actor.name}</span>
-                            </span>
-                          )}
-                          <span className="text-[10px] text-slate-400">•</span>
-                          <span className="text-xs text-slate-400" title={fullTime}>{timeAgo}</span>
+                  return (
+                    <div key={activity.id}>
+                      {showDateSeparator && (
+                        <div className="flex items-center gap-2 py-2 pl-10 pr-3">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                            {isToday ? "Today" : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
+                          </span>
+                          <div className="flex-1 h-px bg-slate-100" />
                         </div>
+                      )}
+
+                      <div className="relative flex items-start gap-3 pl-1.5 pr-3 py-2 hover:bg-slate-50/50 transition-colors">
+                        <div
+                          className="relative z-10 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: activity.color + "20", color: activity.color }}
+                        >
+                          <Icon className="w-3 h-3" style={{ stroke: activity.color }} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
+                          {activity.metadata?.notes && (
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Notes: {String(activity.metadata.notes)}
+                            </p>
+                          )}
+                          <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                            {activity.actor && (
+                              <span className="text-[11px] text-slate-500">
+                                by <span className="font-medium text-slate-700">{activity.actor.name}</span>
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-400">•</span>
+                            <span className="text-[11px] text-slate-400" title={fullTime}>{timeAgo}</span>
+                          </div>
+                        </div>
+
+                        <Badge
+                          variant="outline"
+                          className="hidden sm:inline-flex text-[10px] h-5 px-1.5 flex-shrink-0 border capitalize"
+                          style={{
+                            color: activity.color,
+                            borderColor: activity.color + "40",
+                            background: activity.color + "10",
+                          }}
+                        >
+                          {activity.action_type.replace(/_/g, " ")}
+                        </Badge>
                       </div>
-
-                      {/* Action type badge */}
-                      <Badge
-                        variant="outline"
-                        className="hidden sm:inline-flex text-[10px] h-5 px-1.5 flex-shrink-0 border capitalize"
-                        style={{
-                          color: activity.color,
-                          borderColor: activity.color + "40",
-                          background: activity.color + "10",
-                        }}
-                      >
-                        {activity.action_type.replace(/_/g, " ")}
-                      </Badge>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Pagination ── */}
-        {pagination && pagination.last > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchActivities(page - 1)}
-              disabled={page <= 1 || loading}
-              className="gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </Button>
-            <span className="text-sm text-slate-500">
-              Page <span className="font-semibold text-slate-800">{page}</span> of{" "}
-              <span className="font-semibold text-slate-800">{pagination.last}</span>
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchActivities(page + 1)}
-              disabled={page >= pagination.last || loading}
-              className="gap-1"
-            >
-              Next <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
+          {pagination && pagination.last > 1 && (
+            <div className="shrink-0 flex items-center justify-between gap-2 px-3.5 py-2 border-t border-slate-100 bg-slate-50/50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchActivities(page - 1)}
+                disabled={page <= 1 || loading}
+                className="h-8 gap-1 rounded-lg border-slate-200"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Previous
+              </Button>
+              <span className="text-xs text-slate-500">
+                Page <span className="font-semibold text-slate-800">{page}</span> of{" "}
+                <span className="font-semibold text-slate-800">{pagination.last}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchActivities(page + 1)}
+                disabled={page >= pagination.last || loading}
+                className="h-8 gap-1 rounded-lg border-slate-200"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   )

@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
 import { usesRestaurantPortal } from "@/lib/portal-access";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -113,89 +111,95 @@ export default function NotificationsPage() {
 
   return (
     <LayoutShell activeTab={layoutTab}>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="w-7 h-7" />
-              Notifications
-            </h1>
-            <p className="text-muted-foreground text-sm">Alerts for your role and permissions</p>
-            {unreadCount > 0 && (
-              <p className="text-xs text-indigo-600 mt-1">{unreadCount} unread</p>
-            )}
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Notifications</h1>
+            <p className="text-xs text-slate-500">
+              Alerts for your role and permissions
+              {unreadCount > 0 && (
+                <span className="ml-1.5 text-slate-700">· {unreadCount} unread</span>
+              )}
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={markAllRead} disabled={unreadCount === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={markAllRead}
+            disabled={unreadCount === 0}
+            className="h-8 rounded-lg border-slate-200 text-xs"
+          >
             Mark all read
           </Button>
         </div>
 
         {prefs && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {prefs.sound_enabled ? (
-                  <Volume2 className="w-4 h-4 text-indigo-600" />
-                ) : (
-                  <VolumeX className="w-4 h-4 text-muted-foreground" />
-                )}
-                <Label>Sound alerts</Label>
+          <div className="flex shrink-0 items-center justify-between rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              {prefs.sound_enabled ? (
+                <Volume2 className="h-3.5 w-3.5 text-slate-500" />
+              ) : (
+                <VolumeX className="h-3.5 w-3.5 text-slate-400" />
+              )}
+              <Label className="text-xs text-slate-700">Sound alerts</Label>
+            </div>
+            <Switch checked={prefs.sound_enabled} onCheckedChange={toggleSound} />
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex h-40 items-center justify-center">
+                <LoadingSpinner size={28} />
               </div>
-              <Switch checked={prefs.sound_enabled} onCheckedChange={toggleSound} />
-            </CardContent>
-          </Card>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <LoadingSpinner />
-          </div>
-        ) : notifications.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No notifications yet</p>
-        ) : (
-          <div className="space-y-2">
-            {notifications.map((n) => (
-              <Card
-                key={n.id}
-                className={cn(!n.read && "border-indigo-200 bg-indigo-50/40")}
-              >
-                <CardContent className="py-3">
-                  <div className="flex justify-between gap-2">
-                    <p className={cn("text-sm", !n.read && "font-semibold")}>{n.title}</p>
-                    <span className="text-[10px] text-muted-foreground uppercase">{n.category}</span>
-                  </div>
-                  {n.message && (
-                    <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
-                  )}
-                  <div className="flex items-center justify-between gap-2 mt-2">
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(n.created_at).toLocaleString()}
-                    </p>
-                    {!n.read && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-indigo-600 text-xs"
-                        onClick={() => markOneRead(n.id)}
-                      >
-                        Mark as read
-                      </Button>
+            ) : notifications.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-slate-400">
+                <Bell className="mb-2 h-8 w-8 opacity-40" />
+                <p className="text-sm font-medium text-slate-600">No notifications yet</p>
+              </div>
+            ) : (
+              <ul>
+                {notifications.map((n) => (
+                  <li
+                    key={n.id}
+                    className={cn(
+                      "border-b border-slate-100 px-3.5 py-2.5 last:border-b-0",
+                      !n.read && "border-l-2 border-l-indigo-500 bg-slate-50/60",
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  >
+                    <div className="flex justify-between gap-2">
+                      <p className={cn("text-xs text-slate-900", !n.read && "font-semibold")}>
+                        {n.title}
+                      </p>
+                      <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-400">
+                        {n.category}
+                      </span>
+                    </div>
+                    {n.message && (
+                      <p className="mt-1 text-xs text-slate-500">{n.message}</p>
+                    )}
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <p className="text-[11px] text-slate-400">
+                        {new Date(n.created_at).toLocaleString()}
+                      </p>
+                      {!n.read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-slate-600 hover:text-slate-900"
+                          onClick={() => markOneRead(n.id)}
+                        >
+                          Mark as read
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
-
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/dashboard" className="text-indigo-600 hover:underline">
-            Back to dashboard
-          </Link>
-        </p>
+        </div>
       </div>
     </LayoutShell>
   );
