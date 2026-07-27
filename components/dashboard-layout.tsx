@@ -358,13 +358,11 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     )
   }
 
-  // Staff layout with top navigation
+  // Staff layout with top navigation — locked to viewport for desktop-app feel
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-border">
+    <div className="h-dvh overflow-hidden flex flex-col bg-background">
+      <header className="shrink-0 z-50 h-16 bg-white border-b border-border">
         <div className="h-full px-6 flex items-center justify-between">
-          {/* Logo and hotel name */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <SidebarBrandLogo businessId={businessId} />
             <div>
@@ -376,7 +374,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           <div className="flex items-center gap-2">
             <TopBarNotifications businessId={businessId} />
 
-            {/* User profile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-3 h-auto py-2 px-3">
@@ -428,16 +425,16 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         </div>
       </header>
 
-      {/* Email Verification Banner */}
       <EmailVerificationBanner />
 
-      {/* Main content */}
-      <div className="pt-16">
-        <main className="p-8">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-4 gap-2">
+        <div className="shrink-0">
           <UpdateBanner />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
