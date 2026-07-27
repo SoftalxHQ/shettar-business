@@ -1,20 +1,20 @@
 "use client"
 
+import { Suspense, useEffect, useRef, useState } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { QrCode, Check, X, Printer, ArrowLeft } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { useState, useEffect, useRef } from "react"
-import Link from "next/link"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { QrCode, Check, X, Printer, ArrowLeft } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
 import { toast } from "sonner"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { isTauri, nativeScan } from "@/lib/tauri"
 import {
   reservationGuestEmail,
@@ -58,12 +58,8 @@ interface Reservation {
   status?: string
 }
 
-import { useSearchParams } from "next/navigation"
-
-import { Suspense } from "react"
-
 function ScanContent() {
-  const { user, businessId, businessName, logout } = useAuth()
+  const { businessId, businessName, logout } = useAuth()
   const searchParams = useSearchParams()
   const [code, setCode] = useState((searchParams.get("code") || "").toUpperCase())
   const [isLoading, setIsLoading] = useState(false)
@@ -76,7 +72,6 @@ function ScanContent() {
 
   const codeFromUrl = searchParams.get("code")
 
-  // Fetch business details
   useEffect(() => {
     const fetchBusinessDetails = async () => {
       if (!businessId) return
@@ -100,7 +95,7 @@ function ScanContent() {
       }
     }
 
-    fetchBusinessDetails()
+    void fetchBusinessDetails()
   }, [businessId])
 
   const verifyBooking = async (bookingCode: string, options?: { showSuccessToast?: boolean }) => {
@@ -133,10 +128,10 @@ function ScanContent() {
       } else {
         if (response.status === 401) {
           if (
-            data.errors?.[0]?.id === 'expiration' ||
-            data.errors?.[0]?.message === 'Token has expired' ||
-            data.message === 'Signature has expired' ||
-            data.status?.message === 'Signature has expired'
+            data.errors?.[0]?.id === "expiration" ||
+            data.errors?.[0]?.message === "Token has expired" ||
+            data.message === "Signature has expired" ||
+            data.status?.message === "Signature has expired"
           ) {
             logout(true)
             return
@@ -156,7 +151,6 @@ function ScanContent() {
     }
   }
 
-  // Auto-verify once when opened with ?code= (e.g. from dashboard search)
   useEffect(() => {
     if (!codeFromUrl || !businessId) return
     if (autoVerifiedCode.current === codeFromUrl) return
@@ -175,14 +169,14 @@ function ScanContent() {
       return
     }
 
-    verifyBooking(code, { showSuccessToast: true })
+    void verifyBooking(code, { showSuccessToast: true })
   }
 
   const handleNativeScan = async () => {
-    const scannnedCode = await nativeScan();
+    const scannnedCode = await nativeScan()
     if (scannnedCode) {
-      setCode(scannnedCode);
-      verifyBooking(scannnedCode, { showSuccessToast: true });
+      setCode(scannnedCode)
+      void verifyBooking(scannnedCode, { showSuccessToast: true })
     }
   }
 
@@ -215,7 +209,7 @@ function ScanContent() {
       const data = await response.json()
 
       if (response.ok && data.status?.code === 200) {
-        setReservation(data.data) // Update with new data including check-in timestamp
+        setReservation(data.data)
         toast.success(data.status.message || "Guest checked in successfully!")
       } else {
         toast.error(data.status?.message || "Failed to check in guest")
@@ -294,7 +288,6 @@ function ScanContent() {
     const startDate = new Date(reservation.start_date)
     const endDate = new Date(reservation.end_date)
 
-    // Check-in is only allowed during the reservation window
     return now >= startDate && now <= endDate
   }
 
@@ -318,218 +311,269 @@ function ScanContent() {
 
   return (
     <DashboardLayout activeTab="scancode">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 pb-20 rounded-b-3xl">
-        <div className="absolute inset-x-0 bottom-0 h-full bg-grid-white/[0.1] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 text-center">
-          <Link href="/dashboard" className="inline-flex items-center text-indigo-100 hover:text-white mb-6 transition-colors bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm">
-            <ArrowLeft className="w-3 h-3 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-3">
-            Scan Booking Code
-          </h1>
-          <p className="text-indigo-100 text-base max-w-xl mx-auto">
-            Scan the guest's QR code or enter the booking ID manually to verify and manage the check-in process.
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-10 pb-12">
-        <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/95 backdrop-blur-sm">
-          {!result && (
-            <CardHeader className="text-center pt-6 pb-2">
-              <CardTitle className="text-xl font-bold text-slate-900">Verify Reservation</CardTitle>
-              <CardDescription className="text-sm">
-                Use your scanner or type the code below
-              </CardDescription>
-            </CardHeader>
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+              Dashboard
+            </Link>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Scan booking</h1>
+            <p className="text-xs text-slate-500">
+              Scan a QR code or enter a booking ID to check guests in or out
+            </p>
+          </div>
+          {result !== null && (
+            <Button onClick={handleReset} variant="outline" size="sm" className="h-9 rounded-xl shrink-0">
+              Scan another
+            </Button>
           )}
+        </div>
 
-          <CardContent className="p-6 space-y-6">
-            {/* Initial State: Scanner & Input */}
-            {result === null && (
-              <div className="space-y-6 animate-in fade-in duration-500">
-                {/* Visual Scanner Area */}
-                <div
-                  className="relative group cursor-pointer"
-                  onClick={isTauri() ? handleNativeScan : undefined}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
-                  <div className="relative bg-slate-50 border-2 border-dashed border-indigo-200 rounded-xl p-6 flex flex-col items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-all">
-                    <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-sm mb-3">
-                      <QrCode className="w-8 h-8" />
-                    </div>
-                    <p className="font-medium text-sm">
-                      {isTauri() ? "Tap to Scan QR Code" : "Ready to Scan"}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      {isTauri() ? "Use device camera" : "Point scanner at QR code"}
-                    </p>
-                  </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {result === null && (
+            <div className="max-w-xl mx-auto w-full flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={isTauri() ? () => void handleNativeScan() : undefined}
+                className={
+                  isTauri()
+                    ? "shrink-0 rounded-2xl border border-dashed border-indigo-200 bg-white p-6 text-center hover:border-indigo-400 hover:bg-indigo-50/40 transition-colors cursor-pointer"
+                    : "shrink-0 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center cursor-default"
+                }
+              >
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <QrCode className="h-6 w-6" />
                 </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-200" />
-                  </div>
-                  <div className="relative flex justify-center text-[10px] uppercase">
-                    <span className="bg-white px-2 text-slate-500 font-medium">Or enter manually</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="code" className="sr-only">Booking Code</Label>
-                    <Input
-                      id="code"
-                      placeholder="e.g., SSH-123-ABC-456"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
-                      className="text-center text-base h-11 font-mono uppercase tracking-wider border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button
-                    onClick={handleScan}
-                    disabled={!code || isLoading}
-                    className="w-full h-11 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md"
-                    size="lg"
-                  >
-                    {isLoading ? <LoadingSpinner size={18} className="text-white" /> : "Verify Booking Code"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* ERROR State */}
-            {result === "error" && (
-              <div className="text-center py-8 animate-in zoom-in duration-300">
-                <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <X className="w-10 h-10 text-rose-600" strokeWidth={3} />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Booking Not Found</h3>
-                <p className="text-slate-500 mb-8 max-w-sm mx-auto">
-                  We couldn't locate a reservation with the code <span className="font-mono font-bold text-slate-900">{code}</span>. Please check the code and try again.
+                <p className="text-sm font-semibold text-slate-900">
+                  {isTauri() ? "Tap to scan QR code" : "Ready for scanner input"}
                 </p>
-                <Button onClick={handleReset} variant="outline" size="lg" className="h-12 px-8 min-w-[200px]">
-                  Try Again
+                <p className="text-xs text-slate-500 mt-1">
+                  {isTauri()
+                    ? "Opens the device camera"
+                    : "Focus the field below and scan, or type the code"}
+                </p>
+              </button>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-4 space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="code" className="text-xs">
+                    Booking code
+                  </Label>
+                  <Input
+                    id="code"
+                    placeholder="e.g. SSH-123-ABC-456"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && !isLoading && handleScan()}
+                    className="h-10 font-mono uppercase tracking-wider text-sm"
+                    disabled={isLoading}
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  onClick={handleScan}
+                  disabled={!code || isLoading}
+                  className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                >
+                  {isLoading ? <LoadingSpinner size={18} className="text-white" /> : "Verify booking"}
                 </Button>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* SUCCESS State */}
-            {result === "success" && reservation && (
-              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                {/* Success Header */}
-                <div className="text-center pb-6 border-b border-slate-100">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-emerald-600" strokeWidth={3} />
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-900">Verified Reservation</h2>
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    {getStatusBadge()}
-                    <span className="text-sm text-slate-500 font-mono">{reservation.booking_id}</span>
-                  </div>
-                </div>
+          {result === "error" && (
+            <div className="max-w-md mx-auto w-full rounded-2xl border border-slate-200/80 bg-white shadow-sm p-6 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-100">
+                <X className="h-6 w-6 text-rose-600" strokeWidth={3} />
+              </div>
+              <h2 className="text-lg font-semibold text-slate-900">Booking not found</h2>
+              <p className="text-sm text-slate-500 mt-2">
+                No reservation matched{" "}
+                <span className="font-mono font-semibold text-slate-800">{code}</span>. Check the
+                code and try again.
+              </p>
+              <Button onClick={handleReset} variant="outline" className="mt-5 h-10 rounded-xl">
+                Try again
+              </Button>
+            </div>
+          )}
 
-                {/* Guest & Room Info */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      Guest Information
-                      <span className="h-px bg-slate-200 flex-1"></span>
-                    </h3>
-                    <div className="bg-slate-50 p-3 rounded-lg space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Name</span>
-                        <span className="font-semibold">{reservationGuestName(reservation)}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-slate-500 shrink-0">Phone</span>
-                        <span className="font-medium text-right">{reservationGuestPhone(reservation)}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-slate-500 shrink-0">Email</span>
-                        <span className="font-medium text-xs truncate max-w-[150px] text-right" title={reservationGuestEmail(reservation)}>
-                          {reservationGuestEmail(reservation)}
-                        </span>
-                      </div>
+          {result === "success" && reservation && (
+            <div className="h-full min-h-[24rem] flex flex-col lg:flex-row gap-3">
+              <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3 sticky top-0 bg-white/95 backdrop-blur z-10">
+                  <div className="min-w-0 flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 shrink-0">
+                      <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />
                     </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      Stay Details
-                      <span className="h-px bg-slate-200 flex-1"></span>
-                    </h3>
-                    <div className="bg-slate-50 p-3 rounded-lg space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Room Type</span>
-                        <span className="font-semibold">{reservation.room_type_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Room No.</span>
-                        <span className="font-semibold">{reservation.room_number || "Not Assigned"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Duration</span>
-                        <span className="font-medium text-xs">
-                          {new Date(reservation.start_date).toLocaleDateString()} - {new Date(reservation.end_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Actions */}
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="text-center md:text-left">
-                      <p className="font-semibold text-indigo-900 text-sm">Action Required</p>
-                      <p className="text-xs text-indigo-600">
-                        {!reservation.checked_in_at ? "Guest is ready for check-in" : !reservation.checked_out_at ? "Guest is checked in" : "Stay completed"}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">
+                        {reservationGuestName(reservation)}
+                      </p>
+                      <p className="text-xs font-mono text-slate-500 uppercase truncate">
+                        {reservation.booking_id}
                       </p>
                     </div>
+                  </div>
+                  <div className="shrink-0">{getStatusBadge()}</div>
+                </div>
 
-                    <div className="flex gap-2 w-full md:w-auto">
-                      {!reservation.checked_in_at ? (
-                        <Button
-                          onClick={handleCheckIn}
-                          disabled={isLoading || !isWithinReservationWindow()}
-                          className="flex-1 md:flex-none h-10 bg-indigo-600 hover:bg-indigo-700 text-sm"
-                        >
-                          {isLoading ? <LoadingSpinner className="text-white" /> : "Check In Guest"}
-                        </Button>
-                      ) : !reservation.checked_out_at ? (
-                        <Button
-                          onClick={() => setCheckoutDialogOpen(true)}
-                          disabled={isLoading}
-                          className="flex-1 md:flex-none h-10 bg-rose-600 hover:bg-rose-700 text-sm"
-                        >
-                          Check Out Guest
-                        </Button>
-                      ) : (
-                        <Button disabled variant="outline" className="flex-1 md:flex-none h-10 text-sm">Completed</Button>
-                      )}
-
-                      <Button onClick={handlePrintReceipt} variant="outline" className="h-10 bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-700">
-                        <Printer className="w-4 h-4" />
-                      </Button>
+                <div className="p-4 grid sm:grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-3 space-y-2 text-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Guest
+                    </p>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Phone</span>
+                      <span className="font-medium text-right">
+                        {reservationGuestPhone(reservation)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500 shrink-0">Email</span>
+                      <span
+                        className="font-medium text-xs truncate max-w-[160px] text-right"
+                        title={reservationGuestEmail(reservation)}
+                      >
+                        {reservationGuestEmail(reservation)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Guests</span>
+                      <span className="font-medium tabular-nums">
+                        {reservation.guests} adult{reservation.guests === 1 ? "" : "s"}
+                        {reservation.children > 0
+                          ? `, ${reservation.children} child${reservation.children === 1 ? "" : "ren"}`
+                          : ""}
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-center pt-4">
-                  <Button onClick={handleReset} variant="ghost" className="text-slate-500 hover:text-slate-800">
-                    Scan Another Code
-                  </Button>
+                  <div className="rounded-xl bg-slate-50 p-3 space-y-2 text-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Stay
+                    </p>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Room type</span>
+                      <span className="font-semibold text-right">{reservation.room_type_name}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Room no.</span>
+                      <span className="font-semibold">
+                        {reservation.room_number || "Not assigned"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">Dates</span>
+                      <span className="font-medium text-xs text-right">
+                        {new Date(reservation.start_date).toLocaleDateString()} –{" "}
+                        {new Date(reservation.end_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(reservation.checked_in_at || reservation.checked_out_at) && (
+                    <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3 space-y-2 text-sm">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Stay record
+                      </p>
+                      {reservation.checked_in_at && (
+                        <div className="flex justify-between gap-3">
+                          <span className="text-slate-500">Checked in</span>
+                          <span className="font-medium text-right text-xs">
+                            {new Date(reservation.checked_in_at).toLocaleString()}
+                            {reservation.checked_in_by_name
+                              ? ` · ${reservation.checked_in_by_name}`
+                              : ""}
+                          </span>
+                        </div>
+                      )}
+                      {reservation.checked_out_at && (
+                        <div className="flex justify-between gap-3">
+                          <span className="text-slate-500">Checked out</span>
+                          <span className="font-medium text-right text-xs">
+                            {new Date(reservation.checked_out_at).toLocaleString()}
+                            {reservation.checked_out_by_name
+                              ? ` · ${reservation.checked_out_by_name}`
+                              : ""}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <aside className="lg:w-64 xl:w-72 shrink-0 flex flex-col rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {!reservation.checked_in_at
+                      ? "Guest is ready for check-in"
+                      : !reservation.checked_out_at
+                        ? "Guest is currently checked in"
+                        : "Stay completed"}
+                  </p>
+                </div>
+
+                <div className="flex-1 p-4 space-y-2">
+                  {!reservation.checked_in_at ? (
+                    <Button
+                      onClick={handleCheckIn}
+                      disabled={isLoading || !isWithinReservationWindow()}
+                      className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                    >
+                      {isLoading ? (
+                        <LoadingSpinner size={16} className="text-white" />
+                      ) : (
+                        "Check in guest"
+                      )}
+                    </Button>
+                  ) : !reservation.checked_out_at ? (
+                    <Button
+                      onClick={() => setCheckoutDialogOpen(true)}
+                      disabled={isLoading}
+                      className="w-full h-10 rounded-xl bg-rose-600 hover:bg-rose-700 font-semibold"
+                    >
+                      Check out guest
+                    </Button>
+                  ) : (
+                    <Button disabled variant="outline" className="w-full h-10 rounded-xl">
+                      Completed
+                    </Button>
+                  )}
+
+                  {!reservation.checked_in_at && !isWithinReservationWindow() && (
+                    <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2.5 py-2">
+                      Check-in is only available during the reservation window.
+                    </p>
+                  )}
+
+                  <Button
+                    onClick={handlePrintReceipt}
+                    variant="outline"
+                    className="w-full h-10 rounded-xl"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print receipt
+                  </Button>
+
+                  <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    className="w-full h-10 rounded-xl lg:hidden"
+                  >
+                    Scan another
+                  </Button>
+                </div>
+              </aside>
+            </div>
+          )}
+        </div>
       </div>
 
       <ConfirmDialog
@@ -559,7 +603,15 @@ function ScanContent() {
 
 export default function ScanPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner size={32} /></div>}>
+    <Suspense
+      fallback={
+        <DashboardLayout activeTab="scancode">
+          <div className="h-full flex items-center justify-center">
+            <LoadingSpinner size={32} />
+          </div>
+        </DashboardLayout>
+      }
+    >
       <ScanContent />
     </Suspense>
   )
