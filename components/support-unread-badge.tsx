@@ -24,10 +24,16 @@ export function SupportUnreadBadge() {
     }
 
     fetchUnread()
-    window.addEventListener("focus", fetchUnread)
+
+    // Use visibilitychange — not window "focus". Focusing a button (e.g. room
+    // image slider) can fire window focus and spam this endpoint.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchUnread()
+    }
+    document.addEventListener("visibilitychange", onVisibility)
     return () => {
       cancelled = true
-      window.removeEventListener("focus", fetchUnread)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
   }, [])
 

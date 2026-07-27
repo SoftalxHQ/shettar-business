@@ -31,6 +31,11 @@ import {
   canViewGuestPolicies,
   canWriteGuestPolicies,
 } from "@/lib/guest-policies-access"
+import {
+  clearBusinessLogoCache,
+  resolveBusinessLogoBlob,
+  setCachedBusinessLogo,
+} from "@/lib/business-logo-cache"
 
 interface BusinessData {
   id: number
@@ -391,7 +396,20 @@ export default function BusinessSettingsPage() {
         // Update local state with new data
         setBusinessData(data.business)
         updateUser({ restaurantEnabled: !!data.business.restaurant_enabled })
-        if (data.business.logo_url) {
+        if (businessId) {
+          if (data.business.logo_url) {
+            setCachedBusinessLogo(businessId, data.business.logo_url)
+            setLogoPreview(data.business.logo_url)
+            void resolveBusinessLogoBlob(data.business.logo_url).then((blobUrl) => {
+              if (blobUrl.startsWith("blob:")) {
+                setCachedBusinessLogo(businessId, data.business.logo_url, blobUrl)
+              }
+            })
+          } else {
+            clearBusinessLogoCache(businessId)
+            setLogoPreview(null)
+          }
+        } else if (data.business.logo_url) {
           setLogoPreview(data.business.logo_url)
         }
         if (data.business.images_url) {

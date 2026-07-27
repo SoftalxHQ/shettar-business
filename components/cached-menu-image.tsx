@@ -33,21 +33,24 @@ export function CachedMenuImage({
   placeholderClassName,
   showPlaceholderIcon = false,
 }: Props) {
-  const [resolved, setResolved] = useState<string | null>(() =>
-    src ? getCachedMenuImageUrl(src) : null
-  );
-  const [loadedResolved, setLoadedResolved] = useState<string | null>(null);
+  const initialCached = src ? getCachedMenuImageUrl(src) : null
+  const [resolved, setResolved] = useState<string | null>(() => initialCached);
+  // Cache hits skip the skeleton — blob is already local
+  const [loadedResolved, setLoadedResolved] = useState<string | null>(() => initialCached);
 
   useEffect(() => {
     if (!src) {
       setResolved(null);
+      setLoadedResolved(null);
       return;
     }
     const cached = getCachedMenuImageUrl(src);
     if (cached) {
       setResolved(cached);
+      setLoadedResolved(cached);
       return;
     }
+    setLoadedResolved(null);
     let cancelled = false;
     void resolveMenuImageUrl(src).then((url) => {
       if (!cancelled) setResolved(url);
@@ -95,3 +98,6 @@ export function CachedMenuImage({
     </div>
   );
 }
+
+/** Shared name for room types / other remote media using the same cache. */
+export const CachedRemoteImage = CachedMenuImage;

@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { getAuthToken } from "@/lib/storage"
+import {
+  fetchAndCacheBusinessLogo,
+  getCachedBusinessLogo,
+  subscribeBusinessLogoCache,
+} from "@/lib/business-logo-cache"
 
 const FAVICON_SRC = "/favicon.png"
 
@@ -12,45 +17,54 @@ type SidebarBrandLogoProps = {
   className?: string
 }
 
+function logoSrcFromCache(businessId?: string | null): string | null {
+  const cached = getCachedBusinessLogo(businessId)
+  return cached?.blobUrl || cached?.url || null
+}
+
 export function SidebarBrandLogo({
   businessId,
   size = 32,
   className = "rounded-lg object-contain shrink-0",
 }: SidebarBrandLogoProps) {
-  const [businessLogoUrl, setBusinessLogoUrl] = useState<string | null>(null)
+  const [logoSrc, setLogoSrc] = useState<string | null>(() => logoSrcFromCache(businessId))
   const [useFallback, setUseFallback] = useState(false)
 
   useEffect(() => {
+    return subscribeBusinessLogoCache(() => {
+      const next = logoSrcFromCache(businessId)
+      setLogoSrc(next)
+      if (next) setUseFallback(false)
+    })
+  }, [businessId])
+
+  useEffect(() => {
     if (!businessId) {
-      setBusinessLogoUrl(null)
+      setLogoSrc(null)
       setUseFallback(false)
       return
+    }
+
+    const existing = getCachedBusinessLogo(businessId)
+    if (existing) {
+      setLogoSrc(existing.blobUrl || existing.url)
+      setUseFallback(false)
     }
 
     let cancelled = false
     const token = getAuthToken()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
-
     if (!token || !apiUrl) return
 
     ;(async () => {
-      try {
-        const res = await fetch(`${apiUrl}/api/v1/user_businesses/${businessId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "X-Business-Id": businessId,
-          },
-        })
-        if (!res.ok || cancelled) return
-        const data = await res.json()
-        const url = data.logo_url || data.business?.logo_url
-        if (!cancelled && url) {
-          setBusinessLogoUrl(url)
-          setUseFallback(false)
-        }
-      } catch {
-        // keep favicon fallback
+      const url = await fetchAndCacheBusinessLogo({ businessId, token, apiUrl })
+      if (cancelled) return
+      const entry = getCachedBusinessLogo(businessId)
+      if (entry) {
+        setLogoSrc(entry.blobUrl || entry.url)
+        setUseFallback(false)
+      } else if (!url && !existing) {
+        setLogoSrc(null)
       }
     })()
 
@@ -59,8 +73,8 @@ export function SidebarBrandLogo({
     }
   }, [businessId])
 
-  const showBusinessLogo = Boolean(businessLogoUrl) && !useFallback
-  const src = showBusinessLogo ? businessLogoUrl! : FAVICON_SRC
+  const showBusinessLogo = Boolean(logoSrc) && !useFallback
+  const src = showBusinessLogo ? logoSrc! : FAVICON_SRC
 
   return (
     <Image

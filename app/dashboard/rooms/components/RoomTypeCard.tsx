@@ -7,7 +7,7 @@ import type { RoomType } from "@/lib/room-types"
 import { getEnabledAmenities, formatAmenityName, countEnabledAmenities } from "@/lib/room-types"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
-import Image from "next/image"
+import { CachedRemoteImage } from "@/components/cached-menu-image"
 import { cn } from "@/lib/utils"
 
 interface RoomTypeCardProps {
@@ -50,30 +50,30 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
       <div className="relative h-40 bg-slate-100 shrink-0">
         {hasImages ? (
           <>
-            <Image
+            <CachedRemoteImage
               src={roomType.images_url![currentImageIndex]}
               alt={`${roomType.name} - Image ${currentImageIndex + 1}`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="absolute inset-0 h-full w-full object-cover"
+              placeholderClassName="absolute inset-0 h-full w-full"
+              showPlaceholderIcon
             />
             {roomType.images_url!.length > 1 && (
               <>
                 <button
                   type="button"
                   onClick={prevImage}
-                  className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center bg-black/50 text-white rounded-md hover:bg-black/70 transition-colors"
+                  className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center bg-black/50 text-white rounded-md hover:bg-black/70 transition-colors"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={nextImage}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center bg-black/50 text-white rounded-md hover:bg-black/70 transition-colors"
+                  className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center bg-black/50 text-white rounded-md hover:bg-black/70 transition-colors"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
+                <div className="absolute bottom-1.5 left-1/2 z-10 -translate-x-1/2 flex gap-1">
                   {roomType.images_url!.map((_, idx) => (
                     <div
                       key={idx}

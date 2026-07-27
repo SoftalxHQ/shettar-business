@@ -1,6 +1,9 @@
 // Local storage utilities for managing business context
 // All functions check for client-side to prevent SSR errors
 
+import { clearBusinessLogoCache } from "@/lib/business-logo-cache"
+import { clearMenuImageCache } from "@/lib/menu-image-cache"
+
 const BUSINESS_ID_KEY = "shettar_business_id"
 const BUSINESS_NAME_KEY = "shettar_business_name"
 const AUTH_TOKEN_KEY = "shettar_auth_token"
@@ -91,6 +94,8 @@ export function clearUserData(): void {
 export function logout(): void {
   clearAuthToken()
   clearUserData()
+  clearBusinessLogoCache()
+  clearMenuImageCache()
   // Note: business ID is intentionally NOT cleared
 }
 
@@ -100,6 +105,8 @@ export function changeBusiness(): void {
   clearUserData()
   clearStoredBusinessId()
   clearStoredBusinessName()
+  clearBusinessLogoCache()
+  clearMenuImageCache()
 }
 
 // Check if this is first time login (no business ID stored)

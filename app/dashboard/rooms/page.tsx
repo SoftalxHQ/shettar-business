@@ -12,6 +12,7 @@ import { RoomTypeCard } from "./components/RoomTypeCard"
 import { RoomTypeDialog } from "./components/RoomTypeDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { prefetchRemoteImages } from "@/lib/menu-image-cache"
 
 export default function RoomsPage() {
   const { user, businessId, logout } = useAuth()
@@ -57,7 +58,9 @@ export default function RoomsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setRoomTypes(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data : []
+        setRoomTypes(list)
+        prefetchRemoteImages(list.flatMap((rt: RoomType) => rt.images_url || []))
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
