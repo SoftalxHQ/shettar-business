@@ -1,7 +1,6 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -349,268 +348,274 @@ export default function BankSettingsPage() {
 
   return (
     <DashboardLayout activeTab="bankdetails">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/business/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft className="w-5 h-5 text-slate-500" />
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+          <div>
+            <Link
+              href="/dashboard/business/settings"
+              className="mb-1 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Settings
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bank Accounts</h1>
-              <p className="text-slate-500">Manage payout accounts.</p>
-            </div>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Bank accounts</h1>
+            <p className="text-xs text-slate-500">Manage payout accounts</p>
           </div>
           {!showForm && (
-            <Button onClick={startAdd} className="bg-indigo-600">
-              <Plus className="w-4 h-4 mr-2" /> Add Account
+            <Button
+              size="sm"
+              onClick={startAdd}
+              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Account
             </Button>
           )}
         </div>
 
-        {/* LOADING */}
         {isLoading && (
-          <Card className="border-0 shadow-sm p-8 flex justify-center items-center">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-          </Card>
-        )}
-
-        {/* ACCOUNTS LIST */}
-        {!isLoading && !showForm && (
-          <div className="space-y-4">
-            {accounts.length === 0 ? (
-              <Card className="border-2 border-dashed border-slate-200 shadow-none bg-slate-50/50">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                    <CreditCard className="w-8 h-8 text-indigo-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">No Bank Accounts</h3>
-                  <p className="text-slate-500 max-w-sm mb-6">
-                    Add a bank account to receive payouts.
-                  </p>
-                  <Button onClick={startAdd} className="bg-indigo-600">
-                    <Plus className="w-4 h-4 mr-2" /> Add Bank Details
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              accounts.map((acc) => (
-                <Card key={acc.id} className={`border transition-all ${
-                  acc.status === "rejected" ? 'border-red-300 bg-red-50/30' :
-                  acc.status === "verified" ? 'border-indigo-600 shadow-md ring-1 ring-indigo-600' :
-                  acc.status === "banned"   ? 'border-slate-400 bg-slate-50/50' :
-                  acc.status === "pending"  ? 'border-orange-300 bg-orange-50/20' :
-                  'border-slate-200 hover:border-indigo-300'
-                }`}>
-                  <CardContent className="p-6 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-lg text-slate-900">{acc.bank_name}</h3>
-                        {acc.status === "rejected" && (
-                          <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-0 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" /> Rejected
-                          </Badge>
-                        )}
-                        {acc.status === "verified" && (
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Verified
-                          </Badge>
-                        )}
-                        {acc.status === "pending" && (
-                          <Badge className="bg-orange-100 text-orange-600 hover:bg-orange-200 border-0 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" /> Pending Verification
-                          </Badge>
-                        )}
-                        {acc.status === "banned" && (
-                          <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-300 border-0 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" /> Banned
-                          </Badge>
-                        )}
-                        {acc.status === "draft" && (
-                          <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-200 border-0">
-                            Draft
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="font-mono text-slate-600">{acc.account_number}</p>
-                      <p className="text-sm text-slate-500">{acc.account_name}</p>
-                      {acc.status === "rejected" && acc.rejection_reason && (
-                        <p className="text-xs text-red-600 mt-1 font-medium">Reason: {acc.rejection_reason}</p>
-                      )}
-                      {acc.status === "pending" && (
-                        <p className="text-xs text-orange-600 mt-1">Under review by admin</p>
-                      )}
-                      {acc.status === "banned" && acc.ban_reason && (
-                        <p className="text-xs text-slate-500 mt-1 font-medium">Ban reason: {acc.ban_reason}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-                      {/* draft: Edit + Delete + Submit */}
-                      {acc.status === "draft" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
-                            <Pencil className="w-4 h-4 mr-2" /> Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-indigo-400 text-indigo-600 hover:bg-indigo-50"
-                            onClick={() => handleSubmitForVerification(acc.id!)} disabled={isActioning}>
-                            Submit for Verification
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                      {/* pending: no actions */}
-                      {/* verified: no actions for business (admin manages ban/unban) */}
-                      {/* rejected: Edit + Resubmit + Delete */}
-                      {acc.status === "rejected" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => startEdit(acc)}>
-                            <Pencil className="w-4 h-4 mr-2" /> Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-indigo-400 text-indigo-600 hover:bg-indigo-50"
-                            onClick={() => handleSubmitForVerification(acc.id!)} disabled={isActioning}>
-                            Resubmit for Verification
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleDelete(acc.id!)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                      {/* banned: contact admin message */}
-                      {acc.status === "banned" && (
-                        <p className="text-xs text-slate-500">Contact admin to unban</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
           </div>
         )}
 
-        {/* FORM MODE */}
+        {!isLoading && !showForm && (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {accounts.length === 0 ? (
+                <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center text-slate-400">
+                  <CreditCard className="mb-2 h-8 w-8 opacity-40" />
+                  <p className="text-sm font-medium text-slate-600">No bank accounts</p>
+                  <p className="mt-1 text-xs">Add a bank account to receive payouts.</p>
+                  <Button
+                    size="sm"
+                    onClick={startAdd}
+                    className="mt-3 h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Bank Details
+                  </Button>
+                </div>
+              ) : (
+                <ul>
+                  {accounts.map((acc) => (
+                    <li
+                      key={acc.id}
+                      className={`flex flex-col gap-2 border-b border-slate-100 px-3.5 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between ${
+                        acc.status === "rejected" ? "bg-red-50/40" :
+                        acc.status === "pending" ? "bg-amber-50/30" :
+                        acc.status === "banned" ? "bg-slate-50/60" :
+                        ""
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                          <h3 className="text-xs font-semibold text-slate-900">{acc.bank_name}</h3>
+                          {acc.status === "rejected" && (
+                            <Badge className="rounded-md border-0 bg-red-100 px-1.5 py-0 text-[10px] font-medium text-red-700 shadow-none hover:bg-red-100">
+                              <AlertCircle className="mr-0.5 h-2.5 w-2.5" /> Rejected
+                            </Badge>
+                          )}
+                          {acc.status === "verified" && (
+                            <Badge className="rounded-md border-0 bg-emerald-100 px-1.5 py-0 text-[10px] font-medium text-emerald-700 shadow-none hover:bg-emerald-100">
+                              <CheckCircle2 className="mr-0.5 h-2.5 w-2.5" /> Verified
+                            </Badge>
+                          )}
+                          {acc.status === "pending" && (
+                            <Badge className="rounded-md border-0 bg-amber-100 px-1.5 py-0 text-[10px] font-medium text-amber-700 shadow-none hover:bg-amber-100">
+                              <AlertCircle className="mr-0.5 h-2.5 w-2.5" /> Pending
+                            </Badge>
+                          )}
+                          {acc.status === "banned" && (
+                            <Badge className="rounded-md border-0 bg-slate-200 px-1.5 py-0 text-[10px] font-medium text-slate-600 shadow-none hover:bg-slate-200">
+                              Banned
+                            </Badge>
+                          )}
+                          {acc.status === "draft" && (
+                            <Badge className="rounded-md border-0 bg-slate-100 px-1.5 py-0 text-[10px] font-medium text-slate-500 shadow-none hover:bg-slate-100">
+                              Draft
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="font-mono text-xs text-slate-600">{acc.account_number}</p>
+                        <p className="text-[11px] text-slate-500">{acc.account_name}</p>
+                        {acc.status === "rejected" && acc.rejection_reason && (
+                          <p className="mt-1 text-[11px] font-medium text-red-600">Reason: {acc.rejection_reason}</p>
+                        )}
+                        {acc.status === "pending" && (
+                          <p className="mt-1 text-[11px] text-amber-700">Under review by admin</p>
+                        )}
+                        {acc.status === "banned" && acc.ban_reason && (
+                          <p className="mt-1 text-[11px] text-slate-500">Ban reason: {acc.ban_reason}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {acc.status === "draft" && (
+                          <>
+                            <Button size="sm" variant="outline" className="h-7 rounded-lg border-slate-200 px-2 text-[11px]" onClick={() => startEdit(acc)}>
+                              <Pencil className="mr-1 h-3 w-3" /> Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 rounded-lg border-slate-200 px-2 text-[11px]"
+                              onClick={() => handleSubmitForVerification(acc.id!)}
+                              disabled={isActioning}
+                            >
+                              Submit
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => handleDelete(acc.id!)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        {acc.status === "rejected" && (
+                          <>
+                            <Button size="sm" variant="outline" className="h-7 rounded-lg border-slate-200 px-2 text-[11px]" onClick={() => startEdit(acc)}>
+                              <Pencil className="mr-1 h-3 w-3" /> Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 rounded-lg border-slate-200 px-2 text-[11px]"
+                              onClick={() => handleSubmitForVerification(acc.id!)}
+                              disabled={isActioning}
+                            >
+                              Resubmit
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => handleDelete(acc.id!)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        {acc.status === "banned" && (
+                          <p className="text-[11px] text-slate-500">Contact admin to unban</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
         {!isLoading && showForm && (
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5 text-indigo-600" />
-                {editingId ? "Update Bank Account" : "Add New Account"}
-              </CardTitle>
-              <CardDescription>
-                Select your bank and verify account details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="bank_select">Bank Name <span className="text-rose-500">*</span></Label>
-                    <Select value={formData.bank_code} onValueChange={handleBankChange}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a bank" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {banks.map((bank) => (
-                          <SelectItem key={bank.code} value={bank.code}>
-                            {bank.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="account_number">Account Number <span className="text-rose-500">*</span></Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="account_number"
-                        placeholder="0123456789"
-                        value={formData.account_number}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setFormData({ ...formData, account_number: val, account_name: "" });
-                          setVerifyStatus("idle")
-                        }}
-                        required
-                        type="text"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleVerifyAccount}
-                        disabled={isVerifying || formData.account_number.length !== 10 || !formData.bank_code}
-                        className="min-w-[100px]"
-                      >
-                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="account_name">
-                      Account Name
-                      {verifyStatus === "manual" && (
-                        <span className="ml-2 text-xs text-orange-500 font-normal">
-                          Auto-verify unavailable — enter manually
-                        </span>
-                      )}
-                    </Label>
-                    {verifyStatus === "verified" ? (
-                      <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-green-50 border-green-200">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm font-medium text-green-900">{formData.account_name}</span>
-                      </div>
-                    ) : verifyStatus === "manual" ? (
-                      <Input
-                        id="account_name"
-                        placeholder="Enter account name as it appears on the account"
-                        value={formData.account_name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, account_name: e.target.value }))}
-                        required
-                        className="border-orange-200 focus:border-orange-400"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-slate-50 border-slate-200">
-                        <span className="text-sm text-slate-400 italic">Verified account name will appear here</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-md">
-                    <p className="text-sm text-orange-700 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      Bank accounts require admin verification before they can be used for payouts.
-                    </p>
-                  </div>
-
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="shrink-0 border-b border-slate-100 px-4 py-2.5">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Building className="h-3.5 w-3.5 text-slate-400" />
+                {editingId ? "Update bank account" : "Add new account"}
+              </h2>
+              <p className="mt-0.5 text-[11px] text-slate-500">Select your bank and verify account details.</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="bank_select" className="text-xs text-slate-600">Bank name <span className="text-rose-500">*</span></Label>
+                  <Select value={formData.bank_code} onValueChange={handleBankChange}>
+                    <SelectTrigger className="h-9 w-full rounded-lg border-slate-200">
+                      <SelectValue placeholder="Select a bank" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.code} value={bank.code}>
+                          {bank.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="pt-4 flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="account_number" className="text-xs text-slate-600">Account number <span className="text-rose-500">*</span></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="account_number"
+                      placeholder="0123456789"
+                      value={formData.account_number}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10)
+                        setFormData({ ...formData, account_number: val, account_name: "" })
+                        setVerifyStatus("idle")
+                      }}
+                      required
+                      type="text"
+                      className="h-9 flex-1 rounded-lg border-slate-200"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleVerifyAccount}
+                      disabled={isVerifying || formData.account_number.length !== 10 || !formData.bank_code}
+                      className="h-9 min-w-[88px] rounded-lg bg-indigo-600 text-xs text-white hover:bg-indigo-700"
+                    >
+                      {isVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Verify"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="account_name" className="text-xs text-slate-600">
+                    Account name
+                    {verifyStatus === "manual" && (
+                      <span className="ml-2 text-[10px] font-normal text-amber-600">
+                        Auto-verify unavailable — enter manually
+                      </span>
+                    )}
+                  </Label>
+                  {verifyStatus === "verified" ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-600" />
+                      <span className="text-xs font-medium text-emerald-900">{formData.account_name}</span>
+                    </div>
+                  ) : verifyStatus === "manual" ? (
+                    <Input
+                      id="account_name"
+                      placeholder="Enter account name as it appears on the account"
+                      value={formData.account_name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, account_name: e.target.value }))}
+                      required
+                      className="h-9 rounded-lg border-amber-200 focus:border-amber-400"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <span className="text-xs italic text-slate-400">Verified account name will appear here</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <p className="flex items-center gap-2 text-xs text-amber-800">
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    Bank accounts require admin verification before they can be used for payouts.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs" onClick={handleCancel} disabled={isSaving}>
                     Cancel
                   </Button>
                   <Button
                     type="submit"
+                    size="sm"
                     disabled={isSaving || !formData.account_name.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]"
+                    className="h-8 min-w-[110px] rounded-lg bg-indigo-600 text-xs text-white hover:bg-indigo-700"
                   >
                     {isSaving ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving...
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        Saving…
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4 mr-2" />
-                        {editingId ? "Update Account" : "Add Account"}
+                        <Save className="mr-1.5 h-3.5 w-3.5" />
+                        {editingId ? "Update account" : "Add account"}
                       </>
                     )}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
 
@@ -624,17 +629,18 @@ export default function BankSettingsPage() {
         confirmDisabled={!deleteReason.trim()}
       >
         <div className="py-2">
-          <Label htmlFor="delete-reason" className="text-sm font-medium">Reason for deletion <span className="text-rose-500">*</span></Label>
-          <Input 
-            id="delete-reason" 
-            placeholder="Please provide a reason to continue..." 
-            value={deleteReason} 
-            onChange={(e) => setDeleteReason(e.target.value)} 
-            className="mt-2"
+          <Label htmlFor="delete-reason" className="text-xs font-medium text-slate-600">
+            Reason for deletion <span className="text-rose-500">*</span>
+          </Label>
+          <Input
+            id="delete-reason"
+            placeholder="Please provide a reason to continue…"
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            className="mt-2 h-9 rounded-lg border-slate-200"
           />
         </div>
       </ConfirmDialog>
-
     </DashboardLayout>
   )
 }
