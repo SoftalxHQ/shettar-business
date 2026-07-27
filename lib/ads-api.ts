@@ -170,18 +170,30 @@ export async function updateAdCampaign(
   return data.campaign as AdCampaign
 }
 
-export async function transferToAdsWallet(businessId: string, amount: number) {
+export async function transferToAdsWallet(
+  businessId: string,
+  amount: number,
+  otp?: string
+): Promise<{
+  status?: string
+  message?: string
+  error?: string
+  ad_account?: AdAccount
+}> {
+  const body: { amount: number; otp?: string } = { amount }
+  if (otp) body.otp = otp
+
   const res = await fetch(
     `${API_URL}/api/v1/user_businesses/${businessId}/ad_account/transfer_from_withdrawable`,
     {
       method: "POST",
       headers: businessHeaders(businessId),
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify(body),
     }
   )
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || "Transfer failed")
-  return data.ad_account as AdAccount
+  return data
 }
 
 export async function initializeAdsTopup(
