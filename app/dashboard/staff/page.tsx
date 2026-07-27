@@ -1,9 +1,15 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -22,6 +28,26 @@ import {
 } from "./components/StaffStatusDialog"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { cn } from "@/lib/utils"
+
+function MetricTile({
+  title,
+  value,
+  icon: Icon,
+}: {
+  title: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+        <Icon className="h-3.5 w-3.5 text-slate-400" />
+      </div>
+      <p className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
+    </div>
+  )
+}
 
 export default function StaffPage() {
   const { user, businessId, logout } = useAuth()
@@ -124,7 +150,7 @@ export default function StaffPage() {
   if (isLoading) {
     return (
       <DashboardLayout activeTab="staffs">
-        <div className="flex items-center justify-center h-96">
+        <div className="flex h-full min-h-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
           <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
@@ -133,128 +159,114 @@ export default function StaffPage() {
 
   return (
     <DashboardLayout activeTab="staffs">
-      <div className="space-y-6">
-        <div className="flex items-start justify-between">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Staff Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage team members, roles, and access
-            </p>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Staff</h1>
+            <p className="text-xs text-slate-500">Team members, roles, and access</p>
           </div>
           {canAdd && (
-            <Button onClick={() => setShowAddDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Add Staff
             </Button>
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{staffMembers.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Owners</CardTitle>
-              <Crown className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{ownersCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-              <Users className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{inactiveCount}</div>
-            </CardContent>
-          </Card>
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+          <MetricTile title="Total members" value={staffMembers.length} icon={Users} />
+          <MetricTile title="Owners" value={ownersCount} icon={Crown} />
+          <MetricTile title="Active staff" value={activeCount} icon={Users} />
+          <MetricTile title="Inactive" value={inactiveCount} icon={Users} />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {STATUS_FILTER_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                variant={statusFilter === opt.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(opt.value)}
-                className={cn("text-xs")}
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          {filteredStaff.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {searchQuery || statusFilter !== "all"
-                    ? "No staff found"
-                    : "No staff members yet"}
-                </h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  {searchQuery || statusFilter !== "all"
-                    ? "Try adjusting your filters"
-                    : "Get started by adding your first team member"}
-                </p>
-                {!searchQuery && statusFilter === "all" && canAdd && (
-                  <Button onClick={() => setShowAddDialog(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Staff Member
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredStaff.map((member) => (
-                <StaffCard
-                  key={member.id}
-                  member={member}
-                  onEdit={(m) => {
-                    setSelectedMember(m)
-                    setShowEditDialog(true)
-                  }}
-                  onSwitchRole={(m) => {
-                    setSelectedMember(m)
-                    setShowSwitchDialog(true)
-                  }}
-                  onStatusAction={(m, action) => setStatusDialog({ member: m, action })}
-                />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="flex shrink-0 flex-col gap-2 border-b border-slate-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search name, email, or title…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 rounded-lg border-slate-200 pl-8 text-xs"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={cn(
+                    "h-7 rounded-lg border-slate-200 px-2.5 text-[11px]",
+                    statusFilter === opt.value && "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-50",
+                  )}
+                >
+                  {opt.label}
+                </Button>
               ))}
             </div>
-          )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            {filteredStaff.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-slate-400">
+                <Users className="mb-2 h-8 w-8 opacity-40" />
+                <p className="text-sm font-medium text-slate-600">
+                  {searchQuery || statusFilter !== "all" ? "No staff found" : "No staff members yet"}
+                </p>
+                <p className="mt-1 text-xs">
+                  {searchQuery || statusFilter !== "all"
+                    ? "Try adjusting your filters"
+                    : "Add your first team member to get started"}
+                </p>
+                {!searchQuery && statusFilter === "all" && canAdd && (
+                  <Button
+                    size="sm"
+                    onClick={() => setShowAddDialog(true)}
+                    className="mt-3 h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    Add Staff
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-sm">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-9 text-xs">Member</TableHead>
+                    <TableHead className="h-9 text-xs">Title</TableHead>
+                    <TableHead className="h-9 text-xs">Status</TableHead>
+                    <TableHead className="h-9 text-xs">Access</TableHead>
+                    <TableHead className="h-9 text-right text-xs">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStaff.map((member) => (
+                    <StaffCard
+                      key={member.id}
+                      member={member}
+                      onEdit={(m) => {
+                        setSelectedMember(m)
+                        setShowEditDialog(true)
+                      }}
+                      onSwitchRole={(m) => {
+                        setSelectedMember(m)
+                        setShowSwitchDialog(true)
+                      }}
+                      onStatusAction={(m, action) => setStatusDialog({ member: m, action })}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </div>
       </div>
 

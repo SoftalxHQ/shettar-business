@@ -1,7 +1,6 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,7 +13,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Star, MessageSquareReply, Trash2, ChevronLeft, ChevronRight,
-  RefreshCw, MessageSquare, CheckCircle2, Clock, BarChart3,
+  RefreshCw, MessageSquare, CheckCircle2, Clock,
   Pencil, ThumbsUp, ThumbsDown, ChevronDown, ChevronUp,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -235,9 +234,9 @@ function OwnerPill({ name }: { name: string }) {
   if (!label) return null
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold bg-indigo-50 text-indigo-950 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-100 dark:border-indigo-800">
+    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[12px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
       {label}
-      <CheckCircle2 className="w-3 h-3 opacity-80 text-indigo-600 dark:text-indigo-300" />
+      <CheckCircle2 className="w-3 h-3 opacity-80 text-slate-500" />
     </span>
   )
 }
@@ -375,7 +374,7 @@ function CommentBodyBlock({
             Reply
           </button>
           {isBusiness && isCommentEditable(comment) && (
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600" onClick={() => onEdit(comment.id, comment.body)}>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800" onClick={() => onEdit(comment.id, comment.body)}>
               <Pencil className="w-3 h-3" />
             </Button>
           )}
@@ -460,7 +459,7 @@ function CommentNode({
       {hasReplies && (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mt-1"
+          className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 mt-1"
           style={{ marginLeft: indent + avatarSize + AVATAR_GAP }}
           onClick={() => onToggleCollapse(comment.id)}
         >
@@ -495,7 +494,11 @@ function ReviewCard({
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState("")
   const [savingCommentId, setSavingCommentId] = useState<number | null>(null)
-  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set())
+  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => {
+    const comments = reviewThread(review)
+    const count = comments.filter((c) => c.id > 0).length
+    return count > 0 ? new Set([reviewCollapseKey(review.id)]) : new Set()
+  })
   const allComments = reviewThread(review)
   const roots = childComments(allComments, null)
   const hasBusinessReply = allComments.some((c) => c.author_role === "business")
@@ -508,6 +511,14 @@ function ReviewCard({
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      return next
+    })
+  }
+
+  const expandReviewThread = () => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(reviewCollapseKey(review.id))
       return next
     })
   }
@@ -526,6 +537,7 @@ function ReviewCard({
     setShowReplyBox(false)
     setReplyText("")
     setActiveReplyParentId(null)
+    expandReviewThread()
   }
 
   const handleSaveEdit = async (commentId: number) => {
@@ -541,14 +553,13 @@ function ReviewCard({
   const avatarInitials = initials(displayName)
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-5 space-y-4">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-3">
         {/* ── Guest row ── */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             {/* Avatar */}
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm font-semibold">
+            <Avatar className="h-9 w-9 flex-shrink-0">
+              <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-semibold">
                 {avatarInitials}
               </AvatarFallback>
             </Avatar>
@@ -572,16 +583,16 @@ function ReviewCard({
           </div>
 
           {/* Rating badge */}
-          <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold
-            ${review.rating >= 4 ? "bg-emerald-100 text-emerald-700"
-              : review.rating === 3 ? "bg-amber-100 text-amber-700"
-                : "bg-red-100 text-red-700"}`}>
+          <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold
+            ${review.rating >= 4 ? "bg-emerald-50 text-emerald-700"
+              : review.rating === 3 ? "bg-amber-50 text-amber-700"
+                : "bg-red-50 text-red-700"}`}>
             {review.rating}
           </div>
         </div>
 
         {/* Review content */}
-        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{review.content}</p>
+        <p className="text-sm text-slate-600 leading-relaxed">{review.content}</p>
 
         {/* Comment thread — collapsed under the guest review */}
         {roots.length > 0 && (
@@ -589,7 +600,7 @@ function ReviewCard({
             {!needsReply && !showReplyBox && (
               <button
                 type="button"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 px-2 py-1 mb-2"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-1 py-1 mb-1"
                 onClick={() => openReplyBox(null)}
               >
                 Reply
@@ -620,13 +631,13 @@ function ReviewCard({
             {totalReplies > 0 && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mt-1"
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 mt-1"
                 onClick={() => toggleCollapse(reviewCollapseKey(review.id))}
               >
                 {reviewCollapsed ? (
-                  <><ChevronDown className="w-4 h-4" />{totalReplies} {totalReplies === 1 ? "reply" : "replies"}</>
+                  <><ChevronDown className="w-3.5 h-3.5" />{totalReplies} {totalReplies === 1 ? "reply" : "replies"}</>
                 ) : (
-                  <><ChevronUp className="w-4 h-4" />Hide replies</>
+                  <><ChevronUp className="w-3.5 h-3.5" />Hide replies</>
                 )}
               </button>
             )}
@@ -634,12 +645,12 @@ function ReviewCard({
         )}
 
         {showReplyBox && (
-          <div className="flex gap-3 pt-2 items-start">
+          <div className="flex gap-3 pt-1 items-start">
             <div className="flex-shrink-0 rounded-full bg-slate-100" style={{ width: NESTED_AVATAR, height: NESTED_AVATAR }} />
             <div className="flex-1 space-y-2">
                 <Textarea
                   rows={3}
-                  className="resize-none text-sm"
+                  className="resize-none text-sm rounded-lg border-slate-200"
                   placeholder="Write a professional response on behalf of your hotel..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
@@ -650,6 +661,7 @@ function ReviewCard({
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8 rounded-lg border-slate-200 text-xs"
                     onClick={() => { setShowReplyBox(false); setReplyText(""); setActiveReplyParentId(null) }}
                     disabled={submitting}
                   >
@@ -659,7 +671,7 @@ function ReviewCard({
                     size="sm"
                     onClick={handleSubmit}
                     disabled={submitting || !replyText.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700"
+                    className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs"
                   >
                     {submitting ? <LoadingSpinner size={14} /> : "Post Reply"}
                   </Button>
@@ -677,7 +689,7 @@ function ReviewCard({
               className={`gap-1.5 h-8 text-xs ${
                 needsReply
                   ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50"
-                  : "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
               onClick={() => openReplyBox(null)}
             >
@@ -692,8 +704,7 @@ function ReviewCard({
             </Button>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   )
 }
 
@@ -827,166 +838,135 @@ export default function ReviewsPage() {
 
   return (
     <DashboardLayout activeTab="reviews">
-      <div className="max-w-5xl mx-auto space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-indigo-600" />
-              Guest Reviews
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Read and respond to reviews from your guests
-            </p>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Reviews</h1>
+            <p className="text-xs text-slate-500">Read and respond to guest feedback</p>
           </div>
-
           <Button
             variant="outline"
             size="sm"
             onClick={() => fetchReviews(page, true)}
             disabled={refreshing}
-            className="h-9 gap-1.5 self-start sm:self-auto"
+            className="h-8 gap-1.5 rounded-lg border-slate-200 text-xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
 
-        {/* Summary cards */}
         {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
             {[
-              {
-                label: "Total Reviews", value: summary.total,
-                icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50",
-              },
-              {
-                label: "Avg. Rating",
-                value: (
-                  <span className="flex items-center gap-1">
-                    {summary.average_rating}
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  </span>
-                ),
-                icon: BarChart3, color: "text-amber-600", bg: "bg-amber-50",
-              },
-              {
-                label: "Replied", value: summary.replied,
-                icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50",
-              },
-              {
-                label: "Awaiting Reply", value: summary.pending_reply,
-                icon: Clock, color: "text-orange-600", bg: "bg-orange-50",
-              },
-            ].map(({ label, value, icon: Icon, color, bg }) => (
-              <Card key={label} className="border-0 shadow-sm">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <p className={`text-xl font-bold ${color}`}>{value}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              { label: "Total reviews", value: String(summary.total), icon: MessageSquare },
+              { label: "Avg. rating", value: String(summary.average_rating), icon: Star },
+              { label: "Replied", value: String(summary.replied), icon: CheckCircle2 },
+              { label: "Awaiting reply", value: String(summary.pending_reply), icon: Clock },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                  <Icon className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <p className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <Select defaultValue="all" onValueChange={(v) => { setRatingFilter(v); setPage(1) }}>
-            <SelectTrigger className="w-38 h-9 text-sm">
-              <SelectValue placeholder="All ratings" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Ratings</SelectItem>
-              {[5, 4, 3, 2, 1].map(r => (
-                <SelectItem key={r} value={String(r)}>
-                  <span className="flex items-center gap-1.5">
-                    <StarRating rating={r} size={11} />
-                    <span>{r} star{r !== 1 ? "s" : ""}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+            <Select defaultValue="all" onValueChange={(v) => { setRatingFilter(v); setPage(1) }}>
+              <SelectTrigger className="h-8 w-[140px] rounded-lg border-slate-200 text-xs">
+                <SelectValue placeholder="All ratings" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All ratings</SelectItem>
+                {[5, 4, 3, 2, 1].map(r => (
+                  <SelectItem key={r} value={String(r)}>
+                    <span className="flex items-center gap-1.5">
+                      <StarRating rating={r} size={11} />
+                      <span>{r} star{r !== 1 ? "s" : ""}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select defaultValue="all" onValueChange={setReplyFilter}>
-            <SelectTrigger className="w-44 h-9 text-sm">
-              <SelectValue placeholder="Reply status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Reviews</SelectItem>
-              <SelectItem value="pending">Awaiting Reply</SelectItem>
-              <SelectItem value="replied">Already Replied</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select defaultValue="all" onValueChange={setReplyFilter}>
+              <SelectTrigger className="h-8 w-[150px] rounded-lg border-slate-200 text-xs">
+                <SelectValue placeholder="Reply status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All reviews</SelectItem>
+                <SelectItem value="pending">Awaiting reply</SelectItem>
+                <SelectItem value="replied">Already replied</SelectItem>
+              </SelectContent>
+            </Select>
 
-          {pagination && (
-            <span className="text-sm text-slate-400 ml-auto">
-              {pagination.count} review{pagination.count !== 1 ? "s" : ""} total
-            </span>
+            {pagination && (
+              <span className="ml-auto text-xs text-slate-400">
+                {pagination.count} review{pagination.count !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {loading ? (
+              <div className="flex h-40 items-center justify-center">
+                <LoadingSpinner size={28} />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-center text-slate-400">
+                <MessageSquare className="mb-2 h-8 w-8 opacity-40" />
+                <p className="text-sm font-medium text-slate-600">No reviews yet</p>
+                <p className="mt-1 text-xs">Reviews from guests will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {filtered.map(review => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    onReplySubmit={handleReplySubmit}
+                    onCommentUpdate={handleCommentUpdate}
+                    onCommentDelete={(reviewId, commentId) => setDeleteCommentTarget({ reviewId, commentId })}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {pagination && pagination.last > 1 && (
+            <div className="flex shrink-0 items-center justify-between border-t border-slate-100 px-3 py-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchReviews(page - 1)}
+                disabled={page <= 1 || loading}
+                className="h-8 gap-1 rounded-lg border-slate-200 text-xs"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+              </Button>
+              <span className="text-xs text-slate-500">
+                Page <span className="font-medium text-slate-800">{page}</span> of{" "}
+                <span className="font-medium text-slate-800">{pagination.last}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchReviews(page + 1)}
+                disabled={page >= pagination.last || loading}
+                className="h-8 gap-1 rounded-lg border-slate-200 text-xs"
+              >
+                Next <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           )}
         </div>
-
-        {/* Reviews list */}
-        {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <LoadingSpinner size={36} />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-1">No reviews yet</h3>
-            <p className="text-sm text-slate-500">Reviews from guests will appear here.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map(review => (
-              <ReviewCard
-                key={review.id}
-                review={review}
-                onReplySubmit={handleReplySubmit}
-                onCommentUpdate={handleCommentUpdate}
-                onCommentDelete={(reviewId, commentId) => setDeleteCommentTarget({ reviewId, commentId })}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination && pagination.last > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-            <Button
-              variant="outline" size="sm"
-              onClick={() => fetchReviews(page - 1)}
-              disabled={page <= 1 || loading}
-              className="gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </Button>
-            <span className="text-sm text-slate-500">
-              Page <span className="font-semibold text-slate-800">{page}</span> of{" "}
-              <span className="font-semibold text-slate-800">{pagination.last}</span>
-            </span>
-            <Button
-              variant="outline" size="sm"
-              onClick={() => fetchReviews(page + 1)}
-              disabled={page >= pagination.last || loading}
-              className="gap-1"
-            >
-              Next <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
       </div>
 
-      {/* Delete comment confirm */}
       <ConfirmDialog
         open={!!deleteCommentTarget}
         onOpenChange={(open) => !open && setDeleteCommentTarget(null)}

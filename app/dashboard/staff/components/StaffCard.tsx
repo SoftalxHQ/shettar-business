@@ -1,6 +1,5 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -12,10 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Mail,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Crown,
   Edit,
-  Shield,
   MoreVertical,
   RefreshCw,
   PauseCircle,
@@ -45,7 +46,7 @@ function statusBadgeClass(status: string | undefined) {
     case "fired":
       return "bg-red-50 text-red-700 border-red-200"
     default:
-      return "bg-green-50 text-green-700 border-green-200"
+      return "bg-emerald-50 text-emerald-700 border-emerald-200"
   }
 }
 
@@ -66,135 +67,132 @@ export function StaffCard({ member, onEdit, onSwitchRole, onStatusAction }: Staf
 
   const canEdit = user?.role === "admin" || user?.permissions?.staff?.edit
   const canManageStatus = user?.role === "admin" || user?.permissions?.staff?.remove
-  const isOwner = user?.role === "admin" || false // reinstate owner check - API enforces is_owner on member record for target
+  const isOwner = user?.role === "admin" || false
 
   return (
-    <Card className="hover:shadow-sm transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-sm truncate">{userName}</h3>
-                {member.is_owner && (
-                  <Badge
-                    variant="secondary"
-                    className="h-5 px-1.5 text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 gap-1 rounded-sm font-normal"
-                  >
-                    <Crown className="w-2.5 h-2.5" />
-                    Owner
-                  </Badge>
-                )}
-                {!member.is_owner && (
-                  <Badge
-                    variant="outline"
-                    className={`h-5 px-1.5 text-[10px] rounded-sm font-normal ${statusBadgeClass(status)}`}
-                  >
-                    {statusLabel(status)}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                <span className="truncate max-w-[150px]">{member.title || "No title"}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
-                <div className="flex items-center gap-1 truncate">
-                  <Mail className="w-3 h-3" />
-                  <span className="truncate max-w-[200px]">{member.user?.email}</span>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1.5">
-                <Shield className="w-3 h-3" />
-                <span className="truncate">
-                  {member.is_owner
-                    ? "Full Access"
-                    : `${permissionsCount} permissions: ${permissionsSummary}`}
-                </span>
-              </div>
+    <TableRow className="border-slate-100">
+      <TableCell className="py-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Avatar className="h-8 w-8 flex-shrink-0">
+            <AvatarFallback className="bg-slate-100 text-slate-600 text-[11px] font-semibold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-medium text-slate-900 truncate">{userName}</span>
+              {member.is_owner && (
+                <Badge
+                  variant="secondary"
+                  className="h-5 px-1.5 text-[10px] bg-slate-100 text-slate-600 border-slate-200 gap-1 rounded-md font-normal shadow-none"
+                >
+                  <Crown className="w-2.5 h-2.5" />
+                  Owner
+                </Badge>
+              )}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {canEdit && isActive && !member.is_owner && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(member)}
-                className="h-8 px-2 text-xs"
-              >
-                <Edit className="w-3.5 h-3.5 mr-1" />
-                Edit
-              </Button>
-            )}
-
-            {!member.is_owner && (canEdit || canManageStatus) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canEdit && isActive && (
-                    <>
-                      <DropdownMenuItem onClick={() => onSwitchRole(member)}>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Switch role
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(member)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit permissions
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-
-                  {canManageStatus && isActive && (
-                    <>
-                      <DropdownMenuItem onClick={() => onStatusAction(member, "suspend")}>
-                        <PauseCircle className="w-4 h-4 mr-2" />
-                        Suspend
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onStatusAction(member, "deactivate")}>
-                        <Ban className="w-4 h-4 mr-2" />
-                        Deactivate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600 focus:text-red-600"
-                        onClick={() => onStatusAction(member, "fire")}
-                      >
-                        <UserX className="w-4 h-4 mr-2" />
-                        Fire
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {canManageStatus && (status === "suspended" || status === "deactivated") && (
-                    <DropdownMenuItem onClick={() => onStatusAction(member, "reactivate")}>
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      Reactivate
-                    </DropdownMenuItem>
-                  )}
-
-                  {canManageStatus && status === "fired" && isOwner && (
-                    <DropdownMenuItem onClick={() => onStatusAction(member, "reinstate")}>
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      Reinstate
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <p className="text-[11px] text-slate-400 truncate mt-0.5">{member.user?.email}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </TableCell>
+      <TableCell className="py-2.5 text-xs text-slate-600">
+        {member.title || "—"}
+      </TableCell>
+      <TableCell className="py-2.5">
+        {member.is_owner ? (
+          <Badge variant="outline" className="h-5 px-1.5 text-[10px] rounded-md font-normal border-slate-200 text-slate-600">
+            Owner
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className={`h-5 px-1.5 text-[10px] rounded-md font-normal ${statusBadgeClass(status)}`}
+          >
+            {statusLabel(status)}
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell className="py-2.5 text-[11px] text-slate-500 max-w-[220px]">
+        <span className="line-clamp-2">
+          {member.is_owner
+            ? "Full access"
+            : `${permissionsCount} · ${permissionsSummary}`}
+        </span>
+      </TableCell>
+      <TableCell className="py-2.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          {canEdit && isActive && !member.is_owner && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(member)}
+              className="h-7 px-2 text-[11px] rounded-lg border-slate-200"
+            >
+              <Edit className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+          )}
+
+          {!member.is_owner && (canEdit || canManageStatus) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <MoreVertical className="w-3.5 h-3.5 text-slate-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl border-slate-200">
+                {canEdit && isActive && (
+                  <>
+                    <DropdownMenuItem onClick={() => onSwitchRole(member)}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Switch role
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(member)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit permissions
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+                {canManageStatus && isActive && (
+                  <>
+                    <DropdownMenuItem onClick={() => onStatusAction(member, "suspend")}>
+                      <PauseCircle className="w-4 h-4 mr-2" />
+                      Suspend
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onStatusAction(member, "deactivate")}>
+                      <Ban className="w-4 h-4 mr-2" />
+                      Deactivate
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => onStatusAction(member, "fire")}
+                    >
+                      <UserX className="w-4 h-4 mr-2" />
+                      Fire
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {canManageStatus && (status === "suspended" || status === "deactivated") && (
+                  <DropdownMenuItem onClick={() => onStatusAction(member, "reactivate")}>
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Reactivate
+                  </DropdownMenuItem>
+                )}
+
+                {canManageStatus && status === "fired" && isOwner && (
+                  <DropdownMenuItem onClick={() => onStatusAction(member, "reinstate")}>
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Reinstate
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
