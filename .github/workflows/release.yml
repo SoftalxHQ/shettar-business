@@ -134,6 +134,58 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
         run: pnpm configure:updater
 
+      - name: Generate release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          CHANNEL="${{ steps.env.outputs.app_env }}"
+
+          if [ "$CHANNEL" = "staging" ]; then
+            CURRENT_TAG="v${VERSION}-staging"
+            PREV_TAG="$(git tag -l 'v*-staging' --sort=-v:refname | awk -v cur="$CURRENT_TAG" '$0 != cur { print; exit }')"
+          else
+            CURRENT_TAG="v${VERSION}"
+            PREV_TAG="$(git tag -l 'v*' --sort=-v:refname | grep -v '\-staging$' | awk -v cur="$CURRENT_TAG" '$0 != cur { print; exit }')"
+          fi
+
+          {
+            echo "## Shettar Business v${VERSION}"
+            echo ""
+            if [ "$CHANNEL" = "staging" ]; then
+              echo "_Staging build — for testing only._"
+              echo ""
+            fi
+            echo "### Changes"
+            echo ""
+            if [ -n "${PREV_TAG:-}" ]; then
+              echo "Compared to \`${PREV_TAG}\`:"
+              echo ""
+              git log --pretty=format:'- %s' "${PREV_TAG}..HEAD" | sed '/^$/d'
+              echo ""
+            else
+              echo "- Initial tagged release"
+              echo ""
+            fi
+            echo "### Installers"
+            echo ""
+            echo "- macOS (Apple Silicon + Intel)"
+            echo "- Windows"
+            echo "- Linux (AppImage, .deb, .rpm)"
+            echo ""
+            echo "After installing, open **Settings → Printer** to configure a thermal receipt printer."
+          } > /tmp/release-notes.md
+
+          {
+            echo "body<<EOF"
+            cat /tmp/release-notes.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Generated release notes (prev=${PREV_TAG:-none}):"
+          cat /tmp/release-notes.md
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -146,7 +198,7 @@ jobs:
         with:
           tagName: ${{ steps.env.outputs.tag_name }} # tauri-action replaces __VERSION__ with the app version
           releaseName: ${{ steps.env.outputs.release_name }}
-          releaseBody: "Automated release from GitHub Actions."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: ${{ steps.env.outputs.prerelease }}
           args: ${{ matrix.args }}
