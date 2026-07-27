@@ -38,10 +38,11 @@ import { subscribeRestaurantChannel } from "@/lib/restaurant-cable";
 import { CachedMenuImage } from "@/components/cached-menu-image";
 import { prefetchMenuImages } from "@/lib/menu-image-cache";
 import { toast } from "sonner";
-import { ImageIcon, Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { ImageIcon, Loader2, Pencil, Plus, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cn } from "@/lib/utils";
 
 type PendingDelete =
   | { kind: "category"; id: number; name: string }
@@ -70,6 +71,8 @@ export default function RestaurantMenuPage() {
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [itemSearch, setItemSearch] = useState("");
 
   const bid = resolveBusinessId(businessId);
   const canView = canViewRestaurant(user);
@@ -103,6 +106,16 @@ export default function RestaurantMenuPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setSelectedCategoryId(null);
+      return;
+    }
+    if (!selectedCategoryId || !categories.some((c) => c.id === selectedCategoryId)) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId]);
 
   const applyMenuAvailabilityUpdate = useCallback(
     (update: MenuAvailabilityUpdate) => {
@@ -313,6 +326,16 @@ export default function RestaurantMenuPage() {
     }
   };
 
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId) || null;
+  const selectedItems = (selectedCategory?.items || []).filter((item) => {
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      item.name.toLowerCase().includes(q) ||
+      (item.description || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <RestaurantLayoutWrapper activeTab="menu">
       <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
@@ -327,7 +350,7 @@ export default function RestaurantMenuPage() {
             </p>
           </div>
           {canEdit && (
-            <Button onClick={openNewCategory} size="sm" className="h-9 gap-2 shrink-0 rounded-xl">
+            <Button onClick={openNewCategory} size="sm" className="h-9 gap-2 shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700">
               <Plus className="w-4 h-4" />
               Add category
             </Button>
@@ -343,104 +366,140 @@ export default function RestaurantMenuPage() {
             No menu categories yet. Add a category to get started.
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                className="rounded-xl border border-slate-200 bg-white overflow-hidden"
-              >
-                <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">{cat.name}</p>
-                    <p className="text-[11px] text-slate-500">
+          <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[14rem_minmax(0,1fr)] gap-3 overflow-hidden">
+            <div className="min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="shrink-0 px-3 py-2 border-b border-slate-100">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Categories</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-1.5 space-y-0.5">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(cat.id)}
+                    className={cn(
+                      "w-full text-left rounded-lg px-2.5 py-2 transition-colors",
+                      selectedCategoryId === cat.id
+                        ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
+                        : "text-slate-700 hover:bg-slate-50",
+                    )}
+                  >
+                    <p className="text-sm font-medium truncate">{cat.name}</p>
+                    <p className="text-[11px] text-slate-500 tabular-nums">
                       {(cat.items || []).length} items
                     </p>
-                  </div>
-                  {canEdit && (
-                    <div className="flex gap-1.5 shrink-0">
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openEditCategory(cat)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 p-0"
-                        onClick={() =>
-                          setPendingDelete({ kind: "category", id: cat.id, name: cat.name })
-                        }
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                      <Button size="sm" className="h-8 gap-1" onClick={() => openNewItem(cat.id)}>
-                        <Plus className="w-3.5 h-3.5" />
-                        Item
-                      </Button>
-                    </div>
-                  )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">
+                    {selectedCategory?.name || "Items"}
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    {(selectedCategory?.items || []).length} items
+                  </p>
                 </div>
-                <div className="p-2.5 space-y-1.5">
-                  {(cat.items || []).length === 0 ? (
-                    <p className="text-xs text-slate-500 px-1 py-2">No items in this category</p>
-                  ) : (
-                    (cat.items || []).map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg border border-slate-100 bg-slate-50/60"
-                      >
-                        {item.image_url ? (
-                          <CachedMenuImage
-                            src={item.image_url}
-                            alt={item.name}
-                            className="w-11 h-11 rounded-md object-cover shrink-0 border"
-                            placeholderClassName="w-11 h-11 rounded-md shrink-0 border"
-                            showPlaceholderIcon
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-md border bg-white flex items-center justify-center shrink-0">
-                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
-                          {item.description && (
-                            <p className="text-[11px] text-slate-500 truncate">{item.description}</p>
-                          )}
-                          <p className="text-xs font-semibold text-indigo-700 mt-0.5">
-                            ₦{Number(item.price).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
-                            {item.available ? "Available" : "Unavailable"}
-                          </Badge>
-                          {canEdit && (
-                            <>
-                              <Switch
-                                checked={item.available}
-                                onCheckedChange={() => toggleItemAvailable(item)}
-                              />
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEditItem(item)}>
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={() =>
-                                  setPendingDelete({ kind: "item", id: item.id, name: item.name })
-                                }
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
+                {canEdit && selectedCategory && (
+                  <div className="flex gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openEditCategory(selectedCategory)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() =>
+                        setPendingDelete({ kind: "category", id: selectedCategory.id, name: selectedCategory.name })
+                      }
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                    <Button size="sm" className="h-8 gap-1" onClick={() => openNewItem(selectedCategory.id)}>
+                      <Plus className="w-3.5 h-3.5" />
+                      Item
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0 p-2.5 border-b border-slate-100">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <Input
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                    placeholder="Search items…"
+                    className="h-8 pl-8 text-sm"
+                  />
                 </div>
               </div>
-            ))}
+              <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-1.5">
+                {!selectedCategory || selectedItems.length === 0 ? (
+                  <p className="text-xs text-slate-500 px-1 py-6 text-center">
+                    {selectedCategory ? "No items match your search" : "Select a category"}
+                  </p>
+                ) : (
+                  selectedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg border border-slate-100 bg-slate-50/60"
+                    >
+                      {item.image_url ? (
+                        <CachedMenuImage
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-11 h-11 rounded-md object-cover shrink-0 border"
+                          placeholderClassName="w-11 h-11 rounded-md shrink-0 border"
+                          showPlaceholderIcon
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-md border bg-white flex items-center justify-center shrink-0">
+                          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
+                        {item.description && (
+                          <p className="text-[11px] text-slate-500 truncate">{item.description}</p>
+                        )}
+                        <p className="text-xs font-semibold text-indigo-700 mt-0.5">
+                          ₦{Number(item.price).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
+                          {item.available ? "Available" : "Unavailable"}
+                        </Badge>
+                        {canEdit && (
+                          <>
+                            <Switch
+                              checked={item.available}
+                              onCheckedChange={() => toggleItemAvailable(item)}
+                            />
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEditItem(item)}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() =>
+                                setPendingDelete({ kind: "item", id: item.id, name: item.name })
+                              }
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import {
   canCreateRestaurantOrders,
@@ -19,8 +18,9 @@ import {
   fetchOrders,
   resolveBusinessId,
 } from "@/lib/restaurant-api";
-import { ChefHat, ClipboardList, Loader2, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, ChefHat, ClipboardList, Loader2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function RestaurantHubPage() {
   const router = useRouter();
@@ -68,6 +68,36 @@ export default function RestaurantHubPage() {
     load();
   }, [load]);
 
+  const actions = [
+    (canCreateRestaurantOrders(user) || canViewRestaurant(user)) && {
+      href: "/dashboard/restaurant/orders",
+      title: "Orders",
+      description: "Search, filter, and place orders",
+      icon: ClipboardList,
+      accent: "bg-indigo-50 text-indigo-600",
+    },
+    canUseKitchenDisplay(user) && {
+      href: "/dashboard/restaurant/kitchen",
+      title: "Kitchen",
+      description: "Live prep board and 86 list",
+      icon: ChefHat,
+      accent: "bg-amber-50 text-amber-700",
+    },
+    (canManageRestaurantMenu(user) || canViewRestaurant(user)) && {
+      href: "/dashboard/restaurant/menu",
+      title: "Menu",
+      description: "Categories, items, availability",
+      icon: UtensilsCrossed,
+      accent: "bg-emerald-50 text-emerald-700",
+    },
+  ].filter(Boolean) as Array<{
+    href: string;
+    title: string;
+    description: string;
+    icon: typeof ClipboardList;
+    accent: string;
+  }>;
+
   return (
     <RestaurantLayoutWrapper activeTab="restaurant">
       <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
@@ -86,52 +116,50 @@ export default function RestaurantHubPage() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-            <div className="shrink-0 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div className={cn("shrink-0 grid gap-3", canUseKitchenDisplay(user) ? "grid-cols-2" : "grid-cols-1")}>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                   Pending today
                 </p>
-                <p className="text-2xl font-semibold tabular-nums text-slate-900 mt-1">
+                <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 mt-1 leading-none">
                   {pendingCount}
                 </p>
               </div>
               {canUseKitchenDisplay(user) && (
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                     Kitchen queue
                   </p>
-                  <p className="text-2xl font-semibold tabular-nums text-slate-900 mt-1">
+                  <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 mt-1 leading-none">
                     {kitchenCount}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap content-start gap-2">
-              {(canCreateRestaurantOrders(user) || canViewRestaurant(user)) && (
-                <Button asChild className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700">
-                  <Link href="/dashboard/restaurant/orders">
-                    <ClipboardList className="w-4 h-4 mr-2" />
-                    Orders
+            <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col">
+              <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+                <p className="text-sm font-semibold text-slate-900">Operations</p>
+                <p className="text-[11px] text-slate-500">Jump into the workstation you need</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
+                {actions.map((action) => (
+                  <Link
+                    key={action.href}
+                    href={action.href}
+                    className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
+                  >
+                    <div className={cn("p-2 rounded-lg shrink-0", action.accent)}>
+                      <action.icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900">{action.title}</p>
+                      <p className="text-[11px] text-slate-500">{action.description}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0" />
                   </Link>
-                </Button>
-              )}
-              {canUseKitchenDisplay(user) && (
-                <Button asChild variant="secondary" className="h-10 rounded-xl">
-                  <Link href="/dashboard/restaurant/kitchen">
-                    <ChefHat className="w-4 h-4 mr-2" />
-                    Kitchen
-                  </Link>
-                </Button>
-              )}
-              {(canManageRestaurantMenu(user) || canViewRestaurant(user)) && (
-                <Button asChild variant="outline" className="h-10 rounded-xl">
-                  <Link href="/dashboard/restaurant/menu">
-                    <UtensilsCrossed className="w-4 h-4 mr-2" />
-                    Menu
-                  </Link>
-                </Button>
-              )}
+                ))}
+              </div>
             </div>
           </div>
         )}

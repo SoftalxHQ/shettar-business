@@ -1,12 +1,11 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Hotel, Plus, Loader2, Bed, CheckCircle, XCircle, DollarSign } from "lucide-react"
+import { Hotel, Plus, Bed, CheckCircle, DollarSign } from "lucide-react"
 import { toast } from "sonner"
 import type { RoomType } from "@/lib/room-types"
 import { RoomTypeCard } from "./components/RoomTypeCard"
@@ -172,7 +171,7 @@ export default function RoomsPage() {
   if (isLoading) {
     return (
       <DashboardLayout activeTab="rooms">
-        <div className="flex items-center justify-center h-96">
+        <div className="h-full min-h-0 flex items-center justify-center rounded-xl border border-slate-200 bg-white">
           <LoadingSpinner size={32} />
         </div>
       </DashboardLayout>
@@ -181,96 +180,75 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout activeTab="rooms">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Rooms Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage room types and individual rooms
-            </p>
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="shrink-0 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <Hotel className="w-5 h-5 text-indigo-600" />
+              Rooms
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">Room types and inventory</p>
           </div>
           {(user?.role === "admin" || user?.permissions?.rooms?.create) && (
-            <Button onClick={handleCreateRoomType}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Room Type
+            <Button onClick={handleCreateRoomType} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 shrink-0">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Create room type
             </Button>
           )}
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Room Types</CardTitle>
-              <Hotel className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{roomTypes.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Different categories
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Rooms</CardTitle>
-              <Bed className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalRooms}</div>
-              <p className="text-xs text-muted-foreground">
-                Across all types
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{totalAvailable}</div>
-              <p className="text-xs text-muted-foreground">
-                Ready for booking
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Price</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₦{avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-xs text-muted-foreground">
-                Per night
-              </p>
-            </CardContent>
-          </Card>
+        <div className="shrink-0 grid gap-3 grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Room types</p>
+              <Hotel className="h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{roomTypes.length}</p>
+            <p className="text-[11px] text-slate-500 mt-1.5">Categories</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total rooms</p>
+              <Bed className="h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{totalRooms}</p>
+            <p className="text-[11px] text-slate-500 mt-1.5">All types</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Available</p>
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+            </div>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-emerald-700 leading-none">{totalAvailable}</p>
+            <p className="text-[11px] text-slate-500 mt-1.5">Ready to book</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Avg price</p>
+              <DollarSign className="h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">
+              ₦{avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1.5">Per night</p>
+          </div>
         </div>
 
-        {/* Room Types List */}
-        <div>
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white">
           {roomTypes.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Hotel className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No room types yet</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Get started by creating your first room type
-                </p>
-                <Button onClick={handleCreateRoomType}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Room Type
+            <div className="h-full min-h-[12rem] flex flex-col items-center justify-center px-4 text-center">
+              <Hotel className="w-10 h-10 text-slate-300 mb-3" />
+              <h3 className="text-sm font-semibold text-slate-900 mb-1">No room types yet</h3>
+              <p className="text-xs text-slate-500 mb-3">Create your first room type to get started</p>
+              {(user?.role === "admin" || user?.permissions?.rooms?.create) && (
+                <Button onClick={handleCreateRoomType} size="sm" className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700">
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Create room type
                 </Button>
-              </CardContent>
-            </Card>
+              )}
+            </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="p-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 content-start">
               {roomTypes.map((roomType) => (
                 <RoomTypeCard
                   key={roomType.id}
@@ -285,7 +263,6 @@ export default function RoomsPage() {
         </div>
       </div>
 
-      {/* Create/Edit Dialog */}
       {showCreateDialog && (
         <RoomTypeDialog
           roomType={selectedRoomType}
