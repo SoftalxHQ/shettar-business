@@ -518,73 +518,77 @@ export default function ActivityPage() {
               )}
             </div>
           ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto relative px-1">
-              <div className="absolute left-[18px] top-0 bottom-0 w-px bg-slate-100" />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="relative">
+                <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-200 z-[1]" aria-hidden />
 
-              <div>
-                {activities.map((activity, idx) => {
-                  const Icon = getIcon(activity.action_type)
-                  const isToday = new Date(activity.occurred_at).toDateString() === new Date().toDateString()
-                  const timeAgo = formatDistanceToNow(new Date(activity.occurred_at), { addSuffix: true })
-                  const fullTime = format(new Date(activity.occurred_at), "dd MMM yyyy, HH:mm")
+                <div>
+                  {activities.map((activity, idx) => {
+                    const Icon = getIcon(activity.action_type)
+                    const isToday = new Date(activity.occurred_at).toDateString() === new Date().toDateString()
+                    const timeAgo = formatDistanceToNow(new Date(activity.occurred_at), { addSuffix: true })
+                    const fullTime = format(new Date(activity.occurred_at), "dd MMM yyyy, HH:mm")
 
-                  const showDateSeparator =
-                    idx === 0 ||
-                    new Date(activity.occurred_at).toDateString() !==
-                    new Date(activities[idx - 1].occurred_at).toDateString()
+                    const showDateSeparator =
+                      idx === 0 ||
+                      new Date(activity.occurred_at).toDateString() !==
+                      new Date(activities[idx - 1].occurred_at).toDateString()
 
-                  return (
-                    <div key={activity.id}>
-                      {showDateSeparator && (
-                        <div className="flex items-center gap-2 py-2 pl-10 pr-3">
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
-                            {isToday ? "Today" : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
-                          </span>
-                          <div className="flex-1 h-px bg-slate-100" />
-                        </div>
-                      )}
-
-                      <div className="relative flex items-start gap-3 pl-1.5 pr-3 py-2 hover:bg-slate-50/50 transition-colors">
-                        <div
-                          className="relative z-10 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: activity.color + "20", color: activity.color }}
-                        >
-                          <Icon className="w-3 h-3" style={{ stroke: activity.color }} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
-                          {activity.metadata?.notes && (
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              Notes: {String(activity.metadata.notes)}
-                            </p>
-                          )}
-                          <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                            {activity.actor && (
-                              <span className="text-[11px] text-slate-500">
-                                by <span className="font-medium text-slate-700">{activity.actor.name}</span>
-                              </span>
-                            )}
-                            <span className="text-[10px] text-slate-400">•</span>
-                            <span className="text-[11px] text-slate-400" title={fullTime}>{timeAgo}</span>
+                    return (
+                      <div key={activity.id}>
+                        {showDateSeparator && (
+                          <div className="flex items-center gap-2 py-2 pl-10 pr-3">
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                              {isToday ? "Today" : format(new Date(activity.occurred_at), "EEEE, dd MMMM yyyy")}
+                            </span>
+                            <div className="flex-1 h-px bg-slate-100" />
                           </div>
-                        </div>
+                        )}
 
-                        <Badge
-                          variant="outline"
-                          className="hidden sm:inline-flex text-[10px] h-5 px-1.5 flex-shrink-0 border capitalize"
-                          style={{
-                            color: activity.color,
-                            borderColor: activity.color + "40",
-                            background: activity.color + "10",
-                          }}
-                        >
-                          {activity.action_type.replace(/_/g, " ")}
-                        </Badge>
+                        <div className="relative flex items-start gap-3 pr-3 py-2 hover:bg-slate-50/50 transition-colors">
+                          <div className="relative z-10 w-8 flex justify-center flex-shrink-0">
+                            <div
+                              className="w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-white"
+                              style={{ backgroundColor: activity.color + "20", color: activity.color }}
+                            >
+                              <Icon className="w-3 h-3" style={{ stroke: activity.color }} />
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-800 leading-snug">{activity.description}</p>
+                            {activity.metadata?.notes && (
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                Notes: {String(activity.metadata.notes)}
+                              </p>
+                            )}
+                            <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                              {activity.actor && (
+                                <span className="text-[11px] text-slate-500">
+                                  by <span className="font-medium text-slate-700">{activity.actor.name}</span>
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400">•</span>
+                              <span className="text-[11px] text-slate-400" title={fullTime}>{timeAgo}</span>
+                            </div>
+                          </div>
+
+                          <Badge
+                            variant="outline"
+                            className="hidden sm:inline-flex text-[10px] h-5 px-1.5 flex-shrink-0 border capitalize"
+                            style={{
+                              color: activity.color,
+                              borderColor: activity.color + "40",
+                              background: activity.color + "10",
+                            }}
+                          >
+                            {activity.action_type.replace(/_/g, " ")}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
