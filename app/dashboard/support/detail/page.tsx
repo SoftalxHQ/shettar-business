@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { api } from "@/lib/api-client";
 import { subscribeSupportTicket, type SupportCableEvent, type SupportTicketSubscription } from "@/lib/support-cable";
 import {
-  isNotificationSoundEnabled,
+  armNotificationAudioUnlock,
   playNotificationTone,
   setNotificationSoundEnabled,
   unlockNotificationAudio,
@@ -108,6 +108,7 @@ function SupportTicketDetailContent() {
   }, [messages, supportTyping]);
 
   useEffect(() => {
+    armNotificationAudioUnlock();
     unlockNotificationAudio();
     const bid = resolveBusinessId(businessId);
     if (!bid) return;
@@ -154,7 +155,7 @@ function SupportTicketDetailContent() {
         const fromSupport = isFromSupport(incoming);
         if (fromSupport) {
           setSupportTyping(false);
-          if (isNotificationSoundEnabled()) void playNotificationTone();
+          void playNotificationTone();
           const label = ticketRef.current?.ticket_id || "Support";
           const preview = (incoming.body || "").slice(0, 120);
           toast.info("New support reply", { description: preview || label });

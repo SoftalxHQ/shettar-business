@@ -52,6 +52,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { setupNativeWindow } from "@/lib/tauri"
+import { armNotificationAudioUnlock } from "@/lib/notification-sound"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
@@ -122,6 +123,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   useEffect(() => {
     setMounted(true)
     setupNativeWindow()
+    armNotificationAudioUnlock()
   }, [])
 
   useEffect(() => {

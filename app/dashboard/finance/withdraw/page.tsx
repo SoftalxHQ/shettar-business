@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
 import { logout as logoutAction, selectUser, selectBusinessId } from "@/lib/store/slices/authSlice"
 import { logout as storageLogout } from "@/lib/storage"
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, ArrowLeft, Wallet, Building2 } from "lucide-react"
+import { AlertCircle, ArrowLeft, Wallet, Building2, BadgeCheck } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { getAuthToken } from "@/lib/storage"
@@ -21,14 +22,21 @@ interface BankAccount {
   account_number: string
   account_name: string
   is_active: boolean
+  status?: string
 }
 
 interface CommissionPreview {
   amount: number
   commission_rate: number
+  platform_commission?: number
   flat_fee: number
   commission_amount: number
   net_amount: number
+  minimum_withdrawal?: number
+}
+
+function isVerifiedAccount(acc: BankAccount) {
+  return acc.status === "verified" && acc.is_active !== false
 }
 
 export default function WithdrawalPage() {
@@ -46,6 +54,8 @@ export default function WithdrawalPage() {
   const [otp, setOtp] = useState("")
   const [preview, setPreview] = useState<CommissionPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const previewReqId = useRef(0)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 
@@ -74,7 +84,8 @@ export default function WithdrawalPage() {
         const bankRes = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/bank_accounts`, { headers: getHeaders() })
         if (bankRes.ok) {
           const data = await bankRes.json()
-          setBankAccounts(data.data || data)
+          const accounts: BankAccount[] = data.data || data
+          setBankAccounts(Array.isArray(accounts) ? accounts : [])
         }
       } catch (error) {
         console.error("Failed to fetch withdrawal data:", error)
@@ -82,34 +93,60 @@ export default function WithdrawalPage() {
     }
 
     fetchData()
-  }, [user, router, businessId])
+  }, [user, router, businessId, getHeaders])
 
-  // Live commission preview as user types
+  const verifiedAccounts = bankAccounts.filter(isVerifiedAccount)
+
+  // Live commission preview as user types (ignore stale responses)
   useEffect(() => {
     const num = parseFloat(amount)
-    if (!businessId || isNaN(num) || num <= 0) { setPreview(null); return }
+    if (!businessId || isNaN(num) || num <= 0) {
+      setPreview(null)
+      setPreviewError(null)
+      setPreviewLoading(false)
+      return
+    }
 
+    const reqId = ++previewReqId.current
     const timer = setTimeout(async () => {
       try {
         setPreviewLoading(true)
+        setPreviewError(null)
         const res = await fetch(
           `${API_URL}/api/v1/user_businesses/${businessId}/commission_preview?amount=${num}`,
           { headers: getHeaders() }
         )
-        if (res.ok) setPreview(await res.json())
-      } catch { /* silent */ } finally {
-        setPreviewLoading(false)
+        if (reqId !== previewReqId.current) return
+        const data = await res.json().catch(() => ({}))
+        if (res.ok) {
+          setPreview(data)
+          setPreviewError(null)
+        } else {
+          setPreview(null)
+          setPreviewError(typeof data.error === "string" ? data.error : "Unable to calculate breakdown")
+        }
+      } catch {
+        if (reqId === previewReqId.current) {
+          setPreview(null)
+          setPreviewError("Unable to calculate breakdown")
+        }
+      } finally {
+        if (reqId === previewReqId.current) setPreviewLoading(false)
       }
     }, 400)
 
     return () => clearTimeout(timer)
-  }, [amount, businessId])
+  }, [amount, businessId, getHeaders, API_URL])
 
-  const selectedAccount = bankAccounts.find(acc => String(acc.id) === selectedAccountId)
+  const selectedAccount = verifiedAccounts.find(acc => String(acc.id) === selectedAccountId)
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedAccount || !amount) { toast.error("Please select an account and enter an amount"); return }
+    if (!selectedAccount || !amount) { toast.error("Please select a verified account and enter an amount"); return }
+    if (!isVerifiedAccount(selectedAccount)) {
+      toast.error("Only verified bank accounts can receive withdrawals")
+      return
+    }
     const withdrawAmount = parseFloat(amount)
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) { toast.error("Please enter a valid amount"); return }
     if (withdrawAmount > balance) { toast.error("Insufficient funds"); return }
@@ -138,6 +175,32 @@ export default function WithdrawalPage() {
   }
 
   const fmt = (n: number) => `₦${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  const platformFee = (p: CommissionPreview) =>
+    p.platform_commission ?? Math.max(0, Number(p.commission_amount || 0) - Number(p.flat_fee || 0))
+
+  const Breakdown = ({ p }: { p: CommissionPreview }) => (
+    <>
+      <div className="flex justify-between text-xs">
+        <span className="text-slate-500">Withdrawal amount</span>
+        <span className="font-medium tabular-nums text-slate-800">{fmt(p.amount)}</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-slate-500">Platform commission ({p.commission_rate}%)</span>
+        <span className="font-medium tabular-nums text-rose-600">− {fmt(platformFee(p))}</span>
+      </div>
+      {(p.flat_fee ?? 0) > 0 && (
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-500">Paystack transfer fee</span>
+          <span className="font-medium tabular-nums text-rose-600">− {fmt(p.flat_fee)}</span>
+        </div>
+      )}
+      <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
+        <span className="font-semibold text-slate-800">You will receive</span>
+        <span className="font-semibold tabular-nums text-emerald-700">{fmt(p.net_amount)}</span>
+      </div>
+    </>
+  )
 
   return (
     <DashboardLayout activeTab="finance">
@@ -169,6 +232,19 @@ export default function WithdrawalPage() {
               <p className="mt-1 text-[11px] text-slate-500">Ready for immediate withdrawal</p>
             </div>
 
+            {verifiedAccounts.length === 0 && (
+              <Alert className="rounded-xl border-amber-200 bg-amber-50 text-amber-900">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                <AlertTitle className="text-xs font-semibold">Verified bank account required</AlertTitle>
+                <AlertDescription className="text-[11px] text-amber-800/90">
+                  Add a company bank account and wait for Shettar verification before withdrawing.{" "}
+                  <Link href="/dashboard/business/settings/bank" className="font-semibold underline underline-offset-2">
+                    Manage bank accounts
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleWithdraw} className="rounded-xl border border-slate-200 bg-white">
               <div className="border-b border-slate-100 px-4 py-3">
                 <h2 className="text-sm font-semibold text-slate-900">
@@ -185,27 +261,36 @@ export default function WithdrawalPage() {
                   <>
                     <div className="space-y-2">
                       <Label className="text-xs text-slate-600">Company account</Label>
-                      <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                      <Select
+                        value={selectedAccountId}
+                        onValueChange={setSelectedAccountId}
+                        disabled={verifiedAccounts.length === 0}
+                      >
                         <SelectTrigger className="h-9 rounded-lg border-slate-200 text-sm">
                           <SelectValue placeholder="Select verified bank account" />
                         </SelectTrigger>
                         <SelectContent>
-                          {bankAccounts.map((acc) => (
+                          {verifiedAccounts.map((acc) => (
                             <SelectItem key={acc.id} value={acc.id.toString()}>
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-3.5 w-3.5 text-slate-400" />
                                 <span className="font-medium">{acc.bank_name}</span>
                                 <span className="text-xs text-slate-400">• {acc.account_number.slice(-4)}</span>
+                                <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
                               </div>
                             </SelectItem>
                           ))}
-                          {bankAccounts.length === 0 && (
-                            <div className="p-2 text-center text-xs text-slate-400">No bank accounts found</div>
+                          {verifiedAccounts.length === 0 && (
+                            <div className="p-2 text-center text-xs text-slate-400">No verified bank accounts</div>
                           )}
                         </SelectContent>
                       </Select>
                       {selectedAccount && (
                         <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                          <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                            <BadgeCheck className="h-3 w-3" />
+                            Verified
+                          </div>
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Bank</p>
@@ -233,9 +318,13 @@ export default function WithdrawalPage() {
                         className="h-9 rounded-lg border-slate-200 text-sm tabular-nums"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
+                        disabled={verifiedAccounts.length === 0}
                       />
                       {amount && !isNaN(Number(amount)) && Number(amount) > balance && (
                         <p className="text-xs font-medium text-red-600">Amount exceeds available balance</p>
+                      )}
+                      {previewError && (
+                        <p className="text-xs font-medium text-amber-700">{previewError}</p>
                       )}
                     </div>
 
@@ -244,35 +333,14 @@ export default function WithdrawalPage() {
                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                           Breakdown
                         </p>
-                        {previewLoading ? (
+                        {previewLoading && !preview ? (
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
                             Calculating…
                           </div>
-                        ) : preview && (
-                          <>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-slate-500">Withdrawal amount</span>
-                              <span className="font-medium tabular-nums text-slate-800">{fmt(preview.amount)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
-                              <span className="font-medium tabular-nums text-rose-600">
-                                − {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}
-                              </span>
-                            </div>
-                            {(preview.flat_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-xs">
-                                <span className="text-slate-500">Paystack transfer fee</span>
-                                <span className="font-medium tabular-nums text-rose-600">− {fmt(preview.flat_fee)}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
-                              <span className="font-semibold text-slate-800">You will receive</span>
-                              <span className="font-semibold tabular-nums text-emerald-700">{fmt(preview.net_amount)}</span>
-                            </div>
-                          </>
-                        )}
+                        ) : preview ? (
+                          <Breakdown p={preview} />
+                        ) : null}
                       </div>
                     )}
                   </>
@@ -295,26 +363,7 @@ export default function WithdrawalPage() {
                     </div>
                     {preview && (
                       <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-500">Withdrawal amount</span>
-                          <span className="font-medium tabular-nums">{fmt(preview.amount)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-500">Commission ({preview.commission_rate}%)</span>
-                          <span className="font-medium tabular-nums text-rose-600">
-                            − {fmt(preview.commission_amount - (preview.flat_fee ?? 0))}
-                          </span>
-                        </div>
-                        {(preview.flat_fee ?? 0) > 0 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-slate-500">Paystack transfer fee</span>
-                            <span className="font-medium tabular-nums text-rose-600">− {fmt(preview.flat_fee)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
-                          <span className="font-semibold">You will receive</span>
-                          <span className="font-semibold tabular-nums text-emerald-700">{fmt(preview.net_amount)}</span>
-                        </div>
+                        <Breakdown p={preview} />
                         <p className="pt-1 text-center text-[10px] text-slate-400">
                           Sending to {selectedAccount?.bank_name} — {selectedAccount?.account_number}
                         </p>
@@ -351,9 +400,11 @@ export default function WithdrawalPage() {
                   className="h-9 w-full rounded-lg bg-indigo-600 text-xs text-white hover:bg-indigo-700"
                   disabled={
                     loading ||
+                    verifiedAccounts.length === 0 ||
                     !selectedAccountId ||
                     !amount ||
                     Number(amount) > balance ||
+                    !!previewError ||
                     (isOtpStep && otp.length < 6)
                   }
                 >
