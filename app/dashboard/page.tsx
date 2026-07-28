@@ -29,6 +29,7 @@ import "flatpickr/dist/themes/light.css"
 import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { DigitalClock } from "@/components/digital-clock"
 
 export default function DashboardPage() {
   const { user, businessId, logout } = useAuth()
@@ -207,97 +208,100 @@ export default function DashboardPage() {
   return (
     <DashboardLayout activeTab="staffdashboard">
       <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
-        {/* Greeting + today metrics */}
-        <div className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Front desk
-            </p>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
-              Welcome, {user?.name?.split(" ")[0] || "Team"}
-            </h1>
+        {/* Greeting + clock + metrics / actions */}
+        <div className="shrink-0 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,auto)_minmax(0,1fr)] lg:items-center lg:gap-6">
+          <div className="flex flex-col gap-3 min-w-0">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Front desk
+              </p>
+              <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+                Welcome, {user?.name?.split(" ")[0] || "Team"}
+              </h1>
+            </div>
+
+            <form className="w-full max-w-xs" onSubmit={handleSearch}>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                <input
+                  className="w-full h-10 bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-10 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all text-sm font-mono uppercase tracking-wider shadow-sm"
+                  type="search"
+                  placeholder="Booking code"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <button
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  type="submit"
+                  aria-label="Look up booking"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </form>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[22rem]">
-            <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
-              <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-                <LogIn className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">Check-ins</span>
-              </div>
-              <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
-                {summary.check_ins_today}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
-              <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-                <CheckoutIcon className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">Check-outs</span>
-              </div>
-              <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
-                {summary.check_outs_today}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
-              <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-                <Users className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">In-house</span>
-              </div>
-              <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
-                {summary.active_guests}
-              </p>
-            </div>
-          </div>
-        </div>
+          <DigitalClock className="order-first lg:order-none py-2 lg:py-0" />
 
-        {/* Command bar: lookup + actions */}
-        <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <form className="w-full sm:max-w-xs" onSubmit={handleSearch}>
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-              <input
-                className="w-full h-10 bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-10 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all text-sm font-mono uppercase tracking-wider shadow-sm"
-                type="search"
-                placeholder="Booking code"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-              <button
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-                type="submit"
-                aria-label="Look up booking"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+          <div className="flex flex-col gap-2 w-full lg:items-end min-w-0">
+            <div className="grid grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[22rem]">
+              <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">Check-ins</span>
+                </div>
+                <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
+                  {summary.check_ins_today}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <CheckoutIcon className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">Check-outs</span>
+                </div>
+                <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
+                  {summary.check_outs_today}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">In-house</span>
+                </div>
+                <p className="text-xl font-semibold tabular-nums text-slate-900 leading-none">
+                  {summary.active_guests}
+                </p>
+              </div>
             </div>
-          </form>
 
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <Button asChild size="sm" className="h-10 gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
-              <Link href="/dashboard/scan">
-                <QrCode className="w-4 h-4" />
-                Scan QR
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-10 gap-2 rounded-xl bg-white border-slate-200">
-              <Link href="/dashboard/bookings/new">
-                <UserPlus className="w-4 h-4 text-slate-600" />
-                New Reservation
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-10 gap-2 rounded-xl bg-white border-slate-200">
-              <Link href="/dashboard/bookings?filter=active">
-                <DoorOpen className="w-4 h-4 text-slate-600" />
-                Active Guests
-                {summary.active_guests > 0 && (
-                  <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-100 px-1.5 text-[11px] font-semibold tabular-nums text-slate-700">
-                    {summary.active_guests}
-                  </span>
-                )}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <Button asChild size="sm" className="h-10 gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+                <Link href="/dashboard/scan">
+                  <QrCode className="w-4 h-4" />
+                  Scan QR
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="h-10 gap-2 rounded-xl bg-white border-slate-200">
+                <Link href="/dashboard/bookings/new">
+                  <UserPlus className="w-4 h-4 text-slate-600" />
+                  New Reservation
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="h-10 gap-2 rounded-xl bg-white border-slate-200">
+                <Link href="/dashboard/bookings?filter=active">
+                  <DoorOpen className="w-4 h-4 text-slate-600" />
+                  Active Guests
+                  {summary.active_guests > 0 && (
+                    <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-100 px-1.5 text-[11px] font-semibold tabular-nums text-slate-700">
+                      {summary.active_guests}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
