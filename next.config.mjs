@@ -3,6 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  transpilePackages: ["@softalxhq/location-selector"],
   output: 'export',
   images: {
     unoptimized: true,

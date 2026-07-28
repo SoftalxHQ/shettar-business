@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
 import { BusinessVerificationBadge } from "@/components/business-verification-badge"
 import { getDeviceLocation } from "@/lib/tauri"
+import { LocationFields } from "@/components/location-fields"
 import type { VerificationDisplayStatus } from "@/lib/business-verification"
 import {
   canAccessBusinessSettings,
@@ -42,8 +43,10 @@ interface BusinessData {
   name: string
   description: string
   address: string
-  city: string
+  country: string
   state: string
+  lga: string
+  city: string
   zip_code: string
   check_in: string
   check_out: string
@@ -152,6 +155,8 @@ export default function BusinessSettingsPage() {
           const data = await response.json()
           setBusinessData({
             ...data,
+            country: data.country || "",
+            lga: data.lga || "",
             guest_notices: Array.isArray(data.guest_notices) ? data.guest_notices : [],
             policy_highlights: Array.isArray(data.policy_highlights)
               ? data.policy_highlights.map((h: PolicyHighlight & { kind?: string }) => ({
@@ -302,8 +307,10 @@ export default function BusinessSettingsPage() {
           formData.append("business[name]", businessData.name)
           formData.append("business[description]", businessData.description)
           formData.append("business[address]", businessData.address)
-          formData.append("business[city]", businessData.city)
+          formData.append("business[country]", businessData.country || "")
           formData.append("business[state]", businessData.state)
+          formData.append("business[lga]", businessData.lga || "")
+          formData.append("business[city]", businessData.city)
           formData.append("business[zip_code]", businessData.zip_code)
           formData.append("business[check_in]", businessData.check_in)
           formData.append("business[check_out]", businessData.check_out)
@@ -868,6 +875,21 @@ export default function BusinessSettingsPage() {
                   <p className="mt-0.5 text-[11px] text-slate-500">Your business address details</p>
                 </div>
                 <div className="space-y-3 p-4">
+                  <LocationFields
+                    value={{
+                      country: businessData.country || "",
+                      state: businessData.state || "",
+                      lga: businessData.lga || "",
+                      city: businessData.city || "",
+                    }}
+                    onChange={({ country, state, lga, city }) =>
+                      setBusinessData({ ...businessData, country, state, lga, city })
+                    }
+                    selectClassName="h-9 rounded-lg border-slate-200"
+                    labelClassName="text-xs text-slate-600"
+                    className="gap-3"
+                  />
+
                   <div className="space-y-1.5">
                     <Label htmlFor="address" className="text-xs text-slate-600">Street Address *</Label>
                     <Input
@@ -880,40 +902,16 @@ export default function BusinessSettingsPage() {
                     />
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs text-slate-600">City *</Label>
-                      <Input
-                        id="city"
-                        value={businessData.city}
-                        onChange={(e) => setBusinessData({ ...businessData, city: e.target.value })}
-                        required
-                        placeholder="City"
-                        className="h-9 rounded-lg border-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="state" className="text-xs text-slate-600">State *</Label>
-                      <Input
-                        id="state"
-                        value={businessData.state}
-                        onChange={(e) => setBusinessData({ ...businessData, state: e.target.value })}
-                        required
-                        placeholder="State"
-                        className="h-9 rounded-lg border-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="zip_code" className="text-xs text-slate-600">ZIP Code *</Label>
-                      <Input
-                        id="zip_code"
-                        value={businessData.zip_code}
-                        onChange={(e) => setBusinessData({ ...businessData, zip_code: e.target.value })}
-                        required
-                        placeholder="12345"
-                        className="h-9 rounded-lg border-slate-200"
-                      />
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="zip_code" className="text-xs text-slate-600">ZIP Code *</Label>
+                    <Input
+                      id="zip_code"
+                      value={businessData.zip_code}
+                      onChange={(e) => setBusinessData({ ...businessData, zip_code: e.target.value })}
+                      required
+                      placeholder="12345"
+                      className="h-9 rounded-lg border-slate-200"
+                    />
                   </div>
 
                   <div className="flex flex-col space-y-3">
@@ -1230,7 +1228,7 @@ export default function BusinessSettingsPage() {
               <div className="min-w-0">
                 <h3 className="truncate text-sm font-semibold text-slate-900">{(businessData as any)?.name} — Location Preview</h3>
                 <p className="mt-0.5 truncate text-xs text-slate-500">
-                  {(businessData as any)?.address}, {(businessData as any)?.city}, {(businessData as any)?.state} {(businessData as any)?.zip_code}
+                  {(businessData as any)?.address}, {(businessData as any)?.city}, {(businessData as any)?.lga}, {(businessData as any)?.state} {(businessData as any)?.zip_code}
                 </p>
               </div>
               <Button

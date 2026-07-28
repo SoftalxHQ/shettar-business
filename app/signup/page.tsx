@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api-client"
+import { LocationFields } from "@/components/location-fields"
 
 const STEP_COPY = [
   "Tell us about your hotel or property",
@@ -78,8 +79,10 @@ export default function SignupPage() {
     referrer_code: "",
     description: "",
     address: "",
-    city: "",
+    country: "",
     state: "",
+    lga: "",
+    city: "",
     zip_code: "",
     category: "Hotels",
     check_in: "15:00",
@@ -114,7 +117,13 @@ export default function SignupPage() {
     }
 
     if (currentStep === 2) {
-      if (!businessData.address || !businessData.city || !businessData.state) {
+      if (
+        !businessData.address ||
+        !businessData.country ||
+        !businessData.state ||
+        !businessData.lga ||
+        !businessData.city
+      ) {
         setError("Please fill in all required location information")
         return
       }
@@ -309,6 +318,21 @@ export default function SignupPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <LocationFields
+                        detectCountry
+                        value={{
+                          country: businessData.country,
+                          state: businessData.state,
+                          lga: businessData.lga,
+                          city: businessData.city,
+                        }}
+                        onChange={({ country, state, lga, city }) =>
+                          setBusinessData((prev) => ({ ...prev, country, state, lga, city }))
+                        }
+                      />
+                    </div>
+
                     <div className="col-span-2 space-y-2">
                       <Label htmlFor="address">
                         Street Address <span className="text-red-500">*</span>
@@ -326,42 +350,12 @@ export default function SignupPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="city">
-                        City <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="city"
-                        type="text"
-                        placeholder="New York"
-                        value={businessData.city}
-                        onChange={(e) => setBusinessData({ ...businessData, city: e.target.value })}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state">
-                        State <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="state"
-                        type="text"
-                        placeholder="NY"
-                        value={businessData.state}
-                        onChange={(e) => setBusinessData({ ...businessData, state: e.target.value })}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-
                     <div className="col-span-2 space-y-2">
-                      <Label htmlFor="zip_code">ZIP Code</Label>
+                      <Label htmlFor="zip_code">ZIP / Postal Code</Label>
                       <Input
                         id="zip_code"
                         type="text"
-                        placeholder="10001"
+                        placeholder="100001"
                         value={businessData.zip_code}
                         onChange={(e) =>
                           setBusinessData({ ...businessData, zip_code: e.target.value })
@@ -604,7 +598,9 @@ export default function SignupPage() {
                       <span className="text-indigo-500"> · {businessData.category}</span>
                     </p>
                     <p className="text-sm text-indigo-600">
-                      {businessData.address}, {businessData.city}, {businessData.state}
+                      {businessData.address}, {businessData.city}, {businessData.lga},{" "}
+                      {businessData.state}
+                      {businessData.country ? ` · ${businessData.country}` : ""}
                     </p>
                   </div>
                 </div>
