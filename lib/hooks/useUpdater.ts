@@ -25,6 +25,8 @@ type UpdateHandle = {
   ) => Promise<void>;
 };
 
+const RECHECK_INTERVAL_MS = 30 * 60 * 1000;
+
 export function useUpdater(): UpdaterState {
   const [available, setAvailable] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
@@ -87,6 +89,10 @@ export function useUpdater(): UpdaterState {
 
   useEffect(() => {
     void checkForUpdate();
+    const id = window.setInterval(() => {
+      void checkForUpdate();
+    }, RECHECK_INTERVAL_MS);
+    return () => window.clearInterval(id);
   }, [checkForUpdate]);
 
   return {

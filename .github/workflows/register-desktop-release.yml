@@ -1,0 +1,64 @@
+name: Register Desktop Release
+
+# Re-map an existing GitHub Release into the Rails desktop_releases API
+# without rebuilding Tauri artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub release tag (e.g. v0.1.45-staging)"
+        required: true
+        type: string
+      channel:
+        description: "Release channel"
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    name: Register release with Rails API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve API URL
+        id: env
+        shell: bash
+        run: |
+          CHANNEL="${{ inputs.channel }}"
+          TAG="${{ inputs.tag }}"
+          VERSION="$(echo "$TAG" | sed -E 's/^v//; s/-staging$//; s/-production$//')"
+          if [ "$CHANNEL" = "staging" ]; then
+            echo "api_url=https://api.stg.shettar.com" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_url=https://api-v1.shettar.com" >> "$GITHUB_OUTPUT"
+          fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Map GitHub assets and POST to Rails
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DESKTOP_RELEASE_CI_TOKEN: ${{ secrets.DESKTOP_RELEASE_CI_TOKEN }}
+          API_URL: ${{ steps.env.outputs.api_url }}
+          CHANNEL: ${{ steps.env.outputs.channel }}
+          VERSION: ${{ steps.env.outputs.version }}
+          TAG: ${{ steps.env.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DESKTOP_RELEASE_CI_TOKEN:-}" ]; then
+            echo "::error::DESKTOP_RELEASE_CI_TOKEN secret is not set"
+            exit 1
+          fi
+          chmod +x scripts/register-desktop-release.sh
+          ./scripts/register-desktop-release.sh

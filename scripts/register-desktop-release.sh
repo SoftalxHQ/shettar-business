@@ -34,7 +34,7 @@ if [ "$ASSET_COUNT" = "0" ]; then
   exit 1
 fi
 
-# gh release --json assets exposes api asset URLs in .url — always build the public download URL.
+# Public browser download URLs for Rails/clients. Private-repo assets still need auth to *read* content (latest.json / .sig).
 find_url() {
   local pattern="$1"
   echo "$ASSETS_JSON" | jq -r --arg re "$pattern" --arg tag "$TAG" --arg repo "$REPO" '
@@ -46,37 +46,47 @@ find_url() {
   '
 }
 
+find_asset_name() {
+  local pattern="$1"
+  echo "$ASSETS_JSON" | jq -r --arg re "$pattern" '
+    map(select(.name | test($re; "i")))
+    | .[0].name // empty
+  '
+}
+
+# Download a release asset with GH_TOKEN (public URLs 404 on private repos).
+download_asset() {
+  local name="$1"
+  local dest="$2"
+  if [ -z "$name" ]; then
+    return 1
+  fi
+  gh release download "$TAG" --repo "$REPO" -p "$name" -O "$dest"
+}
+
 read_sig() {
-  local url="$1"
-  if [ -z "$url" ]; then
+  local pattern="$1"
+  local name
+  name="$(find_asset_name "$pattern")"
+  if [ -z "$name" ]; then
     echo ""
     return
   fi
-  curl -fsSL "$url"
+  local tmp
+  tmp="$(mktemp)"
+  if download_asset "$name" "$tmp"; then
+    cat "$tmp"
+    rm -f "$tmp"
+  else
+    rm -f "$tmp"
+    echo ""
+  fi
 }
 
-# NOTE: patterns are bash single-quoted — use \. not \\. (\\ would search for a literal backslash).
-WIN_INSTALLER="$(find_url '_x64-setup\.exe$')"
-if [ -z "$WIN_INSTALLER" ]; then
-  WIN_INSTALLER="$(find_url '_x64_en-US\.msi$')"
-fi
-MAC_ARM_DMG="$(find_url '_aarch64\.dmg$')"
-MAC_X64_DMG="$(find_url '_x64\.dmg$')"
-LINUX_APPIMAGE="$(find_url '\.AppImage$')"
-LINUX_DEB="$(find_url '\.deb$')"
-
-# Updaters: prefer Tauri-generated latest.json (correct url + signature per platform)
-LATEST_URL="$(find_url '^latest\.json$')"
-WIN_UPDATER=""; WIN_SIG=""
-MAC_ARM_UPD=""; MAC_ARM_SIG=""
-MAC_X64_UPD=""; MAC_X64_SIG=""
-LINUX_UPD=""; LINUX_SIG=""
-
-if [ -n "$LATEST_URL" ]; then
-  echo "Using latest.json for updater mapping: $LATEST_URL"
-  LATEST_JSON="$(curl -fsSL "$LATEST_URL")"
-  platform_url() { echo "$LATEST_JSON" | jq -r --arg k "$1" '.platforms[$k].url // empty'; }
-  platform_sig() { echo "$LATEST_JSON" | jq -r --arg k "$1" '.platforms[$k].signature // empty'; }
+map_from_latest_json() {
+  local latest_json="$1"
+  platform_url() { echo "$latest_json" | jq -r --arg k "$1" '.platforms[$k].url // empty'; }
+  platform_sig() { echo "$latest_json" | jq -r --arg k "$1" '.platforms[$k].signature // empty'; }
 
   WIN_UPDATER="$(platform_url "windows-x86_64-nsis")"
   WIN_SIG="$(platform_sig "windows-x86_64-nsis")"
@@ -91,16 +101,52 @@ if [ -n "$LATEST_URL" ]; then
   MAC_X64_SIG="$(platform_sig "darwin-x86_64")"
   LINUX_UPD="$(platform_url "linux-x86_64")"
   LINUX_SIG="$(platform_sig "linux-x86_64")"
+}
+
+map_from_filename_patterns() {
+  echo "Falling back to asset filename patterns for updater mapping"
+  WIN_UPDATER="$(find_url '_x64-setup\.exe$')"
+  WIN_SIG="$(read_sig '_x64-setup\.exe\.sig$')"
+  MAC_ARM_UPD="$(find_url 'aarch64\.app\.tar\.gz$')"
+  MAC_ARM_SIG="$(read_sig 'aarch64\.app\.tar\.gz\.sig$')"
+  MAC_X64_UPD="$(find_url 'x64\.app\.tar\.gz$')"
+  MAC_X64_SIG="$(read_sig 'x64\.app\.tar\.gz\.sig$')"
+  LINUX_UPD="$(find_url '\.AppImage$')"
+  LINUX_SIG="$(read_sig '\.AppImage\.sig$')"
+}
+
+# NOTE: patterns are bash single-quoted — use \. not \\. (\\ would search for a literal backslash).
+WIN_INSTALLER="$(find_url '_x64-setup\.exe$')"
+if [ -z "$WIN_INSTALLER" ]; then
+  WIN_INSTALLER="$(find_url '_x64_en-US\.msi$')"
+fi
+MAC_ARM_DMG="$(find_url '_aarch64\.dmg$')"
+MAC_X64_DMG="$(find_url '_x64\.dmg$')"
+LINUX_APPIMAGE="$(find_url '\.AppImage$')"
+LINUX_DEB="$(find_url '\.deb$')"
+
+# Updaters: prefer Tauri-generated latest.json (correct url + signature per platform)
+LATEST_NAME="$(find_asset_name '^latest\.json$')"
+WIN_UPDATER=""; WIN_SIG=""
+MAC_ARM_UPD=""; MAC_ARM_SIG=""
+MAC_X64_UPD=""; MAC_X64_SIG=""
+LINUX_UPD=""; LINUX_SIG=""
+
+if [ -n "$LATEST_NAME" ]; then
+  LATEST_TMP="$(mktemp)"
+  echo "Downloading $LATEST_NAME with authenticated gh (private-repo safe)"
+  if download_asset "$LATEST_NAME" "$LATEST_TMP"; then
+    LATEST_JSON="$(cat "$LATEST_TMP")"
+    rm -f "$LATEST_TMP"
+    map_from_latest_json "$LATEST_JSON"
+  else
+    rm -f "$LATEST_TMP"
+    echo "::warning::Failed to download $LATEST_NAME; falling back to filename patterns"
+    map_from_filename_patterns
+  fi
 else
   echo "latest.json not found; falling back to asset filename patterns"
-  WIN_UPDATER="$(find_url '_x64-setup\.exe$')"
-  WIN_SIG="$(read_sig "$(find_url '_x64-setup\.exe\.sig$')")"
-  MAC_ARM_UPD="$(find_url 'aarch64\.app\.tar\.gz$')"
-  MAC_ARM_SIG="$(read_sig "$(find_url 'aarch64\.app\.tar\.gz\.sig$')")"
-  MAC_X64_UPD="$(find_url 'x64\.app\.tar\.gz$')"
-  MAC_X64_SIG="$(read_sig "$(find_url 'x64\.app\.tar\.gz\.sig$')")"
-  LINUX_UPD="$(find_url '\.AppImage$')"
-  LINUX_SIG="$(read_sig "$(find_url '\.AppImage\.sig$')")"
+  map_from_filename_patterns
 fi
 
 echo "Mapped installers:"

@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
+import { UpdateCardHost } from "@/components/update-card-host";
 import { ReduxProvider } from "@/lib/store/provider";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({
         <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
         <ReduxProvider>
           {children}
+          <UpdateCardHost />
           <Toaster position="top-center" richColors />
         </ReduxProvider>
         <ServiceWorkerRegistrar />

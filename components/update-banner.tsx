@@ -1,52 +1,119 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useUpdater } from "@/lib/hooks/useUpdater";
 import { desktopChangelogUrl, isTauri, openExternalUrl } from "@/lib/tauri";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 
-/** In-app banner when a newer Shettar Business desktop build is available. */
+const dismissKey = (version: string) => `shettar-update-dismissed:${version}`;
+
+/** Fixed bottom-right card when a newer Shettar Business desktop build is available. */
 export function UpdateBanner() {
   const { available, version, progress, installing, error, installUpdate } = useUpdater();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!isTauri() || !available) return null;
+  useEffect(() => {
+    if (!version || typeof window === "undefined") {
+      setDismissed(false);
+      return;
+    }
+    setDismissed(sessionStorage.getItem(dismissKey(version)) === "1");
+  }, [version]);
+
+  useEffect(() => {
+    if (installing && version && typeof window !== "undefined") {
+      sessionStorage.removeItem(dismissKey(version));
+      setDismissed(false);
+    }
+  }, [installing, version]);
+
+  if (!isTauri()) return null;
+  if (!available && !installing && !error) return null;
+  if (dismissed && !installing) return null;
 
   const changelogUrl = desktopChangelogUrl(version);
+  const title = version
+    ? `Version ${version} is available`
+    : error
+      ? "Update check failed"
+      : "Update available";
+
+  const dismiss = () => {
+    if (version && typeof window !== "undefined") {
+      sessionStorage.setItem(dismissKey(version), "1");
+    }
+    setDismissed(true);
+  };
 
   return (
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm text-indigo-950">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="font-semibold leading-tight">
-            Version {version} is available
-          </p>
+    <div
+      className="fixed bottom-4 right-4 z-[60] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-900 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold leading-tight">{title}</p>
+        {!installing ? (
           <button
             type="button"
-            onClick={() => void openExternalUrl(changelogUrl)}
-            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 underline-offset-2 hover:underline"
+            onClick={dismiss}
+            className="shrink-0 rounded-md p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Dismiss update"
           >
-            View changelog
-            <ExternalLink className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
-          {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
-          {installing ? (
-            <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-indigo-100">
-              <div
-                className="h-full bg-indigo-600 transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          ) : null}
-        </div>
-        <Button
+        ) : null}
+      </div>
+
+      {version ? (
+        <button
           type="button"
-          size="sm"
-          className="shrink-0 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700"
-          disabled={installing}
-          onClick={() => void installUpdate()}
+          onClick={() => void openExternalUrl(changelogUrl)}
+          className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 underline-offset-2 hover:underline"
         >
-          {installing ? `Updating… ${progress}%` : "Update now"}
-        </Button>
+          View changelog
+          <ExternalLink className="h-3 w-3" />
+        </button>
+      ) : null}
+
+      {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
+
+      {installing ? (
+        <div className="mt-3 space-y-1.5">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full bg-indigo-600 transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500">Downloading… {progress}%</p>
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        {!installing ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-lg px-2.5 text-slate-600"
+            onClick={dismiss}
+          >
+            Later
+          </Button>
+        ) : null}
+        {available || installing ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            disabled={installing || !available}
+            onClick={() => void installUpdate()}
+          >
+            {installing ? `Updating… ${progress}%` : "Update now"}
+          </Button>
+        ) : null}
       </div>
     </div>
   );

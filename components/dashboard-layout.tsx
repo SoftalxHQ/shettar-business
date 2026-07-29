@@ -58,7 +58,6 @@ import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
-import { UpdateBanner } from "@/components/update-banner"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -361,7 +360,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         <div className="flex-1 min-w-0 min-h-0 flex flex-col">
           <main className="flex-1 min-h-0 overflow-hidden p-3 flex flex-col gap-2">
             <div className="shrink-0 space-y-2">
-              <UpdateBanner />
               <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
             </div>
             <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -492,9 +490,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
       <EmailVerificationBanner />
 
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 gap-2">
-        <div className="shrink-0">
-          <UpdateBanner />
-        </div>
         <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
       </main>
     </div>
