@@ -29,6 +29,8 @@ interface CommissionPreview {
   amount: number
   commission_rate: number
   platform_commission?: number
+  platform_commission_capped?: boolean
+  maximum_withdrawal_commission?: number | null
   flat_fee: number
   commission_amount: number
   net_amount: number
@@ -189,6 +191,11 @@ export default function WithdrawalPage() {
         <span className="text-slate-500">Platform commission ({p.commission_rate}%)</span>
         <span className="font-medium tabular-nums text-rose-600">− {fmt(platformFee(p))}</span>
       </div>
+      {p.platform_commission_capped && p.maximum_withdrawal_commission != null && (
+        <p className="text-[11px] text-slate-500 -mt-0.5">
+          Capped at {fmt(Number(p.maximum_withdrawal_commission))}
+        </p>
+      )}
       {(p.flat_fee ?? 0) > 0 && (
         <div className="flex justify-between text-xs">
           <span className="text-slate-500">Paystack transfer fee</span>
