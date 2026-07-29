@@ -249,6 +249,6 @@ function resolveWebAppBaseUrl(): string {
     appEnv === "staging" ||
     /(?:^|\.)stg\.|\/\/api\.stg\.|staging/i.test(apiUrl);
 
-  if (isStaging) return "https://stg.shettar.com";
+  if (isStaging) return "https://stg-web.shettar.com";
   return "https://shettar.com";
 }

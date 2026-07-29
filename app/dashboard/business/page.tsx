@@ -6,11 +6,19 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { TrendingUp, TrendingDown, Users, DollarSign, ArrowUpRight, Building2, Settings, Copy, Image as ImageIcon, MapPin, X } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useEffect, useState } from "react"
 import api from "@/lib/api-client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  getCachedBusinessLogo,
+  resolveBusinessLogoBlob,
+  setCachedBusinessLogo,
+  subscribeBusinessLogoCache,
+  clearBusinessLogoCache,
+} from "@/lib/business-logo-cache"
 
 const revenueStats = [
   {
@@ -51,12 +59,28 @@ export default function BusinessDashboardPage() {
   const [businessInfo, setBusinessInfo] = useState<any>(null)
   const [showMapModal, setShowMapModal] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
+  const [logoSrc, setLogoSrc] = useState<string | null>(null)
+
+  const resolvedBusinessId = businessId || user?.businessId
 
   useEffect(() => {
     if (user && user.role !== "admin" && user.role !== "manager") {
       router.push("/dashboard")
     }
   }, [user, router])
+
+  useEffect(() => {
+    if (!resolvedBusinessId) {
+      setLogoSrc(null)
+      return
+    }
+    const fromCache = getCachedBusinessLogo(resolvedBusinessId)
+    setLogoSrc(fromCache?.blobUrl || fromCache?.url || null)
+    return subscribeBusinessLogoCache(() => {
+      const next = getCachedBusinessLogo(resolvedBusinessId)
+      setLogoSrc(next?.blobUrl || next?.url || null)
+    })
+  }, [resolvedBusinessId])
 
   useEffect(() => {
     async function fetchStats() {
@@ -83,6 +107,20 @@ export default function BusinessDashboardPage() {
         try {
           const data = await api.getBusinessData<any>(`/api/v1/user_businesses/${id}`)
           setBusinessInfo(data)
+          const logoUrl = data?.logo_url || data?.business?.logo_url
+          if (typeof logoUrl === "string" && logoUrl) {
+            setCachedBusinessLogo(id, logoUrl)
+            const blobUrl = await resolveBusinessLogoBlob(logoUrl)
+            if (blobUrl.startsWith("blob:")) {
+              setCachedBusinessLogo(id, logoUrl, blobUrl)
+              setLogoSrc(blobUrl)
+            } else {
+              setLogoSrc(logoUrl)
+            }
+          } else {
+            clearBusinessLogoCache(id)
+            setLogoSrc(null)
+          }
         } catch (error) {
           console.error("Failed to fetch business info:", error)
         }
@@ -239,12 +277,26 @@ export default function BusinessDashboardPage() {
                   </div>
                 </div>
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-300 mb-2">
-                    <ImageIcon className="w-5 h-5" />
-                  </div>
+                  {logoSrc ? (
+                    <div className="relative mb-2 h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      <Image
+                        src={logoSrc}
+                        alt={`${user.hotelName || "Business"} logo`}
+                        fill
+                        className="object-contain p-1"
+                        unoptimized
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-300 mb-2">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                  )}
                   <p className="text-sm font-medium text-slate-900">Business logo</p>
                   <p className="text-[11px] text-slate-500 mb-3">Used on invoices and desktop chrome</p>
-                  <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg">Update logo</Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" asChild>
+                    <Link href="/dashboard/business/settings">Update logo</Link>
+                  </Button>
                 </div>
               </div>
             </div>

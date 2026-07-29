@@ -123,14 +123,18 @@ content_type_for() {
     *.AppImage) echo "application/octet-stream" ;;
     *.exe) echo "application/vnd.microsoft.portable-executable" ;;
     *.msi) echo "application/octet-stream" ;;
+    *.dmg) echo "application/x-apple-diskimage" ;;
+    *.deb) echo "application/vnd.debian.binary-package" ;;
+    *.rpm) echo "application/x-rpm" ;;
     *) echo "application/octet-stream" ;;
   esac
 }
 
 # Download a GitHub release asset and upload it to S3 via Rails-presigned PUT.
 # Prints the stable object_url on stdout (progress on stderr).
-upload_updater_to_s3() {
+upload_release_asset_to_s3() {
   local github_url="$1"
+  local label="${2:-asset}"
   if [ -z "$github_url" ]; then
     echo ""
     return 0
@@ -147,7 +151,7 @@ upload_updater_to_s3() {
   tmpdir="$(mktemp -d)"
   local_file="${tmpdir}/${name}"
 
-  echo "Uploading updater ${name} to S3 via Rails presign..." >&2
+  echo "Uploading ${label} ${name} to S3 via Rails presign..." >&2
   if ! download_asset "$name" "$local_file"; then
     echo "::error::Failed to download ${name} for S3 upload" >&2
     rm -rf "$tmpdir"
@@ -193,6 +197,11 @@ upload_updater_to_s3() {
   echo "$object_url"
 }
 
+# Back-compat alias used elsewhere in this script.
+upload_updater_to_s3() {
+  upload_release_asset_to_s3 "$1" "updater"
+}
+
 # NOTE: patterns are bash single-quoted — use \. not \\. (\\ would search for a literal backslash).
 WIN_INSTALLER="$(find_url '_x64-setup\.exe$')"
 if [ -z "$WIN_INSTALLER" ]; then
@@ -227,7 +236,7 @@ else
   map_from_filename_patterns
 fi
 
-echo "Mapped installers:"
+echo "Mapped installer sources (GitHub):"
 echo "  windows=$WIN_INSTALLER"
 echo "  macos_arm=$MAC_ARM_DMG"
 echo "  macos_x64=$MAC_X64_DMG"
@@ -239,7 +248,23 @@ echo "  macos_arm=$MAC_ARM_UPD"
 echo "  macos_x64=$MAC_X64_UPD"
 echo "  linux=$LINUX_UPD"
 
-# Host updater binaries on S3 (private GitHub URLs break Tauri downloadAndInstall).
+# Host installers + updater binaries on S3 (private GitHub URLs break browser/Tauri downloads).
+if [ -n "$WIN_INSTALLER" ]; then
+  WIN_INSTALLER="$(upload_release_asset_to_s3 "$WIN_INSTALLER" "installer")"
+fi
+if [ -n "$MAC_ARM_DMG" ]; then
+  MAC_ARM_DMG="$(upload_release_asset_to_s3 "$MAC_ARM_DMG" "installer")"
+fi
+if [ -n "$MAC_X64_DMG" ]; then
+  MAC_X64_DMG="$(upload_release_asset_to_s3 "$MAC_X64_DMG" "installer")"
+fi
+if [ -n "$LINUX_APPIMAGE" ]; then
+  LINUX_APPIMAGE="$(upload_release_asset_to_s3 "$LINUX_APPIMAGE" "installer")"
+fi
+if [ -n "$LINUX_DEB" ]; then
+  LINUX_DEB="$(upload_release_asset_to_s3 "$LINUX_DEB" "installer")"
+fi
+
 if [ -n "$WIN_UPDATER" ]; then
   WIN_UPDATER="$(upload_updater_to_s3 "$WIN_UPDATER")"
 fi
@@ -253,6 +278,12 @@ if [ -n "$LINUX_UPD" ]; then
   LINUX_UPD="$(upload_updater_to_s3 "$LINUX_UPD")"
 fi
 
+echo "Mapped installer object URLs (S3):"
+echo "  windows=$WIN_INSTALLER"
+echo "  macos_arm=$MAC_ARM_DMG"
+echo "  macos_x64=$MAC_X64_DMG"
+echo "  linux_appimage=$LINUX_APPIMAGE"
+echo "  linux_deb=$LINUX_DEB"
 echo "Mapped updater object URLs (S3):"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"

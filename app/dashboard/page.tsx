@@ -20,16 +20,28 @@ import { type RoomTypeAvailability } from "@/lib/mock-data"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { usesRestaurantPortal } from "@/lib/portal-access"
 import { getAuthToken } from "@/lib/storage"
 import api from "@/lib/api-client"
+import {
+  subscribeUserNotifications,
+  type StaffNotificationCablePayload,
+} from "@/lib/notifications-api"
 import Flatpickr from "react-flatpickr"
 import "flatpickr/dist/themes/light.css"
 import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { DigitalClock } from "@/components/digital-clock"
+
+const BOOKING_AVAILABILITY_EVENTS = new Set([
+  "booking_created",
+  "booking_cancelled",
+  "check_in",
+  "check_out",
+  "booking_updated",
+])
 
 export default function DashboardPage() {
   const { user, businessId, logout } = useAuth()
@@ -75,71 +87,96 @@ export default function DashboardPage() {
   }, [user, router])
 
   // Fetch room availability
-  useEffect(() => {
-    const fetchRoomAvailability = async () => {
-      if (!businessId) return
+  const fetchRoomAvailability = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!businessId) return
 
-      // Wait for complete range selection
-      if (fetchedDates.length === 1) return
+    // Wait for complete range selection
+    if (fetchedDates.length === 1) return
 
-      try {
-        setIsLoadingRooms(true)
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        const token = getAuthToken()
+    try {
+      if (!opts?.silent) setIsLoadingRooms(true)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
 
-        let startStr, endStr
+      let startStr, endStr
 
-        if (fetchedDates && fetchedDates.length > 0) {
-          startStr = format(fetchedDates[0], "yyyy-MM-dd")
-          if (fetchedDates.length > 1) {
-            // If start and end are same day, assume 1 night
-            if (fetchedDates[0].getTime() === fetchedDates[1].getTime()) {
-              endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
-            } else {
-              endStr = format(fetchedDates[1], "yyyy-MM-dd")
-            }
-          } else {
-            // If only start date selected, assume 1 night
+      if (fetchedDates && fetchedDates.length > 0) {
+        startStr = format(fetchedDates[0], "yyyy-MM-dd")
+        if (fetchedDates.length > 1) {
+          // If start and end are same day, assume 1 night
+          if (fetchedDates[0].getTime() === fetchedDates[1].getTime()) {
             endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
+          } else {
+            endStr = format(fetchedDates[1], "yyyy-MM-dd")
           }
         } else {
-          startStr = format(new Date(), "yyyy-MM-dd")
-          endStr = format(addDays(new Date(), 1), "yyyy-MM-dd")
+          // If only start date selected, assume 1 night
+          endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
         }
+      } else {
+        startStr = format(new Date(), "yyyy-MM-dd")
+        endStr = format(addDays(new Date(), 1), "yyyy-MM-dd")
+      }
 
-        const response = await fetch(
-          `${API_URL}/api/v1/user_businesses/${businessId}/room_availability?start_date=${startStr}&end_date=${endStr}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        )
-
-        if (response.ok) {
-          const data = await response.json()
-          setRoomAvailability(data)
-        } else if (response.status === 401) {
-          const errorData = await response.json()
-          if (
-            errorData.errors?.[0]?.id === 'expiration' ||
-            errorData.errors?.[0]?.message === 'Token has expired' ||
-            errorData.message === 'Signature has expired'
-          ) {
-            logout(true)
-            return
-          }
+      const response = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/room_availability?start_date=${startStr}&end_date=${endStr}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      } catch (error) {
-        console.error("Failed to fetch room availability:", error)
-      } finally {
-        setIsLoadingRooms(false)
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setRoomAvailability(data)
+      } else if (response.status === 401) {
+        const errorData = await response.json()
+        if (
+          errorData.errors?.[0]?.id === 'expiration' ||
+          errorData.errors?.[0]?.message === 'Token has expired' ||
+          errorData.message === 'Signature has expired'
+        ) {
+          logout(true)
+          return
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch room availability:", error)
+    } finally {
+      if (!opts?.silent) setIsLoadingRooms(false)
+    }
+  }, [businessId, fetchedDates, logout])
+
+  useEffect(() => {
+    void fetchRoomAvailability()
+  }, [fetchRoomAvailability])
+
+  // Live refresh when bookings change via ActionCable notifications
+  const availabilityRefreshTimer = useRef<number | null>(null)
+  useEffect(() => {
+    if (!businessId) return
+
+    const unsubscribe = subscribeUserNotifications((msg: StaffNotificationCablePayload) => {
+      const event = typeof msg.metadata?.event === "string" ? msg.metadata.event : ""
+      if (!BOOKING_AVAILABILITY_EVENTS.has(event)) return
+
+      if (availabilityRefreshTimer.current) {
+        window.clearTimeout(availabilityRefreshTimer.current)
+      }
+      availabilityRefreshTimer.current = window.setTimeout(() => {
+        void fetchRoomAvailability({ silent: true })
+      }, 400)
+    })
+
+    return () => {
+      unsubscribe()
+      if (availabilityRefreshTimer.current) {
+        window.clearTimeout(availabilityRefreshTimer.current)
       }
     }
-
-    fetchRoomAvailability()
-  }, [businessId, fetchedDates])
+  }, [businessId, fetchRoomAvailability])
 
   // Fetch dashboard summary
   useEffect(() => {
