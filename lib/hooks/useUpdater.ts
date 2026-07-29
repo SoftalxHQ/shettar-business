@@ -27,6 +27,22 @@ type UpdateHandle = {
 
 const RECHECK_INTERVAL_MS = 30 * 60 * 1000;
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err) return err;
+  if (err && typeof err === "object") {
+    const record = err as Record<string, unknown>;
+    if (typeof record.message === "string" && record.message) return record.message;
+    if (typeof record.error === "string" && record.error) return record.error;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      /* ignore */
+    }
+  }
+  return fallback;
+}
+
 export function useUpdater(): UpdaterState {
   const [available, setAvailable] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
@@ -53,18 +69,32 @@ export function useUpdater(): UpdaterState {
       setError(null);
     } catch (err) {
       console.error("[updater] check failed", err);
-      setError(err instanceof Error ? err.message : "Update check failed");
+      setError(errorMessage(err, "Update check failed"));
     }
   }, []);
 
   const installUpdate = useCallback(async () => {
-    if (!updateHandle) return;
+    if (!isTauri()) return;
     setInstalling(true);
     setError(null);
     let downloaded = 0;
     let total = 0;
     try {
-      await updateHandle.downloadAndInstall((event) => {
+      // Re-check so signed S3 URLs from the updates API are fresh.
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const fresh = await check();
+      if (!fresh) {
+        setAvailable(false);
+        setUpdateHandle(null);
+        throw new Error("No update available to install");
+      }
+      const handle = fresh as unknown as UpdateHandle;
+      setUpdateHandle(handle);
+      setVersion(fresh.version);
+      setNotes(fresh.body ?? null);
+      setAvailable(true);
+
+      await handle.downloadAndInstall((event) => {
         if (event.event === "Started") {
           total = event.data?.contentLength ?? 0;
           downloaded = 0;
@@ -82,10 +112,10 @@ export function useUpdater(): UpdaterState {
       await relaunch();
     } catch (err) {
       console.error("[updater] install failed", err);
-      setError(err instanceof Error ? err.message : "Update install failed");
+      setError(errorMessage(err, "Update install failed"));
       setInstalling(false);
     }
-  }, [updateHandle]);
+  }, []);
 
   useEffect(() => {
     void checkForUpdate();

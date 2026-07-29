@@ -116,6 +116,83 @@ map_from_filename_patterns() {
   LINUX_SIG="$(read_sig '\.AppImage\.sig$')"
 }
 
+content_type_for() {
+  case "$1" in
+    *.tar.gz) echo "application/gzip" ;;
+    *.zip) echo "application/zip" ;;
+    *.AppImage) echo "application/octet-stream" ;;
+    *.exe) echo "application/vnd.microsoft.portable-executable" ;;
+    *.msi) echo "application/octet-stream" ;;
+    *) echo "application/octet-stream" ;;
+  esac
+}
+
+# Download a GitHub release asset and upload it to S3 via Rails-presigned PUT.
+# Prints the stable object_url on stdout (progress on stderr).
+upload_updater_to_s3() {
+  local github_url="$1"
+  if [ -z "$github_url" ]; then
+    echo ""
+    return 0
+  fi
+
+  local name
+  name="$(basename "${github_url%%\?*}")"
+  if [ -z "$name" ]; then
+    echo "::error::Could not derive filename from $github_url" >&2
+    return 1
+  fi
+
+  local tmpdir local_file
+  tmpdir="$(mktemp -d)"
+  local_file="${tmpdir}/${name}"
+
+  echo "Uploading updater ${name} to S3 via Rails presign..." >&2
+  if ! download_asset "$name" "$local_file"; then
+    echo "::error::Failed to download ${name} for S3 upload" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  local ctype
+  ctype="$(content_type_for "$name")"
+
+  local presign_json
+  if ! presign_json="$(curl -fsS -X POST "${API_URL%/}/api/v1/internal/desktop_releases/presign_upload" \
+    -H "Authorization: Bearer ${DESKTOP_RELEASE_CI_TOKEN}" \
+    -H "Accept: application/json" \
+    -F "channel=${CHANNEL}" \
+    -F "version=${VERSION}" \
+    -F "filename=${name}" \
+    -F "content_type=${ctype}")"; then
+    echo "::error::presign_upload failed for ${name}" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  local upload_url object_url
+  upload_url="$(echo "$presign_json" | jq -r '.upload_url // empty')"
+  object_url="$(echo "$presign_json" | jq -r '.object_url // empty')"
+
+  if [ -z "$upload_url" ] || [ -z "$object_url" ]; then
+    echo "::error::Invalid presign response for ${name}: ${presign_json}" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  if ! curl -fsS -X PUT --upload-file "$local_file" \
+    -H "Content-Type: ${ctype}" \
+    "$upload_url" >/dev/null; then
+    echo "::error::S3 PUT failed for ${name}" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  rm -rf "$tmpdir"
+  echo "  → ${object_url}" >&2
+  echo "$object_url"
+}
+
 # NOTE: patterns are bash single-quoted — use \. not \\. (\\ would search for a literal backslash).
 WIN_INSTALLER="$(find_url '_x64-setup\.exe$')"
 if [ -z "$WIN_INSTALLER" ]; then
@@ -156,7 +233,27 @@ echo "  macos_arm=$MAC_ARM_DMG"
 echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
-echo "Mapped updaters:"
+echo "Mapped updater sources (GitHub):"
+echo "  windows=$WIN_UPDATER"
+echo "  macos_arm=$MAC_ARM_UPD"
+echo "  macos_x64=$MAC_X64_UPD"
+echo "  linux=$LINUX_UPD"
+
+# Host updater binaries on S3 (private GitHub URLs break Tauri downloadAndInstall).
+if [ -n "$WIN_UPDATER" ]; then
+  WIN_UPDATER="$(upload_updater_to_s3 "$WIN_UPDATER")"
+fi
+if [ -n "$MAC_ARM_UPD" ]; then
+  MAC_ARM_UPD="$(upload_updater_to_s3 "$MAC_ARM_UPD")"
+fi
+if [ -n "$MAC_X64_UPD" ]; then
+  MAC_X64_UPD="$(upload_updater_to_s3 "$MAC_X64_UPD")"
+fi
+if [ -n "$LINUX_UPD" ]; then
+  LINUX_UPD="$(upload_updater_to_s3 "$LINUX_UPD")"
+fi
+
+echo "Mapped updater object URLs (S3):"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"
 echo "  macos_x64=$MAC_X64_UPD"
