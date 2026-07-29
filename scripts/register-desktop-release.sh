@@ -61,7 +61,8 @@ download_asset() {
   if [ -z "$name" ]; then
     return 1
   fi
-  gh release download "$TAG" --repo "$REPO" -p "$name" -O "$dest"
+  # --clobber: dest may already exist (mktemp creates an empty file)
+  gh release download "$TAG" --repo "$REPO" -p "$name" -O "$dest" --clobber
 }
 
 read_sig() {
