@@ -59,17 +59,18 @@ function formatTime(timeStr: string | undefined, fallback: string): string {
   if (!timeStr) return fallback
   try {
     if (/am|pm/i.test(timeStr)) return timeStr
-    const today = new Date().toISOString().split("T")[0]
-    const timeDate = new Date(
-      `${today}T${timeStr.includes("T") ? timeStr.split("T")[1] : timeStr}`
-    )
-    if (!isNaN(timeDate.getTime())) {
-      return timeDate.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-    }
+    // Parse HH:MM directly to avoid timezone shifts from `new Date(...)`.
+    const raw = timeStr.includes("T") ? timeStr.split("T")[1] : timeStr
+    const match = raw.match(/^(\d{1,2}):(\d{2})/)
+    if (!match) return timeStr
+
+    const h = Number(match[1])
+    const m = match[2]
+    if (Number.isNaN(h)) return timeStr
+
+    const ampm = h >= 12 ? "PM" : "AM"
+    const hour12 = h % 12 === 0 ? 12 : h % 12
+    return `${hour12}:${m} ${ampm}`
   } catch {
     // fall through
   }
@@ -77,10 +78,18 @@ function formatTime(timeStr: string | undefined, fallback: string): string {
 }
 
 function calcNights(start: string, end: string): number {
-  const a = new Date(start)
-  const b = new Date(end)
-  const nights = Math.ceil((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
-  return nights > 0 ? nights : 1
+  const startDatePart = String(start).match(/^(\d{4}-\d{2}-\d{2})/)
+  const endDatePart = String(end).match(/^(\d{4}-\d{2}-\d{2})/)
+
+  const a = startDatePart ? new Date(`${startDatePart[1]}T00:00:00Z`) : new Date(start)
+  const b = endDatePart ? new Date(`${endDatePart[1]}T00:00:00Z`) : new Date(end)
+
+  const aTime = a.getTime()
+  const bTime = b.getTime()
+  if (Number.isNaN(aTime) || Number.isNaN(bTime)) return 1
+
+  const diffDays = Math.round((bTime - aTime) / 86_400_000)
+  return diffDays > 0 ? diffDays : 1
 }
 
 function pushTwoCol(

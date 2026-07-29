@@ -284,11 +284,58 @@ function ScanContent() {
   const isWithinReservationWindow = () => {
     if (!reservation) return false
 
-    const now = new Date()
-    const startDate = new Date(reservation.start_date)
-    const endDate = new Date(reservation.end_date)
+    const checkIn = businessDetails?.check_in || "14:00"
+    const checkOut = businessDetails?.check_out || "11:00"
+    const [ciH, ciM = 0] = String(checkIn).split(":").map(Number)
+    const [coH, coM = 0] = String(checkOut).split(":").map(Number)
 
-    return now >= startDate && now <= endDate
+    const startDay = new Date(reservation.start_date)
+    const endDay = new Date(reservation.end_date)
+    const windowStart = new Date(
+      startDay.getFullYear(),
+      startDay.getMonth(),
+      startDay.getDate(),
+      ciH,
+      ciM,
+      0,
+      0,
+    )
+    const windowEnd = new Date(
+      endDay.getFullYear(),
+      endDay.getMonth(),
+      endDay.getDate(),
+      coH,
+      coM,
+      0,
+      0,
+    )
+
+    const now = new Date()
+    return now >= windowStart && now <= windowEnd
+  }
+
+  const checkInOpensAtLabel = () => {
+    if (!reservation) return null
+    const checkIn = businessDetails?.check_in || "14:00"
+    const [ciH, ciM = 0] = String(checkIn).split(":").map(Number)
+    const startDay = new Date(reservation.start_date)
+    const opensAt = new Date(
+      startDay.getFullYear(),
+      startDay.getMonth(),
+      startDay.getDate(),
+      ciH,
+      ciM,
+      0,
+      0,
+    )
+    if (new Date() >= opensAt) return null
+    return opensAt.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   const getStatusBadge = () => {
@@ -549,7 +596,9 @@ function ScanContent() {
 
                   {!reservation.checked_in_at && !isWithinReservationWindow() && (
                     <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2.5 py-2">
-                      Check-in is only available during the reservation window.
+                      {checkInOpensAtLabel()
+                        ? `Check-in opens at ${checkInOpensAtLabel()}.`
+                        : "Check-in is only available during the reservation window."}
                     </p>
                   )}
 

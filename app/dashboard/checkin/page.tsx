@@ -48,6 +48,10 @@ export default function CheckInOutPage() {
   const [isCheckOutDialogOpen, setIsCheckOutDialogOpen] = useState(false)
   const [checkInNotes, setCheckInNotes] = useState("")
   const [checkOutNotes, setCheckOutNotes] = useState("")
+  const [businessHours, setBusinessHours] = useState<{ check_in: string; check_out: string }>({
+    check_in: "14:00",
+    check_out: "11:00",
+  })
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -56,17 +60,32 @@ export default function CheckInOutPage() {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
         const token = getAuthToken()
-        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-        const data = await response.json()
-        if (response.ok && Array.isArray(data)) {
+        const [reservationsRes, businessRes] = await Promise.all([
+          fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+          fetch(`${API_URL}/api/v1/user_businesses/${businessId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+        ])
+        const data = await reservationsRes.json()
+        if (reservationsRes.ok && Array.isArray(data)) {
           setBookings(data)
         } else {
           toast.error(data.status?.message || data.error || "Failed to load reservations")
+        }
+        if (businessRes.ok) {
+          const business = await businessRes.json()
+          setBusinessHours({
+            check_in: business.check_in || "14:00",
+            check_out: business.check_out || "11:00",
+          })
         }
       } catch {
         toast.error("Failed to load reservations")
@@ -76,6 +95,38 @@ export default function CheckInOutPage() {
     }
     loadBookings()
   }, [businessId])
+
+  const stayWindow = (booking: { start_date: string; end_date: string }) => {
+    const [ciH, ciM = 0] = String(businessHours.check_in).split(":").map(Number)
+    const [coH, coM = 0] = String(businessHours.check_out).split(":").map(Number)
+    const startDay = new Date(booking.start_date)
+    const endDay = new Date(booking.end_date)
+    const opensAt = new Date(
+      startDay.getFullYear(),
+      startDay.getMonth(),
+      startDay.getDate(),
+      ciH,
+      ciM,
+      0,
+      0,
+    )
+    const closesAt = new Date(
+      endDay.getFullYear(),
+      endDay.getMonth(),
+      endDay.getDate(),
+      coH,
+      coM,
+      0,
+      0,
+    )
+    return { opensAt, closesAt }
+  }
+
+  const canCheckInNow = (booking: { start_date: string; end_date: string }) => {
+    const now = new Date()
+    const { opensAt, closesAt } = stayWindow(booking)
+    return now >= opensAt && now <= closesAt
+  }
 
   const pendingCheckIns = bookings.filter(
     (b) => !b.cancelled && !b.checked_in_at && !b.checked_out_at
@@ -283,13 +334,27 @@ export default function CheckInOutPage() {
                         )}
                       </div>
 
-                      <Button
-                        onClick={() => openCheckInDialog(booking)}
-                        className="bg-purple-600 hover:bg-purple-700 ml-4"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Check In
-                      </Button>
+                      <div className="ml-4 flex flex-col items-end gap-2">
+                        <Button
+                          onClick={() => openCheckInDialog(booking)}
+                          disabled={!canCheckInNow(booking)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Check In
+                        </Button>
+                        {!canCheckInNow(booking) && (
+                          <p className="max-w-[12rem] text-right text-[11px] text-amber-700">
+                            Opens at{" "}
+                            {stayWindow(booking).opensAt.toLocaleString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
