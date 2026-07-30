@@ -99,6 +99,10 @@ class ApiClient {
 
   // Auth endpoints
   async login(email: string, password: string, businessId?: string) {
+    if (!businessId) {
+      throw new ApiError(422, "Business ID is required")
+    }
+
     const response = await fetch(`${this.baseUrl}/users/sign_in`, {
       method: "POST",
       headers: {
@@ -135,6 +139,43 @@ class ApiClient {
       ...data,
       token,
     }
+  }
+
+  async requestMembershipPasswordReset(email: string, businessId: string) {
+    return this.post<{ message: string }>("/users/reset_password", {
+      user: { email, business_id: businessId },
+    })
+  }
+
+  async updateMembershipPasswordWithToken(
+    resetToken: string,
+    password: string,
+    passwordConfirmation: string,
+  ) {
+    return this.put<{ message: string }>("/users/update_password", {
+      user: {
+        reset_password_token: resetToken,
+        password,
+        password_confirmation: passwordConfirmation,
+      },
+    })
+  }
+
+  async changeMembershipPassword(
+    businessId: string,
+    currentPassword: string,
+    password: string,
+    passwordConfirmation: string,
+  ) {
+    return this.post<{ status: { code: number; message: string } }>(
+      `/api/v1/user_businesses/${encodeURIComponent(businessId)}/membership_password`,
+      {
+        current_password: currentPassword,
+        password,
+        password_confirmation: passwordConfirmation,
+      },
+      { requiresAuth: true },
+    )
   }
 
   async logout() {

@@ -1,14 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Mail, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { api } from "@/lib/api-client"
+import { getStoredBusinessId, getStoredBusinessName } from "@/lib/storage"
 
 const fieldClass =
   "form-input w-full shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
@@ -73,8 +74,16 @@ function BrandPanel({
   )
 }
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Prefer device-bound business ID; query param only as first-time-setup fallback from login.
+  const businessId = (
+    getStoredBusinessId() ||
+    searchParams.get("business_id") ||
+    ""
+  ).toUpperCase()
+  const businessName = getStoredBusinessName()
   const [email, setEmail] = useState("")
   const [resetToken, setResetToken] = useState("")
   const [password, setPassword] = useState("")
@@ -88,12 +97,16 @@ export default function ForgotPasswordPage() {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    if (!businessId.trim()) {
+      setError("This device is not set up for a business. Sign in once first, then reset your password.")
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      await api.post("/users/reset_password", {
-        user: { email },
-      })
+      await api.requestMembershipPasswordReset(email, businessId.trim().toUpperCase())
       setStep("reset")
     } catch (err: any) {
       console.error("Forgot password error:", err)
@@ -125,13 +138,11 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      await api.put("/users/update_password", {
-        user: {
-          reset_password_token: resetToken,
-          password: password,
-          password_confirmation: passwordConfirmation,
-        },
-      })
+      await api.updateMembershipPasswordWithToken(
+        resetToken,
+        password,
+        passwordConfirmation,
+      )
 
       setStep("success")
       setTimeout(() => {
@@ -237,11 +248,19 @@ export default function ForgotPasswordPage() {
                     </h1>
                     <p className="text-slate-500 mt-2">
                       {step === "email"
-                        ? "No worries! Enter your email address and we'll send you a reset code."
+                        ? businessId
+                          ? `Enter the email for ${businessName || "this business"}. We’ll send a reset code for this hotel’s password only.`
+                          : "This device isn’t bound to a business yet. Sign in once to set it up, then you can reset your password here."
                         : (
                           <>
                             We&apos;ve sent a 6-digit code to{" "}
                             <span className="font-semibold text-slate-700">{email}</span>
+                            {businessName ? (
+                              <>
+                                {" "}for{" "}
+                                <span className="font-semibold text-slate-700">{businessName}</span>
+                              </>
+                            ) : null}
                           </>
                           )}
                     </p>
@@ -257,6 +276,13 @@ export default function ForgotPasswordPage() {
                       </div>
                     )}
 
+                    {!businessId ? (
+                      <div className="bg-amber-50 text-amber-800 px-3 py-2 rounded text-sm">
+                        No business is linked to this device. Go back to sign in, enter your Business ID
+                        once, then return here to reset your password.
+                      </div>
+                    ) : null}
+
                     <div className="space-y-2">
                       <Label htmlFor="email" className="block text-sm font-medium mb-1 text-slate-800">
                         Email Address
@@ -270,6 +296,7 @@ export default function ForgotPasswordPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
+                        disabled={!businessId}
                       />
                     </div>
                   </form>
@@ -396,7 +423,7 @@ export default function ForgotPasswordPage() {
                   type="submit"
                   form="forgot-email-form"
                   className="w-full bg-indigo-500 hover:bg-indigo-600 text-white shadow-none rounded-md"
-                  disabled={isLoading}
+                  disabled={isLoading || !businessId}
                 >
                   {isLoading ? "Sending..." : "Send Reset Code"}
                 </Button>
@@ -441,5 +468,19 @@ export default function ForgotPasswordPage() {
 
       {panel}
     </div>
+  )
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-dvh flex items-center justify-center bg-white text-slate-500 text-sm">
+          Loading…
+        </div>
+      }
+    >
+      <ForgotPasswordContent />
+    </Suspense>
   )
 }

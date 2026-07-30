@@ -21,6 +21,7 @@ import { fetchStaff } from "@/lib/staff-api"
 import { StaffCard } from "./components/StaffCard"
 import { AddStaffDialog } from "./components/AddStaffDialog"
 import { EditPermissionsDialog } from "./components/EditPermissionsDialog"
+import { EditStaffProfileDialog } from "./components/EditStaffProfileDialog"
 import { SwitchRoleDialog } from "./components/SwitchRoleDialog"
 import {
   StaffStatusDialog,
@@ -56,6 +57,7 @@ export default function StaffPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showProfileDialog, setShowProfileDialog] = useState(false)
   const [showSwitchDialog, setShowSwitchDialog] = useState(false)
   const [statusDialog, setStatusDialog] = useState<{
     member: StaffMember
@@ -252,7 +254,11 @@ export default function StaffPage() {
                     <StaffCard
                       key={member.id}
                       member={member}
-                      onEdit={(m) => {
+                      onEditProfile={(m) => {
+                        setSelectedMember(m)
+                        setShowProfileDialog(true)
+                      }}
+                      onEditPermissions={(m) => {
                         setSelectedMember(m)
                         setShowEditDialog(true)
                       }}
@@ -277,6 +283,21 @@ export default function StaffPage() {
             loadStaff()
           }}
           onCancel={() => setShowAddDialog(false)}
+        />
+      )}
+
+      {showProfileDialog && selectedMember && (
+        <EditStaffProfileDialog
+          member={selectedMember}
+          onSuccess={() => {
+            setShowProfileDialog(false)
+            setSelectedMember(null)
+            loadStaff()
+          }}
+          onCancel={() => {
+            setShowProfileDialog(false)
+            setSelectedMember(null)
+          }}
         />
       )}
 

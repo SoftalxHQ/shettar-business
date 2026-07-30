@@ -34,6 +34,17 @@ import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { DigitalClock } from "@/components/digital-clock"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
+const CLOCK_VISIBLE_KEY = "shettar_front_desk_clock_visible"
+
+function readClockVisible(): boolean {
+  if (typeof window === "undefined") return true
+  const raw = localStorage.getItem(CLOCK_VISIBLE_KEY)
+  if (raw === null) return true
+  return raw !== "false"
+}
 
 const BOOKING_AVAILABILITY_EVENTS = new Set([
   "booking_created",
@@ -69,6 +80,16 @@ export default function DashboardPage() {
   })
   const [showMapModal, setShowMapModal] = useState(false)
   const [mapLoading, setMapLoading] = useState(true)
+  const [clockVisible, setClockVisible] = useState(true)
+
+  useEffect(() => {
+    setClockVisible(readClockVisible())
+  }, [])
+
+  const handleClockVisibleChange = (checked: boolean) => {
+    setClockVisible(checked)
+    localStorage.setItem(CLOCK_VISIBLE_KEY, checked ? "true" : "false")
+  }
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
@@ -86,40 +107,38 @@ export default function DashboardPage() {
     }
   }, [user, router])
 
+  // logout from useAuth is not referentially stable — keep it in a ref so it
+  // does not recreate fetchRoomAvailability every render (infinite fetch loop).
+  const logoutRef = useRef(logout)
+  logoutRef.current = logout
+
+  const startDateStr = fetchedDates[0] ? format(fetchedDates[0], "yyyy-MM-dd") : ""
+  const endDateStr = useMemo(() => {
+    if (!fetchedDates[0]) return ""
+    if (fetchedDates.length < 2) {
+      return format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
+    }
+    if (fetchedDates[0].getTime() === fetchedDates[1].getTime()) {
+      return format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
+    }
+    return format(fetchedDates[1], "yyyy-MM-dd")
+  }, [fetchedDates])
+
   // Fetch room availability
   const fetchRoomAvailability = useCallback(async (opts?: { silent?: boolean }) => {
     if (!businessId) return
 
     // Wait for complete range selection
     if (fetchedDates.length === 1) return
+    if (!startDateStr || !endDateStr) return
 
     try {
       if (!opts?.silent) setIsLoadingRooms(true)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
       const token = getAuthToken()
 
-      let startStr, endStr
-
-      if (fetchedDates && fetchedDates.length > 0) {
-        startStr = format(fetchedDates[0], "yyyy-MM-dd")
-        if (fetchedDates.length > 1) {
-          // If start and end are same day, assume 1 night
-          if (fetchedDates[0].getTime() === fetchedDates[1].getTime()) {
-            endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
-          } else {
-            endStr = format(fetchedDates[1], "yyyy-MM-dd")
-          }
-        } else {
-          // If only start date selected, assume 1 night
-          endStr = format(addDays(fetchedDates[0], 1), "yyyy-MM-dd")
-        }
-      } else {
-        startStr = format(new Date(), "yyyy-MM-dd")
-        endStr = format(addDays(new Date(), 1), "yyyy-MM-dd")
-      }
-
       const response = await fetch(
-        `${API_URL}/api/v1/user_businesses/${businessId}/room_availability?start_date=${startStr}&end_date=${endStr}`,
+        `${API_URL}/api/v1/user_businesses/${businessId}/room_availability?start_date=${startDateStr}&end_date=${endDateStr}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -138,7 +157,7 @@ export default function DashboardPage() {
           errorData.errors?.[0]?.message === 'Token has expired' ||
           errorData.message === 'Signature has expired'
         ) {
-          logout(true)
+          void logoutRef.current(true)
           return
         }
       }
@@ -147,7 +166,10 @@ export default function DashboardPage() {
     } finally {
       if (!opts?.silent) setIsLoadingRooms(false)
     }
-  }, [businessId, fetchedDates, logout])
+  }, [businessId, fetchedDates.length, startDateStr, endDateStr])
+
+  const fetchRoomAvailabilityRef = useRef(fetchRoomAvailability)
+  fetchRoomAvailabilityRef.current = fetchRoomAvailability
 
   useEffect(() => {
     void fetchRoomAvailability()
@@ -166,7 +188,7 @@ export default function DashboardPage() {
         window.clearTimeout(availabilityRefreshTimer.current)
       }
       availabilityRefreshTimer.current = window.setTimeout(() => {
-        void fetchRoomAvailability({ silent: true })
+        void fetchRoomAvailabilityRef.current({ silent: true })
       }, 400)
     })
 
@@ -176,7 +198,7 @@ export default function DashboardPage() {
         window.clearTimeout(availabilityRefreshTimer.current)
       }
     }
-  }, [businessId, fetchRoomAvailability])
+  }, [businessId])
 
   // Fetch dashboard summary
   useEffect(() => {
@@ -281,7 +303,24 @@ export default function DashboardPage() {
             </form>
           </div>
 
-          <DigitalClock className="order-first lg:order-none py-2 lg:py-0" />
+          <div className="order-first lg:order-none flex flex-col items-center justify-center gap-0.5 py-0 lg:py-0">
+            {clockVisible && <DigitalClock />}
+            <div className="flex items-center gap-1">
+              <Switch
+                id="front-desk-clock"
+                size="sm"
+                checked={clockVisible}
+                onCheckedChange={handleClockVisibleChange}
+                className="h-2.5 w-4 data-[size=sm]:h-2.5 data-[size=sm]:w-4 data-[state=checked]:bg-indigo-600 [&_[data-slot=switch-thumb]]:size-2"
+              />
+              <Label
+                htmlFor="front-desk-clock"
+                className="text-[9px] leading-none font-medium uppercase tracking-wide text-slate-400 cursor-pointer"
+              >
+                Clock
+              </Label>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2 w-full lg:items-end min-w-0">
             <div className="grid grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[22rem]">

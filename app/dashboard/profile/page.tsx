@@ -22,9 +22,10 @@ import {
   EyeOff,
   Camera,
 } from "lucide-react"
-import { getAuthToken } from "@/lib/storage"
+import { getAuthToken, getStoredBusinessId } from "@/lib/storage"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { api, ApiError } from "@/lib/api-client"
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuth()
@@ -177,34 +178,28 @@ export default function ProfilePage() {
       return
     }
 
+    const businessId = user?.businessId || getStoredBusinessId()
+    if (!businessId) {
+      toast.error("Business ID is missing. Please sign in again.")
+      return
+    }
+
     setIsSaving(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const token = getAuthToken()
-
-      const response = await fetch(`${API_URL}/api/v1/users/change_password`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: {
-            current_password: passwordData.current_password,
-            password: passwordData.new_password,
-            password_confirmation: passwordData.confirm_password,
-          },
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        toast.success(data.status?.message || "Password changed successfully!")
-        setIsChangingPassword(false)
-        setPasswordData({ current_password: "", new_password: "", confirm_password: "" })
-      } else {
-        if (response.status === 401) {
-          const errorData = await response.json().catch(() => ({}))
+      const data = await api.changeMembershipPassword(
+        businessId,
+        passwordData.current_password,
+        passwordData.new_password,
+        passwordData.confirm_password,
+      )
+      toast.success(data.status?.message || "Password changed successfully!")
+      setIsChangingPassword(false)
+      setPasswordData({ current_password: "", new_password: "", confirm_password: "" })
+    } catch (error) {
+      console.error("Password change error:", error)
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          const errorData = error.data
           if (
             errorData.errors?.[0]?.id === "expiration" ||
             errorData.message === "Signature has expired"
@@ -214,12 +209,15 @@ export default function ProfilePage() {
             return
           }
         }
-        const error = await response.json().catch(() => ({}))
-        toast.error(error.status?.message || error.errors?.[0] || "Failed to change password")
+        toast.error(
+          error.data?.status?.message ||
+            error.data?.errors?.[0] ||
+            error.message ||
+            "Failed to change password",
+        )
+      } else {
+        toast.error("Failed to change password. Please try again.")
       }
-    } catch (error) {
-      console.error("Password change error:", error)
-      toast.error("Failed to change password. Please try again.")
     } finally {
       setIsSaving(false)
     }
@@ -514,7 +512,9 @@ export default function ProfilePage() {
                   <Lock className="w-3.5 h-3.5 text-indigo-600" />
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900">Password</h2>
-                    <p className="text-xs text-slate-500">Keep your account secure</p>
+                    <p className="text-xs text-slate-500">
+                      Password for {user?.hotelName || "this business"} only
+                    </p>
                   </div>
                 </div>
 

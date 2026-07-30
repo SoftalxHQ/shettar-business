@@ -278,12 +278,12 @@ export default function BusinessDashboardPage() {
                 </div>
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 flex flex-col items-center justify-center text-center">
                   {logoSrc ? (
-                    <div className="relative mb-2 h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <div className="relative mb-2 h-16 w-16 overflow-hidden rounded-2xl border border-slate-200 bg-white">
                       <Image
                         src={logoSrc}
                         alt={`${user.hotelName || "Business"} logo`}
                         fill
-                        className="object-contain p-1"
+                        className="object-contain p-1 rounded-2xl"
                         unoptimized
                       />
                     </div>

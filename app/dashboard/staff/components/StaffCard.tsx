@@ -32,7 +32,8 @@ import type { StaffStatusAction } from "./StaffStatusDialog"
 
 interface StaffCardProps {
   member: StaffMember
-  onEdit: (member: StaffMember) => void
+  onEditProfile: (member: StaffMember) => void
+  onEditPermissions: (member: StaffMember) => void
   onSwitchRole: (member: StaffMember) => void
   onStatusAction: (member: StaffMember, action: StaffStatusAction) => void
 }
@@ -50,7 +51,13 @@ function statusBadgeClass(status: string | undefined) {
   }
 }
 
-export function StaffCard({ member, onEdit, onSwitchRole, onStatusAction }: StaffCardProps) {
+export function StaffCard({
+  member,
+  onEditProfile,
+  onEditPermissions,
+  onSwitchRole,
+  onStatusAction,
+}: StaffCardProps) {
   const { user } = useAuth()
   const userName = member.user?.name || `${member.user?.first_name} ${member.user?.last_name}` || "Unknown"
   const initials = userName
@@ -125,7 +132,7 @@ export function StaffCard({ member, onEdit, onSwitchRole, onStatusAction }: Staf
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onEdit(member)}
+              onClick={() => onEditProfile(member)}
               className="h-7 px-2 text-[11px] rounded-lg border-slate-200"
             >
               <Edit className="w-3 h-3 mr-1" />
@@ -147,7 +154,7 @@ export function StaffCard({ member, onEdit, onSwitchRole, onStatusAction }: Staf
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Switch role
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEdit(member)}>
+                    <DropdownMenuItem onClick={() => onEditPermissions(member)}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit permissions
                     </DropdownMenuItem>

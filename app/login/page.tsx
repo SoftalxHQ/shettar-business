@@ -192,7 +192,7 @@ export default function LoginPage() {
                   Password
                 </Label>
                 <Link
-                  href="/forgot-password"
+                  href={`/forgot-password${(storedBusinessId || businessId) ? `?business_id=${encodeURIComponent(storedBusinessId || businessId)}` : ""}`}
                   className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
                 >
                   Forgot password?
