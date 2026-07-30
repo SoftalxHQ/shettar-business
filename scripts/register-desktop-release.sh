@@ -211,6 +211,8 @@ MAC_ARM_DMG="$(find_url '_aarch64\.dmg$')"
 MAC_X64_DMG="$(find_url '_x64\.dmg$')"
 LINUX_APPIMAGE="$(find_url '\.AppImage$')"
 LINUX_DEB="$(find_url '\.deb$')"
+ANDROID_APK="$(find_url '\.apk$')"
+IOS_STORE_URL="${BUSINESS_IOS_STORE_URL:-}"
 
 # Updaters: prefer Tauri-generated latest.json (correct url + signature per platform)
 LATEST_NAME="$(find_asset_name '^latest\.json$')"
@@ -242,6 +244,8 @@ echo "  macos_arm=$MAC_ARM_DMG"
 echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
+echo "  android_apk=$ANDROID_APK"
+echo "  ios_store=$IOS_STORE_URL"
 echo "Mapped updater sources (GitHub):"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"
@@ -264,6 +268,9 @@ fi
 if [ -n "$LINUX_DEB" ]; then
   LINUX_DEB="$(upload_release_asset_to_s3 "$LINUX_DEB" "installer")"
 fi
+if [ -n "$ANDROID_APK" ]; then
+  ANDROID_APK="$(upload_release_asset_to_s3 "$ANDROID_APK" "installer")"
+fi
 
 if [ -n "$WIN_UPDATER" ]; then
   WIN_UPDATER="$(upload_updater_to_s3 "$WIN_UPDATER")"
@@ -284,13 +291,14 @@ echo "  macos_arm=$MAC_ARM_DMG"
 echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
+echo "  android_apk=$ANDROID_APK"
 echo "Mapped updater object URLs (S3):"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"
 echo "  macos_x64=$MAC_X64_UPD"
 echo "  linux=$LINUX_UPD"
 
-if [ -z "$WIN_INSTALLER$MAC_ARM_DMG$MAC_X64_DMG$LINUX_APPIMAGE$LINUX_DEB" ]; then
+if [ -z "$WIN_INSTALLER$MAC_ARM_DMG$MAC_X64_DMG$LINUX_APPIMAGE$LINUX_DEB$ANDROID_APK" ]; then
   echo "::error::Failed to map any installer URLs" >&2
   exit 1
 fi
@@ -305,6 +313,8 @@ PAYLOAD="$(jq -n \
   --arg macos_arm_installer_url "$MAC_ARM_DMG" \
   --arg linux_installer_url "$LINUX_APPIMAGE" \
   --arg linux_deb_installer_url "$LINUX_DEB" \
+  --arg android_apk_url "$ANDROID_APK" \
+  --arg ios_store_url "$IOS_STORE_URL" \
   --arg windows_updater_url "$WIN_UPDATER" \
   --arg windows_updater_sig "$WIN_SIG" \
   --arg macos_x64_updater_url "$MAC_X64_UPD" \
@@ -325,6 +335,8 @@ PAYLOAD="$(jq -n \
       macos_arm_installer_url: (if $macos_arm_installer_url == "" then null else $macos_arm_installer_url end),
       linux_installer_url: (if $linux_installer_url == "" then null else $linux_installer_url end),
       linux_deb_installer_url: (if $linux_deb_installer_url == "" then null else $linux_deb_installer_url end),
+      android_apk_url: (if $android_apk_url == "" then null else $android_apk_url end),
+      ios_store_url: (if $ios_store_url == "" then null else $ios_store_url end),
       windows_updater_url: (if $windows_updater_url == "" then null else $windows_updater_url end),
       windows_updater_sig: (if $windows_updater_sig == "" then null else $windows_updater_sig end),
       macos_x64_updater_url: (if $macos_x64_updater_url == "" then null else $macos_x64_updater_url end),

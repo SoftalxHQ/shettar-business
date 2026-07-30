@@ -32,6 +32,7 @@ jobs:
       tag_name: ${{ steps.env.outputs.tag_name }}
       release_name: ${{ steps.env.outputs.release_name }}
       prerelease: ${{ steps.env.outputs.prerelease }}
+      version: ${{ steps.env.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -150,6 +151,8 @@ jobs:
             echo "- macOS (Apple Silicon + Intel)"
             echo "- Windows"
             echo "- Linux (AppImage, .deb, .rpm)"
+            echo "- Android (APK)"
+            echo "- iOS (App Store / TestFlight)"
             echo ""
             echo "Configure a thermal receipt printer under **Settings → Printer** after installing."
           } > /tmp/release-notes.md
@@ -254,9 +257,255 @@ jobs:
           prerelease: ${{ needs.prepare-release.outputs.prerelease }}
           args: ${{ matrix.args }}
 
+  publish-android:
+    name: Build Android APK
+    needs: prepare-release
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: Configure updater endpoint for environment
+        env:
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+        run: pnpm configure:updater
+
+      - name: Decode Android keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK may be unsigned"
+            exit 0
+          fi
+          mkdir -p src-tauri/gen/android
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${GITHUB_WORKSPACE}/shettar-business-release.keystore"
+          cat > src-tauri/gen/android/keystore.properties <<EOF
+          storeFile=${GITHUB_WORKSPACE}/shettar-business-release.keystore
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          storePassword=${ANDROID_STORE_PASSWORD}
+          EOF
+          # Strip accidental leading whitespace from heredoc lines
+          sed -i 's/^[[:space:]]*//' src-tauri/gen/android/keystore.properties
+      - name: Ensure Android project exists
+        run: |
+          if [ ! -d src-tauri/gen/android ]; then
+            pnpm tauri android init --ci
+          fi
+
+      - name: Build Android APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ needs.prepare-release.outputs.paystack_public_key }}
+          NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+        run: pnpm tauri android build --apk --ci
+
+      - name: Upload APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare-release.outputs.tag_name }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          APK="$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found after Android build"
+            exit 1
+          fi
+          DEST="Shettar-Business_${VERSION}_android.apk"
+          cp "$APK" "$DEST"
+          gh release upload "$TAG" "$DEST" --clobber
+
+  publish-ios:
+    name: Build iOS IPA
+    needs: prepare-release
+    runs-on: macos-latest
+    # Desktop + Android registration must not fail if Apple signing is unset or iOS build flakes.
+    continue-on-error: true
+    permissions:
+      contents: write
+    steps:
+      - name: Check Apple signing secrets
+        id: ios_creds
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          if [ -z "${APPLE_CERTIFICATE:-}" ] || [ -z "${APPLE_PROVISIONING_PROFILE:-}" ]; then
+            echo "has_creds=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping iOS IPA build — APPLE_CERTIFICATE / APPLE_PROVISIONING_PROFILE not set. Desktop and Android release continue."
+          else
+            echo "has_creds=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.ios_creds.outputs.has_creds == 'true'
+
+      - name: setup node
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install pnpm
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: install Rust
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Rust cache
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: install frontend dependencies
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        run: pnpm install
+
+      - name: Configure updater endpoint for environment
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        env:
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+        run: pnpm configure:updater
+
+      - name: Ensure iOS project exists
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        run: |
+          if [ ! -d src-tauri/gen/apple ]; then
+            pnpm tauri ios init --ci
+          fi
+
+      - name: Import Apple signing materials
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="${RUNNER_TEMP}/build_certificate.p12"
+          PROFILE_PATH="${RUNNER_TEMP}/build_pp.mobileprovision"
+          KEYCHAIN_PATH="${RUNNER_TEMP}/app-signing.keychain-db"
+          echo "$APPLE_CERTIFICATE" | base64 -d > "$CERT_PATH"
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 -d > "$PROFILE_PATH"
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$PROFILE_PATH")")"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+
+      - name: Build iOS IPA
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
+          NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
+          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ needs.prepare-release.outputs.paystack_public_key }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: pnpm tauri ios build --ci
+
+      - name: Upload IPA to GitHub Release
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare-release.outputs.tag_name }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          IPA="$(find src-tauri/gen/apple -name '*.ipa' -type f | head -1)"
+          if [ -z "$IPA" ]; then
+            echo "::warning::No IPA found after iOS build"
+            exit 0
+          fi
+          DEST="Shettar-Business_${VERSION}_ios.ipa"
+          cp "$IPA" "$DEST"
+          gh release upload "$TAG" "$DEST" --clobber
+
+      - name: Upload IPA to App Store Connect
+        if: steps.ios_creds.outputs.has_creds == 'true'
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_STORE_CONNECT_API_KEY:-}" ] || [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ]; then
+            echo "App Store Connect secrets not set — skipping upload"
+            exit 0
+          fi
+          IPA="Shettar-Business_${VERSION}_ios.ipa"
+          if [ ! -f "$IPA" ]; then
+            echo "No IPA to upload"
+            exit 0
+          fi
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          echo "$APP_STORE_CONNECT_API_KEY" | base64 -d > "$KEY_PATH"
+          xcrun altool --upload-app --type ios --file "$IPA" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" || \
+            echo "::warning::App Store Connect upload failed or altool unavailable"
+
   register-release:
     name: Register release with Rails API
-    needs: [prepare-release, publish-tauri]
+    needs: [prepare-release, publish-tauri, publish-android, publish-ios]
+    # Proceed when desktop/android succeed even if iOS was skipped or failed (continue-on-error).
+    if: |
+      always() &&
+      needs.prepare-release.result == 'success' &&
+      needs.publish-tauri.result == 'success' &&
+      needs.publish-android.result == 'success' &&
+      (needs.publish-ios.result == 'success' || needs.publish-ios.result == 'failure' || needs.publish-ios.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -296,6 +545,7 @@ jobs:
           CHANNEL: ${{ steps.env.outputs.channel }}
           VERSION: ${{ steps.env.outputs.version }}
           TAG: ${{ steps.env.outputs.tag }}
+          BUSINESS_IOS_STORE_URL: ${{ secrets.BUSINESS_IOS_STORE_URL }}
         shell: bash
         run: |
           set -euo pipefail

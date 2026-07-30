@@ -143,71 +143,60 @@ export const nativeScan = async () => {
 };
 
 export const printHtml = async (html: string) => {
-  if (isTauri()) {
-    let container = document.getElementById('shettar-print-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'shettar-print-container';
-      document.body.appendChild(container);
-    }
+  // Always print from an isolated iframe so receipt CSS (58mm html/body rules)
+  // never touches the live app layout. This avoids the Tauri desktop "squash".
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  document.body.appendChild(iframe);
 
-    // Parse HTML to extract style and body separately
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const styles = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
-    const bodyContent = doc.body.innerHTML;
+  const win = iframe.contentWindow;
+  const doc = win?.document;
+  if (!win || !doc) {
+    if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    return;
+  }
 
-    container.innerHTML = `<style>${styles}</style><div class="receipt-content">${bodyContent}</div>`;
+  doc.open();
+  doc.write(html);
+  doc.close();
 
-    // Wait for images to load to avoid blank prints
-    const images = Array.from(container.querySelectorAll('img'));
-    await Promise.all(images.map(img => {
+  const images = Array.from(doc.querySelectorAll("img"));
+  await Promise.all(
+    images.map((img) => {
       if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
+      return new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
       });
-    }));
+    })
+  );
 
-    // 4. LOCK the layout to prevent squeezing
-    // We force the body to keep its current width during the print call
-    const originalWidth = document.body.style.width;
-    const originalPosition = document.body.style.position;
-    const currentWidth = document.body.clientWidth;
-
-    document.body.style.width = `${currentWidth}px`;
-    document.body.style.position = 'relative';
-
-    setTimeout(() => {
-      window.print();
-
-      // Cleanup after the system has captured the print content
-      setTimeout(() => {
-        document.body.style.width = originalWidth;
-        document.body.style.position = originalPosition;
-        if (container) container.innerHTML = '';
-      }, 1000);
-    }, 200);
-  } else {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(html);
-      doc.close();
-      iframe.onload = () => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        setTimeout(() => {
-          if (document.body.contains(iframe)) document.body.removeChild(iframe);
-        }, 1000);
-      };
+  const cleanup = () => {
+    win.removeEventListener("afterprint", cleanup);
+    if (document.body.contains(iframe)) {
+      document.body.removeChild(iframe);
     }
+  };
+
+  win.addEventListener("afterprint", cleanup);
+
+  // Fallback cleanup if afterprint does not fire (some WebViews).
+  window.setTimeout(cleanup, 60_000);
+
+  try {
+    win.focus();
+    win.print();
+  } catch (error) {
+    console.error("Print failed", error);
+    cleanup();
   }
 };
 

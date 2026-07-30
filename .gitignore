@@ -33,3 +33,10 @@ next-env.d.ts
 *.key
 *.key.pub
 *.sig
+
+# Tauri mobile local signing / generated secrets
+src-tauri/gen/android/keystore.properties
+src-tauri/gen/android/**/*.jks
+src-tauri/gen/android/**/*.keystore
+src-tauri/gen/apple/**/*.p12
+src-tauri/gen/apple/**/*.mobileprovision

@@ -1,4 +1,4 @@
-import { isTauri, printHtml } from "@/lib/tauri"
+import { printHtml } from "@/lib/tauri"
 import { getAuthToken } from "@/lib/storage"
 import {
   getSavedPrinterPreference,
@@ -563,62 +563,7 @@ export async function printBookingReceiptEscPos(
 }
 
 export function printThermalReceipt(html: string): void {
-  if (isTauri()) {
-    void printHtml(html)
-    return
-  }
-
-  const iframe = document.createElement("iframe")
-  iframe.style.position = "fixed"
-  iframe.style.width = "0"
-  iframe.style.height = "0"
-  iframe.style.border = "none"
-  iframe.style.visibility = "hidden"
-  document.body.appendChild(iframe)
-
-  const win = iframe.contentWindow
-  const doc = win?.document
-  if (!doc) {
-    document.body.removeChild(iframe)
-    return
-  }
-
-  doc.open()
-  doc.write(html)
-  doc.close()
-
-  const triggerPrint = () => {
-    try {
-      win?.focus()
-      win?.print()
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe)
-        }
-      }, 1000)
-    }
-  }
-
-  const images = Array.from(doc.images)
-  if (images.length === 0) {
-    setTimeout(triggerPrint, 200)
-    return
-  }
-
-  void Promise.all(
-    images.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) {
-            resolve()
-            return
-          }
-          img.onload = () => resolve()
-          img.onerror = () => resolve()
-        })
-    )
-  ).then(() => setTimeout(triggerPrint, 200))
+  void printHtml(html)
 }
 
 /**

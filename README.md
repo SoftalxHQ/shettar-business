@@ -44,6 +44,19 @@ Card funding for ads uses Paystack. The public key is baked in at **build time**
 pnpm tauri build
 ```
 
+### Mobile (Tauri Android / iOS)
+
+```bash
+# One-time project generation (already committed under src-tauri/gen/)
+pnpm tauri:android:init
+pnpm tauri:ios:init
+
+pnpm tauri:android:build   # release APK
+pnpm tauri:ios:build       # requires Xcode + signing
+```
+
+App id: `com.shettar.business` (same as desktop).
+
 ### CI releases
 
 The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_ENV`, and `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` from GitHub secrets.
@@ -53,8 +66,13 @@ The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_
 | `PAYSTACK_PUBLIC_KEY_STAGING` | Tags ending in `-staging`, staging manual dispatch |
 | `PAYSTACK_PUBLIC_KEY_PRODUCTION` | Production tags (e.g. `v0.1.22`) |
 | `PAYSTACK_PUBLIC_KEY` | Fallback |
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded release keystore for signed APKs |
+| `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` / `ANDROID_STORE_PASSWORD` | Android signing |
+| `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_PROVISIONING_PROFILE` / `APPLE_SIGNING_IDENTITY` | iOS IPA signing |
+| `APP_STORE_CONNECT_API_KEY` / `APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` | Optional TestFlight / App Store upload |
+| `BUSINESS_IOS_STORE_URL` | Public iOS download link stored with the release |
 
-Tag this repository (`v*` / `v*-staging`) to build macOS, Windows, and Linux installers — not the API repo.
+Tag this repository (`v*` / `v*-staging`) to build macOS, Windows, Linux, Android APK, and (when secrets are set) iOS IPA — not the API repo. Installers are registered to S3 + Rails and appear on shettar-web `/download`.
 
 ## Scripts
 
@@ -67,6 +85,8 @@ Tag this repository (`v*` / `v*-staging`) to build macOS, Windows, and Linux ins
 | `pnpm test` | Vitest (once) |
 | `pnpm tauri dev` | Desktop dev with hot reload |
 | `pnpm tauri build` | Desktop release binaries |
+| `pnpm tauri:android:build` | Android release APK |
+| `pnpm tauri:ios:build` | iOS release build |
 
 ## Project layout
 
