@@ -110,6 +110,34 @@ function isWithinReferrerWindow(createdAt: string | undefined): boolean {
   return Date.now() <= deadline.getTime()
 }
 
+function normalizeBusinessData(data: Record<string, unknown>): BusinessData {
+  const asString = (value: unknown) => (value == null ? "" : String(value))
+  const highlights = Array.isArray(data.policy_highlights) ? data.policy_highlights : []
+
+  return {
+    ...(data as unknown as BusinessData),
+    name: asString(data.name),
+    description: asString(data.description),
+    address: asString(data.address),
+    country: asString(data.country),
+    state: asString(data.state),
+    lga: asString(data.lga),
+    city: asString(data.city),
+    zip_code: asString(data.zip_code),
+    check_in: asString(data.check_in),
+    check_out: asString(data.check_out),
+    latitude: data.latitude == null ? undefined : asString(data.latitude),
+    longitude: data.longitude == null ? undefined : asString(data.longitude),
+    guest_notices: Array.isArray(data.guest_notices) ? (data.guest_notices as string[]) : [],
+    policy_highlights: highlights.map((h: PolicyHighlight & { kind?: string }) => ({
+      kind: (h.kind === "deny" ? "deny" : "allow") as "allow" | "deny",
+      text: h.text || "",
+    })),
+    policy_bullets: Array.isArray(data.policy_bullets) ? (data.policy_bullets as string[]) : [],
+    policy_footer: asString(data.policy_footer),
+  }
+}
+
 export default function BusinessSettingsPage() {
   const { user, businessId, logout, updateUser } = useAuth()
   const router = useRouter()
@@ -153,20 +181,7 @@ export default function BusinessSettingsPage() {
 
         if (response.ok) {
           const data = await response.json()
-          setBusinessData({
-            ...data,
-            country: data.country || "",
-            lga: data.lga || "",
-            guest_notices: Array.isArray(data.guest_notices) ? data.guest_notices : [],
-            policy_highlights: Array.isArray(data.policy_highlights)
-              ? data.policy_highlights.map((h: PolicyHighlight & { kind?: string }) => ({
-                  kind: (h.kind === "deny" ? "deny" : "allow") as "allow" | "deny",
-                  text: h.text || "",
-                }))
-              : [],
-            policy_bullets: Array.isArray(data.policy_bullets) ? data.policy_bullets : [],
-            policy_footer: data.policy_footer || "",
-          })
+          setBusinessData(normalizeBusinessData(data))
           updateUser({ restaurantEnabled: !!data.restaurant_enabled })
           if (data.logo_url) {
             setLogoPreview(data.logo_url)
@@ -311,7 +326,7 @@ export default function BusinessSettingsPage() {
           formData.append("business[state]", businessData.state)
           formData.append("business[lga]", businessData.lga || "")
           formData.append("business[city]", businessData.city)
-          formData.append("business[zip_code]", businessData.zip_code)
+          formData.append("business[zip_code]", businessData.zip_code || "")
           formData.append("business[check_in]", businessData.check_in)
           formData.append("business[check_out]", businessData.check_out)
           if (businessData.latitude) formData.append("business[latitude]", businessData.latitude)
@@ -401,7 +416,7 @@ export default function BusinessSettingsPage() {
         })
 
         // Update local state with new data
-        setBusinessData(data.business)
+        setBusinessData(normalizeBusinessData(data.business))
         updateUser({ restaurantEnabled: !!data.business.restaurant_enabled })
         if (businessId) {
           if (data.business.logo_url) {

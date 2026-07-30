@@ -1,12 +1,14 @@
 import { getAuthToken } from "@/lib/storage";
 
 export type SupportCableEvent = {
-  type: "new_message" | "status_changed" | "assigned" | "typing" | string;
+  type: "new_message" | "status_changed" | "assigned" | "typing" | "ticket_created" | "ticket_updated" | "stats_changed" | string;
   message?: Record<string, unknown>;
   ticket?: Record<string, unknown>;
   status?: string;
   sender_role?: "admin" | "business";
   sender_name?: string;
+  ticket_id?: string;
+  support_ticket_id?: number;
 };
 
 type EventHandler = (event: SupportCableEvent) => void;
@@ -17,21 +19,21 @@ export interface SupportTicketSubscription {
   unsubscribe: () => void;
 }
 
+export interface SupportUserFeedSubscription {
+  unsubscribe: () => void;
+}
+
 function cableUrl() {
   const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
   return `${base.replace(/^http/, "ws")}/cable`;
 }
 
-/**
- * Subscribes to the SupportChannel room for a single ticket. `ticketId` must
- * be the string ticket id (e.g. "SP..."), not the numeric database id.
- */
-export function subscribeSupportTicket(
-  ticketId: string,
+function openSupportChannel(
+  identifierPayload: Record<string, unknown>,
   onEvent: EventHandler
 ): SupportTicketSubscription {
   const token = getAuthToken();
-  const identifier = JSON.stringify({ channel: "SupportChannel", ticket_id: ticketId });
+  const identifier = JSON.stringify(identifierPayload);
 
   let ws: WebSocket | null = null;
   let closed = false;
@@ -105,4 +107,34 @@ export function subscribeSupportTicket(
       ws = null;
     },
   };
+}
+
+/**
+ * Subscribes to the SupportChannel room for a single ticket. `ticketId` must
+ * be the string ticket id (e.g. "SP..."), not the numeric database id.
+ */
+export function subscribeSupportTicket(
+  ticketId: string,
+  onEvent: EventHandler
+): SupportTicketSubscription {
+  return openSupportChannel({ channel: "SupportChannel", ticket_id: ticketId }, onEvent);
+}
+
+/** Dashboard-wide feed for the signed-in business user (badge / list stats). */
+export function subscribeSupportUserFeed(onEvent: EventHandler): SupportUserFeedSubscription {
+  const { unsubscribe } = openSupportChannel({ channel: "SupportChannel" }, onEvent);
+  return { unsubscribe };
+}
+
+const STATS_REFRESH_TYPES = new Set([
+  "new_message",
+  "ticket_created",
+  "ticket_updated",
+  "status_changed",
+  "assigned",
+  "stats_changed",
+]);
+
+export function shouldRefreshSupportStats(event: SupportCableEvent): boolean {
+  return STATS_REFRESH_TYPES.has(event.type);
 }

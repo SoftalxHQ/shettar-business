@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { api } from "@/lib/api-client";
+import {
+  shouldRefreshSupportStats,
+  subscribeSupportUserFeed,
+  type SupportCableEvent,
+} from "@/lib/support-cable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -67,6 +72,7 @@ export default function SupportPage() {
 
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const statsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSubject, setNewSubject] = useState("");
@@ -112,7 +118,42 @@ export default function SupportPage() {
     }
   }, [statusFilter, priorityFilter, search]);
 
-  useEffect(() => { fetchTickets(); fetchStats(); }, [fetchTickets, fetchStats]);
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
+  const fetchTicketsRef = useRef(fetchTickets);
+  const fetchStatsRef = useRef(fetchStats);
+  useEffect(() => {
+    fetchTicketsRef.current = fetchTickets;
+    fetchStatsRef.current = fetchStats;
+  }, [fetchTickets, fetchStats]);
+
+  useEffect(() => {
+    void fetchStatsRef.current();
+
+    const scheduleStats = () => {
+      if (statsDebounceRef.current) clearTimeout(statsDebounceRef.current);
+      statsDebounceRef.current = setTimeout(() => {
+        void fetchStatsRef.current();
+      }, 300);
+    };
+
+    const subscription = subscribeSupportUserFeed((event: SupportCableEvent) => {
+      if (shouldRefreshSupportStats(event)) {
+        scheduleStats();
+        // Refresh the list when tickets change so unread/status stay current.
+        if (event.type !== "stats_changed") {
+          void fetchTicketsRef.current();
+        }
+      }
+    });
+
+    return () => {
+      if (statsDebounceRef.current) clearTimeout(statsDebounceRef.current);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();

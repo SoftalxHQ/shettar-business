@@ -403,7 +403,7 @@ function RoomManagementContent() {
                 </div>
               ) : (
                 <div className="relative px-3 py-2">
-                  <div className="absolute left-5 top-2 bottom-2 w-px bg-slate-100" />
+                  <div className="absolute left-[26px] top-2 bottom-2 w-px bg-slate-100" />
                   <div className="space-y-0.5">
                     {activities.map((activity) => {
                       const isStatus = activity.action_type === "room_status_changed"

@@ -1,7 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { api } from "@/lib/api-client"
+import {
+  shouldRefreshSupportStats,
+  subscribeSupportUserFeed,
+  type SupportCableEvent,
+} from "@/lib/support-cable"
 
 interface SupportStats {
   unread?: number
@@ -10,6 +15,7 @@ interface SupportStats {
 /** Unread support-message count pill for the sidebar Support nav item. */
 export function SupportUnreadBadge() {
   const [unread, setUnread] = useState(0)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -23,17 +29,23 @@ export function SupportUnreadBadge() {
       }
     }
 
-    fetchUnread()
-
-    // Use visibilitychange — not window "focus". Focusing a button (e.g. room
-    // image slider) can fire window focus and spam this endpoint.
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") fetchUnread()
+    const scheduleFetch = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        void fetchUnread()
+      }, 300)
     }
-    document.addEventListener("visibilitychange", onVisibility)
+
+    void fetchUnread()
+
+    const subscription = subscribeSupportUserFeed((event: SupportCableEvent) => {
+      if (shouldRefreshSupportStats(event)) scheduleFetch()
+    })
+
     return () => {
       cancelled = true
-      document.removeEventListener("visibilitychange", onVisibility)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      subscription.unsubscribe()
     }
   }, [])
 
