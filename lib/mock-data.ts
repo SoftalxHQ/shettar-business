@@ -266,6 +266,7 @@ export interface RoomTypeAvailability {
   type: string
   available: number
   total: number
+  price?: number
 }
 
 export const MOCK_ROOM_AVAILABILITY: RoomTypeAvailability[] = [

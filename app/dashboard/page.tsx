@@ -499,9 +499,17 @@ export default function DashboardPage() {
                             </span>
                             <span className="text-sm text-slate-400 font-medium">/{roomType.total}</span>
                           </div>
-                          <span className="text-[11px] font-medium tabular-nums text-slate-500 pb-0.5">
-                            {Math.round(utilizationRate)}% occ.
-                          </span>
+                          <div className="text-right pb-0.5">
+                            {roomType.price != null && !Number.isNaN(Number(roomType.price)) && (
+                              <p className="text-xs font-semibold tabular-nums text-slate-800">
+                                ₦{Number(roomType.price).toLocaleString()}
+                                <span className="font-medium text-slate-400">/night</span>
+                              </p>
+                            )}
+                            <span className="text-[11px] font-medium tabular-nums text-slate-500">
+                              {Math.round(utilizationRate)}% occ.
+                            </span>
+                          </div>
                         </div>
 
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
