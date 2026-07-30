@@ -25,6 +25,7 @@ export interface StaffMember {
     name: string
     phone_number?: string | null
     address?: string | null
+    zip_code?: string | null
   }
 }
 

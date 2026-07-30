@@ -35,6 +35,7 @@ export function EditStaffProfileDialog({
   const [title, setTitle] = useState(member.title || "")
   const [phoneNumber, setPhoneNumber] = useState(member.user?.phone_number || "")
   const [address, setAddress] = useState(member.user?.address || "")
+  const [zipCode, setZipCode] = useState(member.user?.zip_code || "")
   const [isSaving, setIsSaving] = useState(false)
 
   const email = member.user?.email || ""
@@ -72,6 +73,7 @@ export function EditStaffProfileDialog({
             title: title.trim(),
             phone_number: phoneNumber.trim(),
             address: address.trim(),
+            zip_code: zipCode.trim(),
           }),
         },
       )
@@ -190,6 +192,19 @@ export function EditStaffProfileDialog({
               onChange={(e) => setAddress(e.target.value)}
               className="min-h-[72px] text-sm resize-none"
               placeholder="Street, city"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="staff-zip" className="text-xs text-slate-600">
+              Zip / postal code
+            </Label>
+            <Input
+              id="staff-zip"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              className="h-9 text-sm"
+              placeholder="e.g. 100001"
+              autoComplete="postal-code"
             />
           </div>
         </div>

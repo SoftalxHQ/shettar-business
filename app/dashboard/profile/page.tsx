@@ -120,6 +120,7 @@ export default function ProfilePage() {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
+          ...(getStoredBusinessId() ? { "X-Business-Id": getStoredBusinessId()! } : {}),
         },
         body: submitData,
       })
