@@ -143,32 +143,34 @@ export const nativeScan = async () => {
 };
 
 export const printHtml = async (html: string) => {
-  // Always print from an isolated iframe so receipt CSS (58mm html/body rules)
-  // never touches the live app layout. This avoids the Tauri desktop "squash".
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "none";
-  iframe.style.opacity = "0";
-  iframe.style.pointerEvents = "none";
-  document.body.appendChild(iframe);
+  // Use window.print() on a scoped #shettar-print-root. Tauri/macOS silently
+  // no-ops iframe.contentWindow.print(); window.print() works with allow-print.
+  // Receipt styles must target .shettar-receipt-sheet (not html/body) so the
+  // live app layout is never forced to 58mm.
+  if (typeof document === "undefined" || typeof window === "undefined") return;
 
-  const win = iframe.contentWindow;
-  const doc = win?.document;
-  if (!win || !doc) {
-    if (document.body.contains(iframe)) document.body.removeChild(iframe);
-    return;
-  }
+  const existing = document.getElementById("shettar-print-root");
+  if (existing) existing.remove();
 
-  doc.open();
-  doc.write(html);
-  doc.close();
+  const root = document.createElement("div");
+  root.id = "shettar-print-root";
+  root.setAttribute("aria-hidden", "true");
 
-  const images = Array.from(doc.querySelectorAll("img"));
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const styles = Array.from(doc.querySelectorAll("style"))
+    .map((el) => el.outerHTML)
+    .join("");
+  const bodyHtml = doc.body?.innerHTML ?? html;
+  const hasSheet = /class=["'][^"']*shettar-receipt-sheet/.test(bodyHtml);
+  root.innerHTML = hasSheet
+    ? `${styles}${bodyHtml}`
+    : `${styles}<div class="shettar-receipt-sheet">${bodyHtml}</div>`;
+
+  document.body.appendChild(root);
+  document.body.classList.add("shettar-printing");
+
+  const images = Array.from(root.querySelectorAll("img"));
   await Promise.all(
     images.map((img) => {
       if (img.complete) return Promise.resolve();
@@ -180,20 +182,19 @@ export const printHtml = async (html: string) => {
   );
 
   const cleanup = () => {
-    win.removeEventListener("afterprint", cleanup);
-    if (document.body.contains(iframe)) {
-      document.body.removeChild(iframe);
+    window.removeEventListener("afterprint", cleanup);
+    document.body.classList.remove("shettar-printing");
+    if (document.body.contains(root)) {
+      document.body.removeChild(root);
     }
   };
 
-  win.addEventListener("afterprint", cleanup);
-
-  // Fallback cleanup if afterprint does not fire (some WebViews).
+  window.addEventListener("afterprint", cleanup);
   window.setTimeout(cleanup, 60_000);
 
   try {
-    win.focus();
-    win.print();
+    window.focus();
+    window.print();
   } catch (error) {
     console.error("Print failed", error);
     cleanup();
@@ -228,9 +229,33 @@ export function desktopChangelogUrl(version: string | null | undefined): string 
   return `${path}?v=${encodeURIComponent(bare)}`;
 }
 
+const STAGING_WEB_URL = "https://stg-web.shettar.com";
+const PRODUCTION_WEB_URL = "https://shettar.com";
+
+/** Coerce mistaken API/marketing hosts to the guest web app origin. */
+function normalizeWebAppBaseUrl(url: string): string {
+  const trimmed = url.replace(/\/$/, "");
+  try {
+    const host = new URL(trimmed).hostname.toLowerCase();
+    if (
+      host === "stg.shettar.com" ||
+      host === "api.stg.shettar.com" ||
+      host === "www.stg.shettar.com"
+    ) {
+      return STAGING_WEB_URL;
+    }
+    if (host === "api-v1.shettar.com" || host === "api.shettar.com") {
+      return PRODUCTION_WEB_URL;
+    }
+  } catch {
+    // keep trimmed
+  }
+  return trimmed;
+}
+
 function resolveWebAppBaseUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_WEB_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
+  if (explicit) return normalizeWebAppBaseUrl(explicit);
 
   const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").toLowerCase();
   const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || "").toLowerCase();
@@ -238,6 +263,6 @@ function resolveWebAppBaseUrl(): string {
     appEnv === "staging" ||
     /(?:^|\.)stg\.|\/\/api\.stg\.|staging/i.test(apiUrl);
 
-  if (isStaging) return "https://stg-web.shettar.com";
-  return "https://shettar.com";
+  if (isStaging) return STAGING_WEB_URL;
+  return PRODUCTION_WEB_URL;
 }

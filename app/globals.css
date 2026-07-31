@@ -270,10 +270,39 @@
     .flatpickr-calendar.arrowTop:before, .flatpickr-calendar.arrowTop:after { @apply border-b-white; }
 }
 
-/* Print Styles — receipts print from an isolated iframe; do not hide the app UI. */
+/* Print Styles — scoped to #shettar-print-root so the live app never becomes 58mm.
+   Use display:none (not visibility) — WKWebView still paginates visibility:hidden nodes. */
+#shettar-print-root {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 58mm;
+  pointer-events: none;
+}
+
 @media print {
   @page {
-    size: auto;
-    margin: 0;
+    size: 58mm auto;
+    margin: 2mm 1mm;
+  }
+
+  html:has(body.shettar-printing),
+  body.shettar-printing {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body.shettar-printing > *:not(#shettar-print-root) {
+    display: none !important;
+  }
+
+  body.shettar-printing #shettar-print-root {
+    display: block !important;
+    position: static;
+    left: auto;
+    top: auto;
+    width: 58mm;
+    pointer-events: auto;
   }
 }

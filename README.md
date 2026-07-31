@@ -76,6 +76,17 @@ The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_
 
 Tag this repository (`v*` / `v*-staging`) to build macOS, Windows, Linux, Android APK, and (when secrets are set) iOS IPA — not the API repo. Installers are registered to S3 + Rails and appear on shettar-web `/download`.
 
+### Re-register an existing tag (e.g. after a missed APK)
+
+If desktop installers registered but `android_apk` / `ios_store` are still empty on `/api/v1/desktop_releases/latest`:
+
+1. Confirm the GitHub release assets include `Shettar-Business_<version>_android.apk`.
+2. Deploy shettar-api with the upsert “preserve blank URL” fix (so a re-register cannot wipe mobile URLs).
+3. Run workflow **Register Desktop Release** (`register-desktop-release.yml`) with the tag (e.g. `v0.1.47-staging`) and channel `staging` or `production`. Ensure `BUSINESS_IOS_STORE_URL` is set in repo secrets for iOS.
+4. Verify `installers.android_apk` (and `ios_store` if configured) on the latest desktop_releases API response.
+
+If the APK asset is missing from the tag, re-run **Publish Release** (or rebuild Android) first — registration cannot invent the binary.
+
 ## Scripts
 
 | Command | Description |

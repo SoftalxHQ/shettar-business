@@ -214,6 +214,13 @@ LINUX_DEB="$(find_url '\.deb$')"
 ANDROID_APK="$(find_url '\.apk$')"
 IOS_STORE_URL="${BUSINESS_IOS_STORE_URL:-}"
 
+if [ -z "$ANDROID_APK" ]; then
+  echo "::warning::No .apk asset on GitHub release $TAG — android_apk_url will not be updated"
+fi
+if [ -z "$IOS_STORE_URL" ]; then
+  echo "::warning::BUSINESS_IOS_STORE_URL unset — ios_store_url will not be updated"
+fi
+
 # Updaters: prefer Tauri-generated latest.json (correct url + signature per platform)
 LATEST_NAME="$(find_asset_name '^latest\.json$')"
 WIN_UPDATER=""; WIN_SIG=""
@@ -324,28 +331,30 @@ PAYLOAD="$(jq -n \
   --arg linux_updater_url "$LINUX_UPD" \
   --arg linux_updater_sig "$LINUX_SIG" \
   '{
-    desktop_release: {
-      version: $version,
-      channel: $channel,
-      notes: $notes,
-      published_at: (if $published_at == "" then null else $published_at end),
-      active: true,
-      windows_installer_url: (if $windows_installer_url == "" then null else $windows_installer_url end),
-      macos_x64_installer_url: (if $macos_x64_installer_url == "" then null else $macos_x64_installer_url end),
-      macos_arm_installer_url: (if $macos_arm_installer_url == "" then null else $macos_arm_installer_url end),
-      linux_installer_url: (if $linux_installer_url == "" then null else $linux_installer_url end),
-      linux_deb_installer_url: (if $linux_deb_installer_url == "" then null else $linux_deb_installer_url end),
-      android_apk_url: (if $android_apk_url == "" then null else $android_apk_url end),
-      ios_store_url: (if $ios_store_url == "" then null else $ios_store_url end),
-      windows_updater_url: (if $windows_updater_url == "" then null else $windows_updater_url end),
-      windows_updater_sig: (if $windows_updater_sig == "" then null else $windows_updater_sig end),
-      macos_x64_updater_url: (if $macos_x64_updater_url == "" then null else $macos_x64_updater_url end),
-      macos_x64_updater_sig: (if $macos_x64_updater_sig == "" then null else $macos_x64_updater_sig end),
-      macos_arm_updater_url: (if $macos_arm_updater_url == "" then null else $macos_arm_updater_url end),
-      macos_arm_updater_sig: (if $macos_arm_updater_sig == "" then null else $macos_arm_updater_sig end),
-      linux_updater_url: (if $linux_updater_url == "" then null else $linux_updater_url end),
-      linux_updater_sig: (if $linux_updater_sig == "" then null else $linux_updater_sig end)
-    }
+    desktop_release: (
+      {
+        version: $version,
+        channel: $channel,
+        notes: $notes,
+        published_at: (if $published_at == "" then null else $published_at end),
+        active: true,
+        windows_installer_url: (if $windows_installer_url == "" then null else $windows_installer_url end),
+        macos_x64_installer_url: (if $macos_x64_installer_url == "" then null else $macos_x64_installer_url end),
+        macos_arm_installer_url: (if $macos_arm_installer_url == "" then null else $macos_arm_installer_url end),
+        linux_installer_url: (if $linux_installer_url == "" then null else $linux_installer_url end),
+        linux_deb_installer_url: (if $linux_deb_installer_url == "" then null else $linux_deb_installer_url end),
+        windows_updater_url: (if $windows_updater_url == "" then null else $windows_updater_url end),
+        windows_updater_sig: (if $windows_updater_sig == "" then null else $windows_updater_sig end),
+        macos_x64_updater_url: (if $macos_x64_updater_url == "" then null else $macos_x64_updater_url end),
+        macos_x64_updater_sig: (if $macos_x64_updater_sig == "" then null else $macos_x64_updater_sig end),
+        macos_arm_updater_url: (if $macos_arm_updater_url == "" then null else $macos_arm_updater_url end),
+        macos_arm_updater_sig: (if $macos_arm_updater_sig == "" then null else $macos_arm_updater_sig end),
+        linux_updater_url: (if $linux_updater_url == "" then null else $linux_updater_url end),
+        linux_updater_sig: (if $linux_updater_sig == "" then null else $linux_updater_sig end)
+      }
+      + (if $android_apk_url == "" then {} else { android_apk_url: $android_apk_url } end)
+      + (if $ios_store_url == "" then {} else { ios_store_url: $ios_store_url } end)
+    )
   }')"
 
 HTTP_CODE="$(curl -sS -o /tmp/register-response.json -w "%{http_code}" \

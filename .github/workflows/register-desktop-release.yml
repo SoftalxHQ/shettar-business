@@ -53,6 +53,7 @@ jobs:
           CHANNEL: ${{ steps.env.outputs.channel }}
           VERSION: ${{ steps.env.outputs.version }}
           TAG: ${{ steps.env.outputs.tag }}
+          BUSINESS_IOS_STORE_URL: ${{ secrets.BUSINESS_IOS_STORE_URL }}
         shell: bash
         run: |
           set -euo pipefail

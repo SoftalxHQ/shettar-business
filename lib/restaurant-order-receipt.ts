@@ -208,6 +208,7 @@ export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptO
     <style>${THERMAL_RECEIPT_STYLES}${ORDER_RECEIPT_EXTRA_STYLES}</style>
   </head>
   <body>
+    <div class="shettar-receipt-sheet">
     <div class="receipt">
       <div class="ticket-header">
         <div class="ticket-label">Order Number</div>
@@ -246,6 +247,7 @@ export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptO
         <p>Printed on ${escapeHtml(new Date().toLocaleString())}</p>
         <div class="footer-brand">Powered by Shettar</div>
       </div>
+    </div>
     </div>
   </body>
 </html>`

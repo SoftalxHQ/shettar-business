@@ -182,7 +182,7 @@ function businessLogoHtml(business: BookingReceiptBusiness): string {
 /** Ticket-style receipt scaled for 58mm thermal printers. */
 export const THERMAL_RECEIPT_STYLES = `
   * { box-sizing: border-box; }
-  html, body {
+  .shettar-receipt-sheet {
     width: 58mm;
     max-width: 58mm;
     margin: 0;
@@ -398,7 +398,7 @@ export const THERMAL_RECEIPT_STYLES = `
     padding-top: 5px;
   }
   @media print {
-    html, body {
+    .shettar-receipt-sheet {
       width: 58mm;
       max-width: 58mm;
     }
@@ -484,6 +484,7 @@ export function buildBookingReceiptHtml(options: BookingReceiptOptions): string 
     <style>${THERMAL_RECEIPT_STYLES}</style>
   </head>
   <body>
+    <div class="shettar-receipt-sheet">
     <div class="receipt">
       <div class="ticket-header">
         <div class="ticket-label">Reservation Number</div>
@@ -538,6 +539,7 @@ export function buildBookingReceiptHtml(options: BookingReceiptOptions): string 
         <p>Printed on ${escapeHtml(new Date().toLocaleString())}</p>
         <div class="footer-brand">Powered by Shettar</div>
       </div>
+    </div>
     </div>
   </body>
 </html>`
