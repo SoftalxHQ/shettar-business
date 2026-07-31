@@ -135,6 +135,20 @@ jobs:
               echo "_Staging build — for testing only._"
               echo ""
             fi
+
+            # Prepend curated highlights from RELEASE_NOTES.md when present for this version
+            if [ -f RELEASE_NOTES.md ]; then
+              HIGHLIGHTS="$(awk -v ver="$VERSION" '
+                $0 == "## " ver {capture=1; next}
+                /^## / {if (capture) exit}
+                capture {print}
+              ' RELEASE_NOTES.md | sed '/^$/d')"
+              if [ -n "${HIGHLIGHTS:-}" ]; then
+                echo "$HIGHLIGHTS"
+                echo ""
+              fi
+            fi
+
             echo "### Changes"
             echo ""
             if [ -n "${PREV_TAG:-}" ]; then
