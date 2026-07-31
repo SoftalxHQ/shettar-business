@@ -1,5 +1,12 @@
 # Shettar Business release notes
 
+## 0.1.48
+
+### Highlights
+
+- Receipt printing on desktop works again — the system print dialog opens from Bookings, the dashboard no longer shrinks after print, and the preview shows only the receipt (not the bookings table or reservation window)
+- “View changelog” from the update banner opens the correct Shettar changelog page for your environment
+
 ## 0.1.47
 
 ### Highlights
