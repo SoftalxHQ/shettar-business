@@ -57,6 +57,8 @@ pnpm tauri:ios:build       # requires Xcode + signing
 
 App id: `com.shettar.business` (same as desktop).
 
+**Tablet-only Android:** the committed [`AndroidManifest.xml`](src-tauri/gen/android/app/src/main/AndroidManifest.xml) locks landscape (`sensorLandscape`) and declares `<supports-screens requiresSmallestWidthDp="600">` so phones are excluded in the Play Store. Re-apply those edits if you re-run `pnpm tauri:android:init` (it can regenerate `gen/android`).
+
 ### CI releases
 
 The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_ENV`, and `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` from GitHub secrets.

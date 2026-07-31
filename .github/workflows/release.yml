@@ -297,6 +297,13 @@ jobs:
       - name: setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27
+          link-to-sdk: true
+
       - name: install Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -351,7 +358,8 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ needs.prepare-release.outputs.api_url }}
           NEXT_PUBLIC_APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
           NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ needs.prepare-release.outputs.paystack_public_key }}
-          NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: pnpm tauri android build --apk --ci
 
       - name: Upload APK to GitHub Release
