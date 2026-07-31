@@ -24,6 +24,12 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    packaging {
+        jniLibs {
+            // Uncompressed, 16 KB–zipaligned native libs (required for 16 KB page-size devices).
+            useLegacyPackaging = false
+        }
+    }
     signingConfigs {
         create("release") {
             val keystorePropsFile = rootProject.file("keystore.properties")

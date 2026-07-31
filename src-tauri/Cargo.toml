@@ -27,11 +27,11 @@ tauri-plugin-notification = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-os = "2"
 tauri-plugin-geolocation = "2"
-tauri-plugin-updater = "2.10"
-tauri-plugin-process = "2.3"
 # Patched transitive pins for Dependabot advisories
 time = "0.3.47"
 serde_with = "3.21.0"
+# Tauri mobile uses reqwest with rustls-no-provider; install a process default in lib.rs.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2.4"
@@ -39,3 +39,5 @@ tauri-plugin-biometric = "2"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 serialport = "4"
+tauri-plugin-updater = "2.10"
+tauri-plugin-process = "2.3"

@@ -13,8 +13,6 @@
     "core:webview:allow-print",
     "geolocation:allow-check-permissions",
     "geolocation:allow-request-permissions",
-    "geolocation:allow-get-current-position",
-    "updater:default",
-    "process:default"
+    "geolocation:allow-get-current-position"
   ]
 }

@@ -46,18 +46,33 @@ pnpm tauri build
 
 ### Mobile (Tauri Android / iOS)
 
+Use **rustup** Rust, not Homebrew’s `rustc`. If `/opt/homebrew/bin` is ahead of `~/.cargo/bin` on `PATH`, Android builds fail with `can't find crate for core` for `aarch64-linux-android`.
+
+```bash
+# Prefer rustup (put this early in ~/.zshrc)
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Targets for the toolchain pinned in src-tauri/rust-toolchain.toml
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android --toolchain 1.88.0
+```
+
 ```bash
 # One-time project generation (already committed under src-tauri/gen/)
 pnpm tauri:android:init
 pnpm tauri:ios:init
 
-pnpm tauri:android:build   # release APK
+pnpm tauri:android:dev     # emulator / device → local API (localhost:3000 via .env.local)
+pnpm tauri:android:build   # release APK (uses .env.production unless you override)
 pnpm tauri:ios:build       # requires Xcode + signing
 ```
+
+`tauri:android:dev` sets `adb reverse` for **3001** (Next) and **3000** (shettar-api) so the WebView’s `http://localhost:3000` hits your Mac. Keep the API running on 3000.
 
 App id: `com.shettar.business` (same as desktop).
 
 **Tablet-only Android:** the committed [`AndroidManifest.xml`](src-tauri/gen/android/app/src/main/AndroidManifest.xml) locks landscape (`sensorLandscape`) and declares `<supports-screens requiresSmallestWidthDp="600">` so phones are excluded in the Play Store. Re-apply those edits if you re-run `pnpm tauri:android:init` (it can regenerate `gen/android`).
+
+**Dev AVDs:** use a **tablet** image (e.g. Pixel Tablet, sw ≥ 600dp), not a phone emulator — the app is tablet-only. Prefer a normal 4 KB tablet AVD for day-to-day work; the `*16k*` images are for testing Android’s 16 KB page size. Rust `libapp_lib.so` is linked with 16 KB ELF alignment via `src-tauri/build.rs` (required for Play / Android 15+). Rebuild with `pnpm tauri:android:dev` after pulling this change.
 
 ### CI releases
 
@@ -98,6 +113,7 @@ If the APK asset is missing from the tag, re-run **Publish Release** (or rebuild
 | `pnpm test` | Vitest (once) |
 | `pnpm tauri dev` | Desktop dev with hot reload |
 | `pnpm tauri build` | Desktop release binaries |
+| `pnpm tauri:android:dev` | Android emulator/device (uses rustup on PATH) |
 | `pnpm tauri:android:build` | Android release APK |
 | `pnpm tauri:ios:build` | iOS release build |
 

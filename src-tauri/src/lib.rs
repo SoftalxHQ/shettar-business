@@ -3,24 +3,27 @@ mod printer;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  let mut builder = tauri::Builder::default()
+  // Android/iOS Tauri builds use reqwest with rustls-no-provider. Without a
+  // process-level CryptoProvider, Client::new() panics with "No provider set"
+  // and the activity crash-loops (open → close).
+  let _ = rustls::crypto::ring::default_provider().install_default();
+
+  let builder = tauri::Builder::default()
     .plugin(tauri_plugin_notification::init())
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_os::init())
     .plugin(tauri_plugin_geolocation::init());
 
   #[cfg(not(any(target_os = "android", target_os = "ios")))]
-  {
-    builder = builder
-      .plugin(tauri_plugin_process::init())
-      .plugin(tauri_plugin_updater::Builder::new().build())
-      .invoke_handler(tauri::generate_handler![
-        printer::commands::get_printers,
-        printer::commands::print_ops,
-        printer::commands::test_print,
-        printer::commands::open_cash_drawer,
-      ]);
-  }
+  let builder = builder
+    .plugin(tauri_plugin_process::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .invoke_handler(tauri::generate_handler![
+      printer::commands::get_printers,
+      printer::commands::print_ops,
+      printer::commands::test_print,
+      printer::commands::open_cash_drawer,
+    ]);
 
   builder
     .setup(|app| {
