@@ -19,13 +19,16 @@ function isMobileOs(): boolean {
 
 /**
  * Adds `.native-edge` after hydrate on Android/iOS only.
- * Insets come from MainActivity `<style id="shettar-safe-area">` (not html attrs).
+ * Desktop Tauri must never get this class (dashboard called setupNativeWindow
+ * unconditionally and was padding the whole desktop shell).
  */
 export function NativeSafeArea() {
   useEffect(() => {
     try {
       if (isTauriShell() && isMobileOs()) {
         document.documentElement.classList.add("native-edge")
+      } else {
+        document.documentElement.classList.remove("native-edge")
       }
     } catch {
       /* non-fatal */

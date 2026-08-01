@@ -107,8 +107,14 @@ export const setupNativeWindow = async () => {
   if (!isTauri()) return;
 
   try {
-    // Safe-area class only — do not call window APIs on Android/iOS first paint.
-    document.documentElement.classList.add("native-edge");
+    // Only Android/iOS need edge-to-edge safe-area floors — never pad desktop Tauri.
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : ""
+    const isMobileOs = /Android|iPhone|iPad|iPod/i.test(ua)
+    if (!isMobileOs) {
+      document.documentElement.classList.remove("native-edge")
+      return
+    }
+    document.documentElement.classList.add("native-edge")
   } catch (err) {
     console.warn("[tauri] setupNativeWindow failed", err);
   }

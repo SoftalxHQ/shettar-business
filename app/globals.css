@@ -291,7 +291,16 @@
 }
 
 @layer utilities {
+  /* Safe-area padding only on native Android/iOS (html.native-edge).
+     Desktop Tauri / browser must stay flush — no status-bar floors. */
   .app-safe-shell {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  html.native-edge .app-safe-shell {
     padding-top: var(--safe-top);
     padding-bottom: var(--safe-bottom);
     padding-left: var(--safe-left);
