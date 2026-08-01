@@ -24,9 +24,16 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon.png", type: "image/png" }],
     apple: [{ url: "/favicon.png", type: "image/png" }],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Shettar Business",
+  },
 };
 
 export const viewport: Viewport = {
+  // viewport-fit=cover is required for env(safe-area-inset-*) on iOS/Android.
+  // Do not lock scale here — that would hurt desktop browser accessibility.
   viewportFit: "cover",
 };
 
@@ -40,7 +47,7 @@ export default function RootLayout({
       : null;
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
         {/* Must be first: patch WebSocket before Next HMR client loads (Tauri Android blank screen). */}
         {hmrBridge ? (

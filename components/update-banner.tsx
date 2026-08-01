@@ -8,9 +8,28 @@ import { ExternalLink, X } from "lucide-react";
 
 const dismissKey = (version: string) => `shettar-update-dismissed:${version}`;
 
-/** Fixed bottom-right card when a newer Shettar Business desktop build is available. */
+function ctaLabel(installVia: ReturnType<typeof useUpdater>["installVia"], installing: boolean) {
+  if (installing) {
+    if (installVia === "desktop") return "Updating…";
+    return "Opening…";
+  }
+  if (installVia === "play_store") return "Open Play Store";
+  if (installVia === "apk") return "Download update";
+  if (installVia === "app_store") return "Open App Store";
+  return "Update now";
+}
+
+/** Fixed top-right card when a newer Shettar Business build is available. */
 export function UpdateBanner() {
-  const { available, version, progress, installing, error, installUpdate } = useUpdater();
+  const {
+    available,
+    version,
+    progress,
+    installing,
+    error,
+    installVia,
+    installUpdate,
+  } = useUpdater();
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -46,9 +65,11 @@ export function UpdateBanner() {
     setDismissed(true);
   };
 
+  const showDesktopProgress = installing && installVia === "desktop";
+
   return (
     <div
-      className="fixed bottom-4 right-4 z-[60] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-900 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
+      className="fixed top-4 right-4 z-[60] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-900 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
       role="status"
       aria-live="polite"
     >
@@ -77,9 +98,18 @@ export function UpdateBanner() {
         </button>
       ) : null}
 
+      {installVia === "apk" ? (
+        <p className="mt-1.5 text-xs text-slate-500">
+          Downloads the APK — allow installs from this source if prompted.
+        </p>
+      ) : null}
+      {installVia === "play_store" ? (
+        <p className="mt-1.5 text-xs text-slate-500">Opens Google Play to install the update.</p>
+      ) : null}
+
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
 
-      {installing ? (
+      {showDesktopProgress ? (
         <div className="mt-3 space-y-1.5">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
@@ -111,7 +141,8 @@ export function UpdateBanner() {
             disabled={installing || !available}
             onClick={() => void installUpdate()}
           >
-            {installing ? `Updating… ${progress}%` : "Update now"}
+            {ctaLabel(installVia, installing)}
+            {showDesktopProgress ? ` ${progress}%` : ""}
           </Button>
         ) : null}
       </div>

@@ -212,10 +212,14 @@ MAC_X64_DMG="$(find_url '_x64\.dmg$')"
 LINUX_APPIMAGE="$(find_url '\.AppImage$')"
 LINUX_DEB="$(find_url '\.deb$')"
 ANDROID_APK="$(find_url '\.apk$')"
+ANDROID_STORE_URL="${BUSINESS_ANDROID_STORE_URL:-}"
 IOS_STORE_URL="${BUSINESS_IOS_STORE_URL:-}"
 
 if [ -z "$ANDROID_APK" ]; then
   echo "::warning::No .apk asset on GitHub release $TAG — android_apk_url will not be updated"
+fi
+if [ -z "$ANDROID_STORE_URL" ]; then
+  echo "::warning::BUSINESS_ANDROID_STORE_URL unset — android_store_url will not be updated (APK direct update still works)"
 fi
 if [ -z "$IOS_STORE_URL" ]; then
   echo "::warning::BUSINESS_IOS_STORE_URL unset — ios_store_url will not be updated"
@@ -252,6 +256,7 @@ echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
 echo "  android_apk=$ANDROID_APK"
+echo "  android_store=$ANDROID_STORE_URL"
 echo "  ios_store=$IOS_STORE_URL"
 echo "Mapped updater sources (GitHub):"
 echo "  windows=$WIN_UPDATER"
@@ -321,6 +326,7 @@ PAYLOAD="$(jq -n \
   --arg linux_installer_url "$LINUX_APPIMAGE" \
   --arg linux_deb_installer_url "$LINUX_DEB" \
   --arg android_apk_url "$ANDROID_APK" \
+  --arg android_store_url "$ANDROID_STORE_URL" \
   --arg ios_store_url "$IOS_STORE_URL" \
   --arg windows_updater_url "$WIN_UPDATER" \
   --arg windows_updater_sig "$WIN_SIG" \
@@ -353,6 +359,7 @@ PAYLOAD="$(jq -n \
         linux_updater_sig: (if $linux_updater_sig == "" then null else $linux_updater_sig end)
       }
       + (if $android_apk_url == "" then {} else { android_apk_url: $android_apk_url } end)
+      + (if $android_store_url == "" then {} else { android_store_url: $android_store_url } end)
       + (if $ios_store_url == "" then {} else { ios_store_url: $ios_store_url } end)
     )
   }')"

@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.49
+
+### Highlights
+
+- Android/iOS in-app update card: checks `/desktop_releases/latest` and opens Google Play (when configured) or the APK download — desktop still uses the Tauri updater
+- Edge-to-edge safe areas on Android (transparent system bars + WindowInsets CSS injection) so content no longer sits under the nav/status bars
+- Update banner moved to the top-right
+
 ## 0.1.48
 
 ### Highlights
