@@ -57,6 +57,26 @@ function isPluginMissingError(err: unknown): boolean {
   );
 }
 
+/** Skip remote update polling while running `next dev` / `tauri dev`. */
+function isDevRuntime(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
+function isTransientCheckError(err: unknown): boolean {
+  const msg = errorMessage(err, "").toLowerCase();
+  return (
+    msg.includes("error sending request") ||
+    msg.includes("network") ||
+    msg.includes("timed out") ||
+    msg.includes("timeout") ||
+    msg.includes("connection") ||
+    msg.includes("dns") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("http status") ||
+    isPluginMissingError(err)
+  );
+}
+
 function releaseChannel(): "staging" | "production" {
   const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || "").toLowerCase();
   const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").toLowerCase();
@@ -192,6 +212,12 @@ export function useUpdater(): UpdaterState {
 
   const checkForUpdate = useCallback(async () => {
     if (!isTauri()) return;
+    // Local `tauri dev` / Next dev — never hit production updater endpoints.
+    if (isDevRuntime()) {
+      clearAvailable();
+      setError(null);
+      return;
+    }
 
     try {
       const os = await getOsType();
@@ -229,14 +255,17 @@ export function useUpdater(): UpdaterState {
       setAvailable(true);
       setError(null);
     } catch (err) {
-      if (isPluginMissingError(err)) {
-        // Mobile/dev shells without the desktop plugin — ignore noise.
-        clearAvailable();
+      // Network / plugin noise must not cover the UI with an error card.
+      clearAvailable();
+      if (isTransientCheckError(err)) {
+        if (process.env.NODE_ENV === "development") {
+          console.info("[updater] check skipped/failed (non-blocking)", err);
+        }
         setError(null);
         return;
       }
       console.error("[updater] check failed", err);
-      setError(errorMessage(err, "Update check failed"));
+      setError(null);
     }
   }, [clearAvailable]);
 

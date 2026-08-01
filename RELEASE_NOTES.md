@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.50
+
+### Highlights
+
+- Desktop no longer gets Android safe-area padding (native-edge only on mobile)
+- Update checks are skipped in local `tauri dev` / Next dev so failed production updater calls don’t cover the UI
+- Update banner only appears when an update is actually available
+
 ## 0.1.49
 
 ### Highlights

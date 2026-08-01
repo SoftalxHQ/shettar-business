@@ -48,15 +48,14 @@ export function UpdateBanner() {
   }, [installing, version]);
 
   if (!isTauri()) return null;
-  if (!available && !installing && !error) return null;
+  // Only show when there is a real update (or an in-progress install). Never for check failures.
+  if (!available && !installing) return null;
   if (dismissed && !installing) return null;
 
   const changelogUrl = desktopChangelogUrl(version);
   const title = version
     ? `Version ${version} is available`
-    : error
-      ? "Update check failed"
-      : "Update available";
+    : "Update available";
 
   const dismiss = () => {
     if (version && typeof window !== "undefined") {
