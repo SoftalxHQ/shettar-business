@@ -1,4 +1,3 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { scan } from '@tauri-apps/plugin-barcode-scanner';
 
@@ -105,11 +104,13 @@ export const getDeviceLocation = async (): Promise<DeviceLocationResult> => {
 };
 
 export const setupNativeWindow = async () => {
-  if (isTauri()) {
-    const appWindow = getCurrentWindow();
-    // Example: make window visible only after it's ready to avoid flicker
-    // await appWindow.show();
-    console.log('Running in Tauri');
+  if (!isTauri()) return;
+
+  try {
+    // Safe-area class only — do not call window APIs on Android/iOS first paint.
+    document.documentElement.classList.add("native-edge");
+  } catch (err) {
+    console.warn("[tauri] setupNativeWindow failed", err);
   }
 };
 

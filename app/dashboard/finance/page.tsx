@@ -38,6 +38,7 @@ import {
 import { getAuthToken } from "@/lib/storage"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { format, subDays, startOfToday, endOfToday, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns"
+import { BusinessAiAnalyzerButton } from "@/components/business-ai-analyzer-button"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -577,6 +578,24 @@ export default function FinancePage() {
             <p className="text-xs text-slate-500">Balances and transactions</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <BusinessAiAnalyzerButton
+              businessId={businessId}
+              canRun={user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run}
+              page="finance"
+              filters={{
+                range:
+                  dateRangeSelection === "Custom"
+                    ? undefined
+                    : dateRangeSelection,
+                start_date: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+                end_date: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+                transaction_type: filterType !== "all" ? filterType : undefined,
+                status: filterStatus !== "all" ? filterStatus : undefined,
+              }}
+            />
+            <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-slate-200 text-xs">
+              <Link href="/dashboard/ai-points">Buy AI points</Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"

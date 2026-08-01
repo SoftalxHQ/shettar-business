@@ -84,7 +84,7 @@ export function RestaurantDashboardLayout({
   const navItems = getRestaurantNavItems(user);
 
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7]">
+    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7] app-safe-shell">
       <header className="shrink-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-slate-200/80">
         <div className="h-full px-4 md:px-5 flex items-center justify-between gap-4">
           <Link

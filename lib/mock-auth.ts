@@ -29,6 +29,7 @@ export interface User {
     dashboard?: { view_revenue: boolean; view_analytics: boolean }
     promos?: { view: boolean; create: boolean; edit: boolean }
     ads?: { view?: boolean; manage?: boolean }
+    ai_analyzer?: { view?: boolean; run?: boolean }
     restaurant?: {
       view?: boolean
       manage_menu?: boolean

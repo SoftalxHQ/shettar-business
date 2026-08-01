@@ -58,6 +58,7 @@ import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
+import { AiPointsSidebarChip } from "@/components/ai-points-sidebar-chip"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -133,7 +134,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   if (!user || isLoading) {
     return (
-      <div className="h-dvh flex items-center justify-center bg-slate-50">
+      <div className="h-dvh flex items-center justify-center bg-slate-50 app-safe-shell">
         <LoadingSpinner size={40} />
       </div>
     )
@@ -250,7 +251,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
 
   if (isAdmin) {
     return (
-      <div className="h-dvh overflow-hidden flex bg-[#f4f5f7]">
+      <div className="h-dvh overflow-hidden flex bg-[#f4f5f7] app-safe-shell">
         <aside className="w-[15.5rem] shrink-0 h-full border-r border-slate-200/80 bg-white flex flex-col">
           <div className="h-14 shrink-0 flex items-center gap-2.5 px-4 border-b border-slate-100">
             <Link href="/dashboard/business" className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity">
@@ -308,6 +309,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           </nav>
 
           <div className="shrink-0 border-t border-slate-100 p-2.5 space-y-2">
+            <AiPointsSidebarChip />
             <div className="flex items-center justify-end px-1">
               <TopBarNotifications businessId={businessId} />
             </div>
@@ -382,7 +384,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7]">
+    <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7] app-safe-shell">
       <header className="shrink-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-slate-200/80">
         <div className="h-full px-4 md:px-5 flex items-center justify-between gap-4">
           <Link href="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity shrink-0">

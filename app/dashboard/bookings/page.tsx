@@ -32,6 +32,7 @@ import {
   PAYMENT_METHOD_LABELS,
   printBookingReceiptSmart,
 } from "@/lib/booking-receipt"
+import { BusinessAiAnalyzerButton } from "@/components/business-ai-analyzer-button"
 
 interface Reservation {
   id: number
@@ -79,6 +80,7 @@ function BookingsContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [businessDetails, setBusinessDetails] = useState<BookingReceiptBusiness | null>(null)
+  const [statusTab, setStatusTab] = useState(filterParam)
 
   const [rangeSelection, setRangeSelection] = useState("This month")
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()))
@@ -532,6 +534,20 @@ function BookingsContent() {
             <p className="text-xs text-slate-500 mt-0.5">Hotel reservations</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <BusinessAiAnalyzerButton
+              businessId={businessId}
+              canRun={user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run}
+              page="bookings"
+              filters={{
+                range:
+                  rangeSelection === "Custom"
+                    ? undefined
+                    : rangeSelection,
+                start_date: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+                end_date: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+                status: statusTab !== "all" ? statusTab : undefined,
+              }}
+            />
             <div className="hidden sm:flex items-center gap-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 py-1.5 min-w-[4.5rem]">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
@@ -674,7 +690,7 @@ function BookingsContent() {
           </div>
         </div>
 
-        <Tabs defaultValue={filterParam} className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+        <Tabs value={statusTab} onValueChange={setStatusTab} className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
           <TabsList className="shrink-0 h-9 w-fit max-w-full overflow-x-auto">
             <TabsTrigger value="all" className="gap-1.5 text-sm">
               All

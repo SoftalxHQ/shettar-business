@@ -62,11 +62,14 @@ pnpm tauri:android:init
 pnpm tauri:ios:init
 
 pnpm tauri:android:dev     # emulator / device → local API (localhost:3000 via .env.local)
+pnpm tauri:android:dev -- --device   # physical tablet (USB)
 pnpm tauri:android:build   # release APK (uses .env.production unless you override)
 pnpm tauri:ios:build       # requires Xcode + signing
 ```
 
-`tauri:android:dev` sets `adb reverse` for **3001** (Next) and **3000** (shettar-api) so the WebView’s `http://localhost:3000` hits your Mac. Keep the API running on 3000.
+`tauri:android:dev` starts Next on **`0.0.0.0:3001`** (`pnpm dev:host`) and `adb reverse` for **3001** / **3000**. Keep the API running on 3000.
+
+**Physical device:** Tauri serves the WebView via `http://tauri.localhost` (proxy). Next.js 16 Turbopack often never hydrates there (blank white page). `pnpm dev:host` therefore uses **webpack**, allows LAN + `tauri.localhost` in `allowedDevOrigins`, and injects an HMR WebSocket rewrite to your Mac’s LAN IP (`NEXT_PUBLIC_DEV_HOST`). On start you should see `[shettar-business] Android/iOS dev host` with `bundler: webpack`. Tablet and Mac must share Wi‑Fi; allow inbound **3001**.
 
 App id: `com.shettar.business` (same as desktop).
 

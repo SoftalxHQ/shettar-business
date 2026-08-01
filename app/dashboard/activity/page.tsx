@@ -3,6 +3,7 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { useAuth } from "@/lib/auth-context"
 import { useEffect, useState, useCallback } from "react"
+import { BusinessAiAnalyzerButton } from "@/components/business-ai-analyzer-button"
 import { getAuthToken } from "@/lib/storage"
 import { format, formatDistanceToNow, subDays, subMonths, startOfMonth, endOfMonth, startOfToday, endOfToday } from "date-fns"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -23,6 +24,7 @@ import {
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
   ChevronDown, X, Tag, CreditCard, Send, Download, Megaphone,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -62,6 +64,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "room_status_changed": ArrowLeftRight,
   "withdrawal_requested": Banknote,
   "withdrawal_completed": CheckCircle2,
+  "ai_analyzer_run": Sparkles,
+  "ai_points_purchased": Sparkles,
+  "ai_points_reset": Sparkles,
   "business_updated": Building2,
   "verification_requested": ShieldCheck,
   "bank_account_added": CreditCard,
@@ -96,6 +101,9 @@ const ACTION_LABELS: Record<string, string> = {
   "room_status_changed": "Room Status",
   "withdrawal_requested": "Withdrawals",
   "withdrawal_completed": "Withdrawal Completed",
+  "ai_analyzer_run": "AI Analyzer",
+  "ai_points_purchased": "AI Points Purchased",
+  "ai_points_reset": "AI Points Reset",
   "business_updated": "Business Updated",
   "verification_requested": "Verification Requested",
   "bank_account_added": "Bank Account Added",
@@ -111,7 +119,7 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 export default function ActivityPage() {
-  const { businessId } = useAuth()
+  const { businessId, user } = useAuth()
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -119,6 +127,7 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState("")
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<Pagination | null>(null)
+  const canRunAi = user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run
 
   // ── Analytics-style date filter state ──
   const [rangeSelection, setRangeSelection] = useState("All time")
@@ -302,7 +311,19 @@ export default function ActivityPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button
+            <BusinessAiAnalyzerButton
+              businessId={businessId}
+              canRun={canRunAi}
+              page="activity"
+              filters={{
+                range: rangeSelection === "Custom" ? undefined : rangeSelection,
+                date_from: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+                date_to: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+                start_date: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+                end_date: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+                action_type: filter || undefined,
+              }}
+            />            <Button
               variant="default"
               size="sm"
               onClick={handleExport}

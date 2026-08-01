@@ -4,6 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -278,6 +283,33 @@
   top: 0;
   width: 58mm;
   pointer-events: none;
+}
+
+@layer utilities {
+  .app-safe-shell {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+}
+
+/* Tauri Android/iOS edge-to-edge: WebView often reports 0 inset.
+   Use fixed floors first — max(env(), Npx) has crashed/blanked some WebViews. */
+html.native-edge {
+  --safe-top: 64px;
+  --safe-bottom: 28px;
+  --safe-left: 0px;
+  --safe-right: 0px;
+}
+
+@supports (padding: max(0px, env(safe-area-inset-top))) {
+  html.native-edge {
+    --safe-top: max(64px, env(safe-area-inset-top, 0px));
+    --safe-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+    --safe-left: max(0px, env(safe-area-inset-left, 0px));
+    --safe-right: max(0px, env(safe-area-inset-right, 0px));
+  }
 }
 
 @media print {

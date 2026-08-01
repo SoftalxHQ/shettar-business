@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="h-dvh overflow-hidden grid lg:grid-cols-2">
+    <div className="h-dvh overflow-hidden grid lg:grid-cols-2 app-safe-shell">
       <div className="h-full min-h-0 flex flex-col bg-white">
         <div className="flex-1 min-h-0 overflow-y-auto px-6 sm:px-8 pt-6 sm:pt-8">
           <div className="w-full max-w-md mx-auto space-y-6 pb-4">

@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfToday, endOfToday } from "date-fns"
+import { BusinessAiAnalyzerButton } from "@/components/business-ai-analyzer-button"
+import { useAppSelector } from "@/lib/store/hooks"
+import { selectUser } from "@/lib/store/slices/authSlice"
 
 function MetricTile({
   title,
@@ -70,6 +73,8 @@ function SecondaryStat({
 
 export default function AnalyticsPage() {
   const { businessId, logout } = useAuth()
+  const user = useAppSelector(selectUser)
+  const canRunAi = user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run
 
   const [rangeSelection, setRangeSelection] = useState("This month")
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()))
@@ -306,7 +311,22 @@ export default function AnalyticsPage() {
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">Insights and performance metrics</p>
           </div>
-          {dateRangeControl}
+          <div className="flex items-center gap-2 shrink-0">
+            <BusinessAiAnalyzerButton
+              businessId={businessId}
+              canRun={canRunAi}
+              page="analytics"
+              filters={{
+                range:
+                  rangeSelection === "Custom"
+                    ? undefined
+                    : rangeSelection,
+                start_date: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+                end_date: endDate ? format(endDate, "yyyy-MM-dd") : undefined,
+              }}
+            />
+            {dateRangeControl}
+          </div>
         </div>
 
         <div className="shrink-0 grid gap-3 grid-cols-2 xl:grid-cols-4">

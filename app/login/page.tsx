@@ -112,7 +112,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-dvh overflow-hidden grid lg:grid-cols-2">
+    <div className="h-dvh overflow-hidden grid lg:grid-cols-2 app-safe-shell">
       {/* Left side - Login form */}
       <div className="h-full min-h-0 overflow-y-auto flex items-center justify-center p-6 sm:p-8 bg-white">
         <div className="w-full max-w-md space-y-8 py-4">

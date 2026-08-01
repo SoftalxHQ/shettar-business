@@ -38,6 +38,7 @@ export interface Permissions {
   settings?: SettingsPermissions
   promos?: PromosPermissions
   ads?: AdsPermissions
+  ai_analyzer?: AiAnalyzerPermissions
   restaurant?: RestaurantPermissions
   guest_policies?: GuestPoliciesPermissions
 }
@@ -105,6 +106,11 @@ export interface AdsPermissions {
   manage?: boolean
 }
 
+export interface AiAnalyzerPermissions {
+  view?: boolean
+  run?: boolean
+}
+
 export interface RestaurantPermissions {
   view?: boolean
   manage_menu?: boolean
@@ -129,6 +135,7 @@ export const PERMISSION_PRESETS = {
       settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
       promos: { view: true, create: true, edit: true },
       ads: { view: true, manage: true },
+      ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
       guest_policies: { view: true, create: true, edit: true, delete: true }
     }
@@ -145,6 +152,7 @@ export const PERMISSION_PRESETS = {
       settings: { view: true, edit_details: false, edit_branding: false, edit_amenities: false },
       promos: { view: true, create: true, edit: true },
       ads: { view: true, manage: false },
+      ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: false, cancel_orders: true, mark_paid: true, refund: false },
       guest_policies: { view: true, create: false, edit: false, delete: false }
     }
@@ -255,6 +263,13 @@ export const PERMISSION_LABELS = {
     permissions: {
       view: "View Ads",
       manage: "Manage Ads & Campaigns"
+    }
+  },
+  ai_analyzer: {
+    title: "AI Analyzer",
+    permissions: {
+      view: "View AI points balance",
+      run: "Run AI Analyzer"
     }
   },
   restaurant: {
