@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.51
+
+### Highlights
+
+- Fix Android download APK: require release signing and publish the universal/arm64 release build (unsigned/wrong-ABI APKs installed as "package appears to be invalid")
+
 ## 0.1.50
 
 ### Highlights
