@@ -55,14 +55,57 @@ find_asset_name() {
 }
 
 # Download a release asset with GH_TOKEN (public URLs 404 on private repos).
+# Retries + HTTP/1.1 API fallback — large AppImages often hit HTTP/2 PROTOCOL_ERROR via gh.
 download_asset() {
   local name="$1"
   local dest="$2"
   if [ -z "$name" ]; then
     return 1
   fi
-  # --clobber: dest may already exist (mktemp creates an empty file)
-  gh release download "$TAG" --repo "$REPO" -p "$name" -O "$dest" --clobber
+
+  local attempt max_attempts=5
+  local err_file
+  err_file="$(mktemp)"
+
+  for attempt in $(seq 1 "$max_attempts"); do
+    rm -f "$dest"
+    if gh release download "$TAG" --repo "$REPO" -p "$name" -O "$dest" --clobber 2>"$err_file"; then
+      if [ -s "$dest" ]; then
+        rm -f "$err_file"
+        return 0
+      fi
+      echo "Download produced empty file for ${name} (attempt ${attempt}/${max_attempts})" >&2
+    else
+      echo "gh release download failed for ${name} (attempt ${attempt}/${max_attempts})" >&2
+      sed 's/^/  /' "$err_file" >&2 || true
+    fi
+
+    # Prefer API + HTTP/1.1 for large assets (AppImage ~80MB+).
+    local asset_id=""
+    asset_id="$(echo "$ASSETS_JSON" | jq -r --arg n "$name" '.[] | select(.name == $n) | .id // empty' | head -1)"
+    if [ -n "$asset_id" ]; then
+      rm -f "$dest"
+      if curl -fsSL --http1.1 --retry 3 --retry-all-errors --retry-delay 2 \
+        -H "Authorization: Bearer ${GH_TOKEN}" \
+        -H "Accept: application/octet-stream" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        -o "$dest" \
+        "https://api.github.com/repos/${REPO}/releases/assets/${asset_id}" \
+        2>"$err_file" \
+        && [ -s "$dest" ]; then
+        echo "Downloaded ${name} via GitHub API HTTP/1.1 (${asset_id})" >&2
+        rm -f "$err_file"
+        return 0
+      fi
+      echo "API download failed for ${name} (attempt ${attempt}/${max_attempts})" >&2
+      sed 's/^/  /' "$err_file" >&2 || true
+    fi
+
+    sleep $((attempt * 3))
+  done
+
+  rm -f "$err_file"
+  return 1
 }
 
 read_sig() {

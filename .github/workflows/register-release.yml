@@ -1,0 +1,69 @@
+name: Register desktop release
+
+# Re-run Rails/S3 registration without rebuilding installers (e.g. after a flaky download).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub release tag (e.g. v0.1.54-staging)"
+        required: true
+        type: string
+      channel:
+        description: "Release channel"
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+
+permissions:
+  contents: read
+
+jobs:
+  register-release:
+    name: Register release with Rails API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve API URL + version
+        id: env
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          CHANNEL="${{ inputs.channel }}"
+          VERSION="$(echo "$TAG" | sed -E 's/^v//; s/-staging$//; s/-production$//')"
+          if [ "$CHANNEL" = "staging" ]; then
+            API_URL="https://api.stg.shettar.com"
+          else
+            API_URL="https://api-v1.shettar.com"
+          fi
+          {
+            echo "tag=$TAG"
+            echo "channel=$CHANNEL"
+            echo "version=$VERSION"
+            echo "api_url=$API_URL"
+          } >> "$GITHUB_OUTPUT"
+          echo "Registering $CHANNEL/$VERSION ($TAG) → $API_URL"
+
+      - name: Map GitHub assets and POST to Rails
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DESKTOP_RELEASE_CI_TOKEN: ${{ secrets.DESKTOP_RELEASE_CI_TOKEN }}
+          API_URL: ${{ steps.env.outputs.api_url }}
+          CHANNEL: ${{ steps.env.outputs.channel }}
+          VERSION: ${{ steps.env.outputs.version }}
+          TAG: ${{ steps.env.outputs.tag }}
+          BUSINESS_ANDROID_STORE_URL: ${{ secrets.BUSINESS_ANDROID_STORE_URL }}
+          BUSINESS_IOS_STORE_URL: ${{ secrets.BUSINESS_IOS_STORE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DESKTOP_RELEASE_CI_TOKEN:-}" ]; then
+            echo "::error::DESKTOP_RELEASE_CI_TOKEN secret is not set"
+            exit 1
+          fi
+          chmod +x scripts/register-desktop-release.sh
+          ./scripts/register-desktop-release.sh
