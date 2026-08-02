@@ -17,13 +17,24 @@ open class RustPlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
         config = extensions.create("rust", Config::class.java)
 
-        val defaultAbiList = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64");
-        val abiList = (findProperty("abiList") as? String)?.split(',') ?: defaultAbiList
+        // Default arm64-only — multi-ABI fills CI runners. Override via gradle.properties:
+        //   abiList=arm64-v8a,armeabi-v7a,x86,x86_64
+        //   archList=arm64,arm,x86,x86_64
+        //   targetList=aarch64,armv7,i686,x86_64
+        val defaultAbiList = listOf("arm64-v8a")
+        val defaultArchList = listOf("arm64")
+        val defaultTargetList = listOf("aarch64")
 
-        val defaultArchList = listOf("arm64", "arm", "x86", "x86_64");
-        val archList = (findProperty("archList") as? String)?.split(',') ?: defaultArchList
+        val abiList = (findProperty("abiList") as? String)?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+            ?: defaultAbiList
+        val archList = (findProperty("archList") as? String)?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+            ?: defaultArchList
+        val targetsList = (findProperty("targetList") as? String)?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+            ?: defaultTargetList
 
-        val targetsList = (findProperty("targetList") as? String)?.split(',') ?: listOf("aarch64", "armv7", "i686", "x86_64")
+        require(abiList.size == archList.size && archList.size == targetsList.size) {
+            "abiList, archList, and targetList must have the same length (got ${abiList.size}, ${archList.size}, ${targetsList.size})"
+        }
 
         extensions.configure<ApplicationExtension> {
             @Suppress("UnstableApiUsage")
@@ -35,11 +46,11 @@ open class RustPlugin : Plugin<Project> {
                         abiFilters += abiList
                     }
                 }
-                defaultArchList.forEachIndexed { index, arch ->
+                archList.forEachIndexed { index, arch ->
                     create(arch) {
                         dimension = "abi"
                         ndk {
-                            abiFilters.add(defaultAbiList[index])
+                            abiFilters.add(abiList[index])
                         }
                     }
                 }
@@ -54,7 +65,7 @@ open class RustPlugin : Plugin<Project> {
                     DefaultTask::class.java
                 ).apply {
                     group = TASK_GROUP
-                    description = "Build dynamic library in $profile mode for all targets"
+                    description = "Build dynamic library in $profile mode for all configured targets"
                 }
 
                 tasks["mergeUniversal${profileCapitalized}JniLibFolders"].dependsOn(buildTask)

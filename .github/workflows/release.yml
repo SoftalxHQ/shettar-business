@@ -285,6 +285,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free disk space
+        run: |
+          set -euo pipefail
+          df -h
+          # Do NOT delete $AGENT_TOOLSDIRECTORY — setup-ndk installs into hostedtoolcache.
+          sudo rm -rf /usr/share/dotnet \
+            /usr/local/lib/android/sdk/ndk-bundle \
+            /usr/local/lib/android/sdk/system-images \
+            /usr/local/lib/android/sdk/emulator \
+            /opt/ghc \
+            /usr/local/share/boost || true
+          sudo apt-get clean || true
+          df -h
+
       - name: setup node
         uses: actions/setup-node@v4
         with:
@@ -309,27 +323,17 @@ jobs:
           ndk-version: r27
           link-to-sdk: true
 
-      - name: Free disk space
-        run: |
-          set -euo pipefail
-          df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk-bundle /usr/local/lib/android/sdk/system-images \
-            /usr/local/lib/android/sdk/emulator /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
-          sudo apt-get clean || true
-          df -h
-
       - name: install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.88.0"
-          # Physical tablets are arm64. Building i686/x86_64 too OOMs the runner disk.
+          # Physical tablets are arm64. Building i686/x86_64 too fills the runner disk.
           targets: aarch64-linux-android
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
-          # Don't restore a multi-ABI cache that refills the disk.
           cache-targets: false
 
       - name: install frontend dependencies
@@ -396,7 +400,13 @@ jobs:
           ANDROID_SIGNING_MODE: ${{ steps.android_signing.outputs.mode }}
         run: |
           set -euo pipefail
-          # arm64-only APK — enough for current tablets; avoids multi-ABI disk blowups on CI.
+          # Pin Gradle to arm64-only rust targets (RustPlugin reads these -P props).
+          export ORG_GRADLE_PROJECT_abiList=arm64-v8a
+          export ORG_GRADLE_PROJECT_archList=arm64
+          export ORG_GRADLE_PROJECT_targetList=aarch64
+          test -n "${NDK_HOME:-}" && test -d "$NDK_HOME"
+          echo "NDK_HOME=$NDK_HOME"
+          ls "$NDK_HOME" | head
           if [ "${ANDROID_SIGNING_MODE}" = "debug" ]; then
             pnpm tauri android build --apk --debug --ci --target aarch64
           else

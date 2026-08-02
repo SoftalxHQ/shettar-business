@@ -1,5 +1,12 @@
 # Shettar Business release notes
 
+## 0.1.54
+
+### Highlights
+
+- Android CI: free disk space before NDK setup (no longer wipes hostedtoolcache / NDK)
+- Gradle Rust plugin defaults to arm64-only so multi-ABI compile cannot refill the runner
+
 ## 0.1.53
 
 ### Highlights
