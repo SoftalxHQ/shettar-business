@@ -309,16 +309,28 @@ jobs:
           ndk-version: r27
           link-to-sdk: true
 
+      - name: Free disk space
+        run: |
+          set -euo pipefail
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk-bundle /usr/local/lib/android/sdk/system-images \
+            /usr/local/lib/android/sdk/emulator /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo apt-get clean || true
+          df -h
+
       - name: install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.88.0"
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          # Physical tablets are arm64. Building i686/x86_64 too OOMs the runner disk.
+          targets: aarch64-linux-android
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          # Don't restore a multi-ABI cache that refills the disk.
+          cache-targets: false
 
       - name: install frontend dependencies
         run: pnpm install
@@ -384,10 +396,11 @@ jobs:
           ANDROID_SIGNING_MODE: ${{ steps.android_signing.outputs.mode }}
         run: |
           set -euo pipefail
+          # arm64-only APK — enough for current tablets; avoids multi-ABI disk blowups on CI.
           if [ "${ANDROID_SIGNING_MODE}" = "debug" ]; then
-            pnpm tauri android build --apk --debug --ci
+            pnpm tauri android build --apk --debug --ci --target aarch64
           else
-            pnpm tauri android build --apk --ci
+            pnpm tauri android build --apk --ci --target aarch64
           fi
 
       - name: Upload APK to GitHub Release
@@ -403,14 +416,13 @@ jobs:
           echo "APK outputs (mode=${BUILD_KIND}):"
           find "$APK_ROOT" -name '*.apk' -type f -print || true
 
-          # Prefer universal build for the selected variant. Never upload *-unsigned.apk or a random ABI
-          # (find | head -1 can pick x86 and install as "package appears to be invalid" on tablets).
+          # Prefer arm64 (what we build). Never upload *-unsigned.apk or a random ABI.
           APK=""
           for candidate in \
-            "$APK_ROOT"/universal/"$BUILD_KIND"/*-universal-"$BUILD_KIND".apk \
-            "$APK_ROOT"/universal/"$BUILD_KIND"/*.apk \
             "$APK_ROOT"/arm64/"$BUILD_KIND"/*-arm64-"$BUILD_KIND".apk \
-            "$APK_ROOT"/arm64/"$BUILD_KIND"/*.apk
+            "$APK_ROOT"/arm64/"$BUILD_KIND"/*.apk \
+            "$APK_ROOT"/universal/"$BUILD_KIND"/*-universal-"$BUILD_KIND".apk \
+            "$APK_ROOT"/universal/"$BUILD_KIND"/*.apk
           do
             if [ -f "$candidate" ] && [[ "$candidate" != *"-unsigned.apk" ]]; then
               APK="$candidate"

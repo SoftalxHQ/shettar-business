@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.53
+
+### Highlights
+
+- Android CI builds arm64 only (fixes runner disk-full failures from building i686/x86 ABIs)
+
 ## 0.1.52
 
 ### Highlights
