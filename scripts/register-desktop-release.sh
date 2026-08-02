@@ -126,6 +126,7 @@ content_type_for() {
     *.dmg) echo "application/x-apple-diskimage" ;;
     *.deb) echo "application/vnd.debian.binary-package" ;;
     *.rpm) echo "application/x-rpm" ;;
+    *.apk) echo "application/vnd.android.package-archive" ;;
     *) echo "application/octet-stream" ;;
   esac
 }
@@ -156,6 +157,19 @@ upload_release_asset_to_s3() {
     echo "::error::Failed to download ${name} for S3 upload" >&2
     rm -rf "$tmpdir"
     return 1
+  fi
+
+  # Reject HTML/XML mistakenly saved as .apk (private GitHub 404, etc.)
+  if [[ "$name" == *.apk ]]; then
+    local magic
+    magic="$(head -c 2 "$local_file" | od -An -t x1 | tr -d ' \n')"
+    if [ "$magic" != "504b" ]; then
+      echo "::error::Downloaded ${name} is not a ZIP/APK (magic=${magic}). Refusing to publish." >&2
+      head -c 120 "$local_file" >&2 || true
+      echo >&2
+      rm -rf "$tmpdir"
+      return 1
+    fi
   fi
 
   local ctype

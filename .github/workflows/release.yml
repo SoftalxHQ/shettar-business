@@ -338,12 +338,16 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
-            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK may be unsigned"
-            exit 0
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ] || [ -z "${ANDROID_STORE_PASSWORD:-}" ]; then
+            echo "::error::Android signing secrets required (ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, ANDROID_STORE_PASSWORD). Unsigned APKs install as 'package appears to be invalid'."
+            exit 1
           fi
           mkdir -p src-tauri/gen/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${GITHUB_WORKSPACE}/shettar-business-release.keystore"
+          if [ ! -s "${GITHUB_WORKSPACE}/shettar-business-release.keystore" ]; then
+            echo "::error::Decoded keystore is empty — check ANDROID_KEYSTORE_BASE64"
+            exit 1
+          fi
           cat > src-tauri/gen/android/keystore.properties <<EOF
           storeFile=${GITHUB_WORKSPACE}/shettar-business-release.keystore
           keyAlias=${ANDROID_KEY_ALIAS}
@@ -352,6 +356,7 @@ jobs:
           EOF
           # Strip accidental leading whitespace from heredoc lines
           sed -i 's/^[[:space:]]*//' src-tauri/gen/android/keystore.properties
+          echo "Wrote keystore.properties for release signing"
       - name: Ensure Android project exists
         run: |
           if [ ! -d src-tauri/gen/android ]; then
@@ -376,11 +381,46 @@ jobs:
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
           set -euo pipefail
-          APK="$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
+          APK_ROOT="src-tauri/gen/android/app/build/outputs/apk"
+          echo "APK outputs:"
+          find "$APK_ROOT" -name '*.apk' -type f -print || true
+
+          # Prefer universal/release signed APK. Never upload *-unsigned.apk or a random ABI
+          # (find | head -1 can pick x86 and install as "package appears to be invalid" on tablets).
+          APK=""
+          for candidate in \
+            "$APK_ROOT"/universal/release/*-universal-release.apk \
+            "$APK_ROOT"/universal/release/*.apk \
+            "$APK_ROOT"/arm64/release/*-arm64-release.apk \
+            "$APK_ROOT"/arm64/release/*.apk
+          do
+            if [ -f "$candidate" ] && [[ "$candidate" != *"-unsigned.apk" ]]; then
+              APK="$candidate"
+              break
+            fi
+          done
+
           if [ -z "$APK" ]; then
-            echo "::error::No APK found after Android build"
+            APK="$(find "$APK_ROOT" -path '*/release/*.apk' ! -name '*-unsigned.apk' -type f | head -1 || true)"
+          fi
+
+          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+            echo "::error::No signed release APK found under $APK_ROOT"
             exit 1
           fi
+
+          if [[ "$APK" == *"-unsigned.apk" ]]; then
+            echo "::error::Refusing to publish unsigned APK: $APK"
+            exit 1
+          fi
+
+          # Sanity: APK is a ZIP (PK…); HTML/XML download mistakes fail here.
+          if ! unzip -t "$APK" >/dev/null; then
+            echo "::error::APK failed zip integrity check: $APK"
+            exit 1
+          fi
+
+          echo "Publishing APK: $APK ($(du -h "$APK" | cut -f1))"
           DEST="Shettar-Business_${VERSION}_android.apk"
           cp "$APK" "$DEST"
           gh release upload "$TAG" "$DEST" --clobber

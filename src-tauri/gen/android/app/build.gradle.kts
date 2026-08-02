@@ -61,6 +61,12 @@ android {
             val releaseSigning = signingConfigs.findByName("release")
             if (releaseSigning?.storeFile != null) {
                 signingConfig = releaseSigning
+            } else {
+                // Unsigned release APKs install as "package appears to be invalid" on modern Android.
+                logger.warn(
+                    "Release signingConfig has no storeFile — set gen/android/keystore.properties " +
+                        "(CI: ANDROID_KEYSTORE_* secrets). Output may be unsigned."
+                )
             }
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
