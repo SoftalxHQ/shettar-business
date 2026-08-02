@@ -40,3 +40,4 @@ src-tauri/gen/android/**/*.jks
 src-tauri/gen/android/**/*.keystore
 src-tauri/gen/apple/**/*.p12
 src-tauri/gen/apple/**/*.mobileprovision
+.android-signing/

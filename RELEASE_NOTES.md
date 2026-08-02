@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.52
+
+### Highlights
+
+- Staging Android builds can use a debug-signed APK when release keystore secrets are missing (still installable). Production still requires ANDROID_KEYSTORE_* secrets.
+
 ## 0.1.51
 
 ### Highlights

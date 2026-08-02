@@ -88,6 +88,9 @@ The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_
 | `PAYSTACK_PUBLIC_KEY` | Fallback |
 | `ANDROID_KEYSTORE_BASE64` | Base64-encoded release keystore for signed APKs |
 | `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` / `ANDROID_STORE_PASSWORD` | Android signing |
+
+Generate a keystore and secret values with [`scripts/generate-android-keystore.sh`](scripts/generate-android-keystore.sh).  
+**Staging** tags can fall back to a **debug-signed** APK if these secrets are missing (installable, not Play-ready). **Production** tags require the secrets.
 | `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_PROVISIONING_PROFILE` / `APPLE_SIGNING_IDENTITY` | iOS IPA signing |
 | `APP_STORE_CONNECT_API_KEY` / `APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` | Optional TestFlight / App Store upload |
 | `BUSINESS_IOS_STORE_URL` | Public iOS download link stored with the release |

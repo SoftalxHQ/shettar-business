@@ -331,7 +331,9 @@ jobs:
         run: pnpm configure:updater
 
       - name: Decode Android keystore
+        id: android_signing
         env:
+          APP_ENV: ${{ needs.prepare-release.outputs.app_env }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -339,8 +341,13 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ] || [ -z "${ANDROID_STORE_PASSWORD:-}" ]; then
-            echo "::error::Android signing secrets required (ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, ANDROID_STORE_PASSWORD). Unsigned APKs install as 'package appears to be invalid'."
-            exit 1
+            if [ "${APP_ENV}" = "production" ]; then
+              echo "::error::Production Android builds require ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, ANDROID_STORE_PASSWORD."
+              exit 1
+            fi
+            echo "mode=debug" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Android keystore secrets — building a debug-signed APK for staging (installable). Add ANDROID_KEYSTORE_* secrets for release signing / Play Store."
+            exit 0
           fi
           mkdir -p src-tauri/gen/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${GITHUB_WORKSPACE}/shettar-business-release.keystore"
@@ -356,7 +363,9 @@ jobs:
           EOF
           # Strip accidental leading whitespace from heredoc lines
           sed -i 's/^[[:space:]]*//' src-tauri/gen/android/keystore.properties
+          echo "mode=release" >> "$GITHUB_OUTPUT"
           echo "Wrote keystore.properties for release signing"
+
       - name: Ensure Android project exists
         run: |
           if [ ! -d src-tauri/gen/android ]; then
@@ -372,27 +381,36 @@ jobs:
           NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ needs.prepare-release.outputs.paystack_public_key }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: pnpm tauri android build --apk --ci
+          ANDROID_SIGNING_MODE: ${{ steps.android_signing.outputs.mode }}
+        run: |
+          set -euo pipefail
+          if [ "${ANDROID_SIGNING_MODE}" = "debug" ]; then
+            pnpm tauri android build --apk --debug --ci
+          else
+            pnpm tauri android build --apk --ci
+          fi
 
       - name: Upload APK to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.prepare-release.outputs.tag_name }}
           VERSION: ${{ needs.prepare-release.outputs.version }}
+          ANDROID_SIGNING_MODE: ${{ steps.android_signing.outputs.mode }}
         run: |
           set -euo pipefail
           APK_ROOT="src-tauri/gen/android/app/build/outputs/apk"
-          echo "APK outputs:"
+          BUILD_KIND="${ANDROID_SIGNING_MODE:-release}"
+          echo "APK outputs (mode=${BUILD_KIND}):"
           find "$APK_ROOT" -name '*.apk' -type f -print || true
 
-          # Prefer universal/release signed APK. Never upload *-unsigned.apk or a random ABI
+          # Prefer universal build for the selected variant. Never upload *-unsigned.apk or a random ABI
           # (find | head -1 can pick x86 and install as "package appears to be invalid" on tablets).
           APK=""
           for candidate in \
-            "$APK_ROOT"/universal/release/*-universal-release.apk \
-            "$APK_ROOT"/universal/release/*.apk \
-            "$APK_ROOT"/arm64/release/*-arm64-release.apk \
-            "$APK_ROOT"/arm64/release/*.apk
+            "$APK_ROOT"/universal/"$BUILD_KIND"/*-universal-"$BUILD_KIND".apk \
+            "$APK_ROOT"/universal/"$BUILD_KIND"/*.apk \
+            "$APK_ROOT"/arm64/"$BUILD_KIND"/*-arm64-"$BUILD_KIND".apk \
+            "$APK_ROOT"/arm64/"$BUILD_KIND"/*.apk
           do
             if [ -f "$candidate" ] && [[ "$candidate" != *"-unsigned.apk" ]]; then
               APK="$candidate"
@@ -401,11 +419,11 @@ jobs:
           done
 
           if [ -z "$APK" ]; then
-            APK="$(find "$APK_ROOT" -path '*/release/*.apk' ! -name '*-unsigned.apk' -type f | head -1 || true)"
+            APK="$(find "$APK_ROOT" -path "*/${BUILD_KIND}/*.apk" ! -name '*-unsigned.apk' -type f | head -1 || true)"
           fi
 
           if [ -z "$APK" ] || [ ! -f "$APK" ]; then
-            echo "::error::No signed release APK found under $APK_ROOT"
+            echo "::error::No ${BUILD_KIND} APK found under $APK_ROOT"
             exit 1
           fi
 
