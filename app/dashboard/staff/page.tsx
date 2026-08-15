@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react"
 import { Users, Plus, Search, Crown } from "lucide-react"
 import { toast } from "sonner"
 import type { StaffMember } from "@/lib/staff-types"
-import { STATUS_FILTER_OPTIONS } from "@/lib/staff-types"
+import { STATUS_FILTER_OPTIONS, canInviteStaffMembers } from "@/lib/staff-types"
 import { fetchStaff } from "@/lib/staff-api"
 import { StaffCard } from "./components/StaffCard"
 import { AddStaffDialog } from "./components/AddStaffDialog"
@@ -143,7 +143,11 @@ export default function StaffPage() {
     (m) => !m.is_owner && (m.status || "active") !== "active"
   ).length
 
-  const canAdd = !!user?.isOwner || user?.role === "admin" || !!user?.permissions?.staff?.add
+  const canAdd = canInviteStaffMembers({
+    title: user?.title,
+    isOwner: user?.isOwner,
+    permissions: user?.permissions,
+  })
 
   if (!user?.isOwner && user?.role !== "admin" && !user?.permissions?.staff?.view) {
     return null

@@ -38,6 +38,7 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
   const assignablePresets = getAssignablePresets({
     title: user?.title,
     isOwner: user?.isOwner,
+    permissions: user?.permissions,
   })
   const initial = getSwitchRoleInitialState(member)
   const initialPreset = assignablePresets.includes(initial.preset)

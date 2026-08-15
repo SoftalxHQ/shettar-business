@@ -8,7 +8,13 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
-import { PERMISSION_PRESETS, getAssignablePresets, type Permissions } from "@/lib/staff-types"
+import {
+  PERMISSION_PRESETS,
+  canInviteStaffMembers,
+  getAssignablePresets,
+  type PermissionPresetKey,
+  type Permissions,
+} from "@/lib/staff-types"
 import { PermissionPresetSelector } from "./PermissionPresetSelector"
 import { PermissionsForm } from "./PermissionsForm"
 
@@ -19,39 +25,45 @@ interface AddStaffDialogProps {
 
 export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
   const { businessId, logout, user } = useAuth()
-  const assignablePresets = getAssignablePresets(
-    { title: user?.title, isOwner: user?.isOwner },
-    { includeFullAccess: !!user?.isOwner }
-  )
-  const defaultPreset =
-    (assignablePresets.find((key) => key === "front_desk") as keyof typeof PERMISSION_PRESETS | undefined) ||
-    (assignablePresets.find((key) => key !== "custom") as keyof typeof PERMISSION_PRESETS | undefined) ||
+  const actor = {
+    title: user?.title,
+    isOwner: user?.isOwner,
+    permissions: user?.permissions,
+  }
+  const canInvite = canInviteStaffMembers(actor)
+  const assignablePresets = getAssignablePresets(actor, { includeFullAccess: !!user?.isOwner })
+  const defaultPreset: PermissionPresetKey =
+    (assignablePresets.find((key) => key === "front_desk") as PermissionPresetKey | undefined) ||
+    (assignablePresets.find((key) => key !== "custom") as PermissionPresetKey | undefined) ||
     "custom"
+
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Form state
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [selectedPreset, setSelectedPreset] = useState<PermissionPresetKey>(defaultPreset)
   const [title, setTitle] = useState(
     defaultPreset === "custom" ? "" : PERMISSION_PRESETS[defaultPreset].name
   )
-  const [selectedPreset, setSelectedPreset] = useState<keyof typeof PERMISSION_PRESETS>(defaultPreset)
   const [permissions, setPermissions] = useState<Permissions>(
-    defaultPreset === "custom" ? {} : PERMISSION_PRESETS[defaultPreset].permissions
+    defaultPreset === "custom" ? {} : (PERMISSION_PRESETS[defaultPreset].permissions as Permissions)
   )
 
-  const handlePresetChange = (preset: keyof typeof PERMISSION_PRESETS) => {
+  const handlePresetChange = (preset: PermissionPresetKey) => {
     setSelectedPreset(preset)
     if (preset !== "custom") {
-      setPermissions(PERMISSION_PRESETS[preset].permissions)
+      setPermissions(PERMISSION_PRESETS[preset].permissions as Permissions)
       setTitle(PERMISSION_PRESETS[preset].name)
     }
   }
 
   const handleNext = () => {
-    // Validation for step 1
+    if (!canInvite) {
+      toast.error("Only the owner, general manager, or human resource can add staff")
+      return
+    }
     if (!email.trim()) {
       toast.error("Email is required")
       return
@@ -68,12 +80,14 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
       toast.error("Job title is required")
       return
     }
+    if (assignablePresets.length === 0) {
+      toast.error("You cannot assign any roles at your level")
+      return
+    }
 
-    // If custom permissions, go to step 2
     if (selectedPreset === "custom") {
       setCurrentStep(2)
     } else {
-      // Otherwise, save directly
       handleSubmit()
     }
   }
@@ -97,7 +111,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
             email,
             first_name: firstName,
             last_name: lastName,
-            title,
+            title: title.trim(),
             permissions,
             is_owner: selectedPreset === "full_access",
           }),
@@ -111,14 +125,19 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
       } else {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
-          if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
+          if (errorData.errors?.[0]?.id === "expiration" || errorData.message === "Signature has expired") {
             toast.error("Session expired. Please login again.")
             logout()
             return
           }
         }
         const error = await response.json().catch(() => ({}))
-        toast.error(error.status?.message || "Failed to add staff member")
+        toast.error(
+          error.error ||
+            error.errors?.join?.(", ") ||
+            error.status?.message ||
+            "Failed to add staff member"
+        )
       }
     } catch (error) {
       console.error("Error adding staff:", error)
@@ -126,6 +145,24 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  if (!canInvite) {
+    return (
+      <Dialog open onOpenChange={onCancel}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Staff Member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Only the business owner, general manager, or human resource can add staff.
+          </p>
+          <DialogFooter>
+            <Button onClick={onCancel}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
@@ -139,7 +176,6 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
 
         {currentStep === 1 ? (
           <div className="space-y-6 py-4">
-            {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                 Basic Information
@@ -156,7 +192,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  We'll check if this email exists in the system
+                  We&apos;ll check if this email exists in the system
                 </p>
               </div>
 
@@ -190,22 +226,39 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Front Desk Manager"
+                  placeholder="e.g., Front Desk"
                   required
+                  readOnly={selectedPreset !== "custom"}
+                  className={selectedPreset !== "custom" ? "bg-muted" : undefined}
                 />
+                {selectedPreset !== "custom" && (
+                  <p className="text-xs text-muted-foreground">
+                    Title follows the selected role. Choose Custom to set a different title.
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Permission Presets */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                Quick Permissions
-              </h3>
-              <PermissionPresetSelector
-                presets={assignablePresets}
-                selected={selectedPreset}
-                onSelect={handlePresetChange}
-              />
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Role
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only roles below your level are available.
+                </p>
+              </div>
+              {assignablePresets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  There are no roles you can assign.
+                </p>
+              ) : (
+                <PermissionPresetSelector
+                  presets={assignablePresets}
+                  selected={selectedPreset}
+                  onSelect={handlePresetChange}
+                />
+              )}
             </div>
           </div>
         ) : (
@@ -232,7 +285,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
               Cancel
             </Button>
             {currentStep === 1 ? (
-              <Button onClick={handleNext} disabled={isSaving}>
+              <Button onClick={handleNext} disabled={isSaving || assignablePresets.length === 0}>
                 {selectedPreset === "custom" ? "Next: Permissions →" : "Add Staff Member"}
               </Button>
             ) : (

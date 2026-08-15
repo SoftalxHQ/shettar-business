@@ -374,9 +374,17 @@ export const STAFF_TITLE_RANK: Record<string, number> = {
   "human resource": 1,
 }
 
+function normalizedStaffTitleKey(title?: string | null): string {
+  const key = title?.trim().toLowerCase() || ""
+  if (!key) return ""
+  if (key === "gm" || key.includes("general manager")) return "general manager"
+  if (key === "hr" || key.includes("human resource")) return "human resource"
+  return key
+}
+
 export function staffTitleRank(title?: string | null, isOwner?: boolean): number {
   if (isOwner) return 3
-  const key = title?.trim().toLowerCase() || ""
+  const key = normalizedStaffTitleKey(title)
   return STAFF_TITLE_RANK[key] ?? 0
 }
 
@@ -393,17 +401,48 @@ export function canManageStaffMember(
   return staffTitleRank(actor.title) > staffTitleRank(target.title, target.is_owner)
 }
 
+/** Only Owner, General Manager, and Human Resource may invite staff. */
+export function canInviteStaffMembers(actor: {
+  title?: string | null
+  isOwner?: boolean
+  /** Used when title was not hydrated on an older session. */
+  permissions?: { staff?: { add?: boolean; create?: boolean; view?: boolean } } | null
+}): boolean {
+  if (actor.isOwner) return true
+  if (staffTitleRank(actor.title) >= 1) return true
+
+  // Older sessions may lack title on the client; elevated presets grant staff.add.
+  const titleMissing = !actor.title?.trim()
+  const canAdd =
+    actor.permissions?.staff?.add === true || actor.permissions?.staff?.create === true
+  return titleMissing && canAdd
+}
+
 /** Presets the actor may assign (strictly below their own rank). Owners may assign any switchable preset. */
 export function getAssignablePresets(
-  actor: { title?: string | null; isOwner?: boolean },
+  actor: {
+    title?: string | null
+    isOwner?: boolean
+    permissions?: { staff?: { add?: boolean; create?: boolean } } | null
+  },
   options?: { includeFullAccess?: boolean }
 ): PermissionPresetKey[] {
+  if (!canInviteStaffMembers(actor)) return []
+
   const base = getSwitchablePresets()
   if (actor.isOwner) {
     return options?.includeFullAccess ? ["full_access", ...base] : base
   }
 
-  const actorRank = staffTitleRank(actor.title, actor.isOwner)
+  let actorRank = staffTitleRank(actor.title, actor.isOwner)
+  // Title missing on older sessions: staff.add implies at least HR-level invite scope.
+  if (
+    actorRank < 1 &&
+    (actor.permissions?.staff?.add === true || actor.permissions?.staff?.create === true)
+  ) {
+    actorRank = 1
+  }
+
   return base.filter((key) => {
     if (key === "custom") return true
     return staffTitleRank(PERMISSION_PRESETS[key].name) < actorRank
