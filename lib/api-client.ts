@@ -62,11 +62,16 @@ class ApiClient {
       const nestedError = Array.isArray(errorData.error)
         ? errorData.error[0]?.message
         : errorData.error
-      throw new ApiError(
-        response.status,
-        errorData.message || nestedError || response.statusText,
-        errorData,
-      )
+      const statusErrors = Array.isArray(errorData.status?.errors)
+        ? errorData.status.errors.filter(Boolean).join(". ")
+        : ""
+      const message =
+        statusErrors ||
+        errorData.status?.message ||
+        errorData.message ||
+        nestedError ||
+        response.statusText
+      throw new ApiError(response.status, message, errorData)
     }
 
     return response.json()

@@ -42,7 +42,7 @@ export default function BuyAiPointsPage() {
 
   const numericPoints = parseInt(points, 10) || 0
   const pricePerPoint = balance?.config.point_price_naira ?? 50
-  const monthlyFree = balance?.config.monthly_free_points ?? 5
+  const welcomeFree = balance?.config.monthly_free_points ?? 5
   const withdrawable = balance?.withdrawable_balance ?? 0
   const targetAmount = numericPoints * pricePerPoint
   const feeBreakdown = useMemo(() => {
@@ -248,9 +248,10 @@ export default function BuyAiPointsPage() {
                 <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3.5 py-3 text-xs text-indigo-950 space-y-1.5">
                   <p className="font-semibold text-indigo-900">How AI points work</p>
                   <p>
-                    You get <span className="font-semibold">{monthlyFree} free points</span> every month.
-                    Free credits <span className="font-semibold">reset on the 1st of each month</span> — unused free
-                    points do not roll over. Purchased points never expire and are kept separately.
+                    New businesses receive{" "}
+                    <span className="font-semibold">{welcomeFree} free welcome points</span> once at
+                    registration. Free points are not refilled monthly — when they run out, buy more
+                    below. Purchased points never expire and are kept separately.
                   </p>
                   <p className="text-indigo-800/80">
                     Analyzer runs spend free points first, then purchased points.

@@ -68,7 +68,7 @@ export default function StaffPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && !user.isOwner && user.role !== "admin") {
       if (!user.permissions?.staff?.view) {
         router.push("/dashboard/business")
       }
@@ -79,7 +79,7 @@ export default function StaffPage() {
   logoutRef.current = logout
 
   const canViewStaff =
-    user?.role === "admin" || Boolean(user?.permissions?.staff?.view)
+    !!user?.isOwner || user?.role === "admin" || Boolean(user?.permissions?.staff?.view)
 
   useEffect(() => {
     if (!businessId || !canViewStaff) return
@@ -143,9 +143,9 @@ export default function StaffPage() {
     (m) => !m.is_owner && (m.status || "active") !== "active"
   ).length
 
-  const canAdd = user?.role === "admin" || user?.permissions?.staff?.add
+  const canAdd = !!user?.isOwner || user?.role === "admin" || !!user?.permissions?.staff?.add
 
-  if (user?.role !== "admin" && !user?.permissions?.staff?.view) {
+  if (!user?.isOwner && user?.role !== "admin" && !user?.permissions?.staff?.view) {
     return null
   }
 

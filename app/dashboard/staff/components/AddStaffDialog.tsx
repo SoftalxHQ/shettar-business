@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
-import { PERMISSION_PRESETS, type Permissions } from "@/lib/staff-types"
+import { PERMISSION_PRESETS, getAssignablePresets, type Permissions } from "@/lib/staff-types"
 import { PermissionPresetSelector } from "./PermissionPresetSelector"
 import { PermissionsForm } from "./PermissionsForm"
 
@@ -18,7 +18,15 @@ interface AddStaffDialogProps {
 }
 
 export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
-  const { businessId, logout } = useAuth()
+  const { businessId, logout, user } = useAuth()
+  const assignablePresets = getAssignablePresets(
+    { title: user?.title, isOwner: user?.isOwner },
+    { includeFullAccess: !!user?.isOwner }
+  )
+  const defaultPreset =
+    (assignablePresets.find((key) => key === "front_desk") as keyof typeof PERMISSION_PRESETS | undefined) ||
+    (assignablePresets.find((key) => key !== "custom") as keyof typeof PERMISSION_PRESETS | undefined) ||
+    "custom"
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -26,14 +34,19 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
-  const [title, setTitle] = useState("")
-  const [selectedPreset, setSelectedPreset] = useState<keyof typeof PERMISSION_PRESETS>("front_desk")
-  const [permissions, setPermissions] = useState<Permissions>(PERMISSION_PRESETS.front_desk.permissions)
+  const [title, setTitle] = useState(
+    defaultPreset === "custom" ? "" : PERMISSION_PRESETS[defaultPreset].name
+  )
+  const [selectedPreset, setSelectedPreset] = useState<keyof typeof PERMISSION_PRESETS>(defaultPreset)
+  const [permissions, setPermissions] = useState<Permissions>(
+    defaultPreset === "custom" ? {} : PERMISSION_PRESETS[defaultPreset].permissions
+  )
 
   const handlePresetChange = (preset: keyof typeof PERMISSION_PRESETS) => {
     setSelectedPreset(preset)
     if (preset !== "custom") {
       setPermissions(PERMISSION_PRESETS[preset].permissions)
+      setTitle(PERMISSION_PRESETS[preset].name)
     }
   }
 
@@ -189,6 +202,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
                 Quick Permissions
               </h3>
               <PermissionPresetSelector
+                presets={assignablePresets}
                 selected={selectedPreset}
                 onSelect={handlePresetChange}
               />

@@ -20,7 +20,7 @@ import {
   getPermissionSummary,
   getPresetPermissions,
   getSwitchRoleInitialState,
-  getSwitchablePresets,
+  getAssignablePresets,
   type PermissionPresetKey,
   type StaffMember,
 } from "@/lib/staff-types"
@@ -34,11 +34,26 @@ interface SwitchRoleDialogProps {
 }
 
 export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDialogProps) {
-  const { businessId } = useAuth()
+  const { businessId, user } = useAuth()
+  const assignablePresets = getAssignablePresets({
+    title: user?.title,
+    isOwner: user?.isOwner,
+  })
   const initial = getSwitchRoleInitialState(member)
-  const [selectedPreset, setSelectedPreset] = useState<PermissionPresetKey>(initial.preset)
-  const [title, setTitle] = useState(initial.title)
-  const [permissions, setPermissions] = useState(initial.permissions)
+  const initialPreset = assignablePresets.includes(initial.preset)
+    ? initial.preset
+    : (assignablePresets.find((key) => key !== "custom") ?? "custom")
+  const [selectedPreset, setSelectedPreset] = useState<PermissionPresetKey>(initialPreset)
+  const [title, setTitle] = useState(
+    assignablePresets.includes(initial.preset)
+      ? initial.title
+      : PERMISSION_PRESETS[initialPreset].name
+  )
+  const [permissions, setPermissions] = useState(
+    assignablePresets.includes(initial.preset)
+      ? initial.permissions
+      : getPresetPermissions(initialPreset === "custom" ? "front_desk" : initialPreset)
+  )
   const [step, setStep] = useState<1 | 2>(1)
   const [saving, setSaving] = useState(false)
 
@@ -104,7 +119,7 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
               />
             </div>
             <PermissionPresetSelector
-              presets={getSwitchablePresets()}
+              presets={assignablePresets}
               selected={selectedPreset}
               onSelect={handlePresetChange}
             />

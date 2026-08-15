@@ -140,6 +140,40 @@ export const PERMISSION_PRESETS = {
       guest_policies: { view: true, create: true, edit: true, delete: true }
     }
   },
+  general_manager: {
+    name: "General Manager",
+    description: "Full operational control for day-to-day hotel management",
+    permissions: {
+      dashboard: { view_analytics: true, view_revenue: true },
+      rooms: { view: true, create: true, edit: true, delete: true },
+      bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
+      staff: { view: true, add: true, edit: true, remove: true, manage_permissions: true },
+      finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
+      settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
+      promos: { view: true, create: true, edit: true },
+      ads: { view: true, manage: true },
+      ai_analyzer: { view: true, run: true },
+      restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
+      guest_policies: { view: true, create: true, edit: true, delete: true }
+    }
+  },
+  human_resource: {
+    name: "Human Resource",
+    description: "Full operational access with a focus on people and staff operations",
+    permissions: {
+      dashboard: { view_analytics: true, view_revenue: true },
+      rooms: { view: true, create: true, edit: true, delete: true },
+      bookings: { view: true, create: true, edit: true, cancel: true, view_payments: true, checkin_checkout: true },
+      staff: { view: true, add: true, edit: true, remove: true, manage_permissions: true },
+      finance: { view: true, withdraw: true, add: true, update_account: true, process_refunds: true, manage_payment_methods: true },
+      settings: { view: true, edit_details: true, edit_branding: true, edit_amenities: true },
+      promos: { view: true, create: true, edit: true },
+      ads: { view: true, manage: true },
+      ai_analyzer: { view: true, run: true },
+      restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
+      guest_policies: { view: true, create: true, edit: true, delete: true }
+    }
+  },
   manager: {
     name: "Manager",
     description: "Most permissions except staff management",
@@ -331,7 +365,49 @@ export function getPresetPermissions(key: PermissionPresetKey): Permissions {
 }
 
 export function getSwitchablePresets(): PermissionPresetKey[] {
-  return ["manager", "front_desk", "kitchen", "restaurant_staff", "custom"]
+  return ["general_manager", "human_resource", "manager", "front_desk", "kitchen", "restaurant_staff", "custom"]
+}
+
+/** Owner > General Manager > Human Resource > everyone else. */
+export const STAFF_TITLE_RANK: Record<string, number> = {
+  "general manager": 2,
+  "human resource": 1,
+}
+
+export function staffTitleRank(title?: string | null, isOwner?: boolean): number {
+  if (isOwner) return 3
+  const key = title?.trim().toLowerCase() || ""
+  return STAFF_TITLE_RANK[key] ?? 0
+}
+
+export function canManageStaffMember(
+  actor: { title?: string | null; isOwner?: boolean; memberId?: number | null; userId?: string | number | null },
+  target: Pick<StaffMember, "id" | "user_id" | "title" | "is_owner">
+): boolean {
+  if (actor.memberId != null && Number(actor.memberId) === Number(target.id)) return false
+  if (actor.userId != null && target.user_id != null && Number(actor.userId) === Number(target.user_id)) {
+    return false
+  }
+  if (target.is_owner) return false
+  if (actor.isOwner) return true
+  return staffTitleRank(actor.title) > staffTitleRank(target.title, target.is_owner)
+}
+
+/** Presets the actor may assign (strictly below their own rank). Owners may assign any switchable preset. */
+export function getAssignablePresets(
+  actor: { title?: string | null; isOwner?: boolean },
+  options?: { includeFullAccess?: boolean }
+): PermissionPresetKey[] {
+  const base = getSwitchablePresets()
+  if (actor.isOwner) {
+    return options?.includeFullAccess ? ["full_access", ...base] : base
+  }
+
+  const actorRank = staffTitleRank(actor.title, actor.isOwner)
+  return base.filter((key) => {
+    if (key === "custom") return true
+    return staffTitleRank(PERMISSION_PRESETS[key].name) < actorRank
+  })
 }
 
 function permissionFlag(value: unknown): boolean {

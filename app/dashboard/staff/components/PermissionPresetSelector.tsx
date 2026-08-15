@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label"
 import { PERMISSION_PRESETS } from "@/lib/staff-types"
-import { Briefcase, ChefHat, Crown, Settings, Users, UtensilsCrossed } from "lucide-react"
+import { Briefcase, Building2, ChefHat, Crown, Settings, UserCog, Users, UtensilsCrossed } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 interface PermissionPresetSelectorProps {
@@ -13,6 +13,8 @@ interface PermissionPresetSelectorProps {
 
 const PRESET_ICONS: Record<keyof typeof PERMISSION_PRESETS, LucideIcon> = {
   full_access: Crown,
+  general_manager: Building2,
+  human_resource: UserCog,
   manager: Briefcase,
   kitchen: ChefHat,
   restaurant_staff: UtensilsCrossed,

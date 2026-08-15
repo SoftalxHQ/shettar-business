@@ -9,6 +9,9 @@ export interface User {
   address?: string
   zip_code?: string
   role: "admin" | "manager" | "staff"
+  title?: string
+  isOwner?: boolean
+  memberId?: number
   hotelId: string
   hotelName: string
   profilePicture?: string

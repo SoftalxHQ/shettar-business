@@ -102,6 +102,7 @@ export default function SignupPage() {
     phone_number: "",
     password: "",
     password_confirmation: "",
+    title: "",
   })
 
   const totalSteps = 3
@@ -137,8 +138,7 @@ export default function SignupPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const createAccount = async () => {
     if (currentStep !== totalSteps) return
 
     setError("")
@@ -147,6 +147,12 @@ export default function SignupPage() {
 
     if (!userData.first_name || !userData.last_name || !userData.email) {
       setError("Please fill in all required account fields")
+      setIsLoading(false)
+      return
+    }
+
+    if (!userData.title) {
+      setError("Please select how you register (Human Resource or General Manager)")
       setIsLoading(false)
       return
     }
@@ -184,6 +190,21 @@ export default function SignupPage() {
     }
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+  }
+
+  // Enter in an input would otherwise submit the form; only the Create button should.
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key !== "Enter") return
+    const target = e.target as HTMLElement
+    if (target.tagName === "TEXTAREA") return
+    e.preventDefault()
+    if (currentStep < totalSteps) {
+      handleNextStep()
+    }
+  }
+
   return (
     <div className="h-dvh overflow-hidden grid lg:grid-cols-2 app-safe-shell">
       {/* Left side - Signup form */}
@@ -209,7 +230,12 @@ export default function SignupPage() {
               <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
             </div>
 
-            <form id="signup-form" onSubmit={handleSubmit} className="space-y-6">
+            <form
+              id="signup-form"
+              onSubmit={handleSubmit}
+              onKeyDown={handleFormKeyDown}
+              className="space-y-6"
+            >
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -531,6 +557,27 @@ export default function SignupPage() {
                     </div>
 
                     <div className="col-span-2 space-y-2">
+                      <Label htmlFor="register_as">
+                        Register as <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={userData.title || undefined}
+                        onValueChange={(value) => setUserData({ ...userData, title: value })}
+                      >
+                        <SelectTrigger id="register_as" className="h-11 w-full">
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Human Resource">Human Resource</SelectItem>
+                          <SelectItem value="General Manager">General Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        The person registering typically manages day-to-day operations — not the property owner.
+                      </p>
+                    </div>
+
+                    <div className="col-span-2 space-y-2">
                       <Label htmlFor="email">
                         Email <span className="text-red-500">*</span>
                       </Label>
@@ -543,6 +590,9 @@ export default function SignupPage() {
                         required
                         className="h-11"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can use the same email for more than one hotel — login is per business ID.
+                      </p>
                     </div>
 
                     <div className="col-span-2 space-y-2">
@@ -637,10 +687,12 @@ export default function SignupPage() {
                 </Button>
               ) : (
                 <Button
-                  type="submit"
-                  form="signup-form"
+                  type="button"
                   className="flex-1 bg-indigo-500 hover:bg-indigo-600"
                   disabled={isLoading || !!success}
+                  onClick={() => {
+                    void createAccount()
+                  }}
                 >
                   {isLoading ? "Creating Account..." : "Create Business Account"}
                 </Button>

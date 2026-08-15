@@ -8,6 +8,7 @@ export type AiPointsBalance = {
   total: number
   withdrawable_balance?: number
   config: {
+    /** Welcome free points allotted once at registration (API field name unchanged). */
     monthly_free_points: number
     point_price_naira: number
     points_per_request: number

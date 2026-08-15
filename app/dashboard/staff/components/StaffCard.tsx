@@ -25,7 +25,7 @@ import {
   UserCheck,
 } from "lucide-react"
 import type { StaffMember } from "@/lib/staff-types"
-import { getPermissionSummary, getEnabledPermissionsCount } from "@/lib/staff-types"
+import { canManageStaffMember, getEnabledPermissionsCount, getPermissionSummary } from "@/lib/staff-types"
 import { statusLabel } from "@/lib/staff-api"
 import { useAuth } from "@/lib/auth-context"
 import type { StaffStatusAction } from "./StaffStatusDialog"
@@ -72,9 +72,22 @@ export function StaffCard({
   const status = member.status || "active"
   const isActive = status === "active"
 
-  const canEdit = user?.role === "admin" || user?.permissions?.staff?.edit
-  const canManageStatus = user?.role === "admin" || user?.permissions?.staff?.remove
-  const isOwner = user?.role === "admin" || false
+  const hasEditPermission = !!user?.isOwner || !!user?.permissions?.staff?.edit
+  const hasStatusPermission = !!user?.isOwner || !!user?.permissions?.staff?.remove
+  const isBusinessOwner = !!user?.isOwner
+  const canManageThisMember = canManageStaffMember(
+    {
+      title: user?.title,
+      isOwner: user?.isOwner,
+      memberId: user?.memberId,
+      userId: user?.id,
+    },
+    member
+  )
+
+  const canEdit = hasEditPermission && canManageThisMember
+  const canManageStatus = hasStatusPermission && canManageThisMember
+  const showActions = !member.is_owner && (canEdit || canManageStatus)
 
   return (
     <TableRow className="border-slate-100">
@@ -128,7 +141,7 @@ export function StaffCard({
       </TableCell>
       <TableCell className="py-2.5 text-right">
         <div className="flex items-center justify-end gap-1">
-          {canEdit && isActive && !member.is_owner && (
+          {canEdit && isActive && (
             <Button
               variant="outline"
               size="sm"
@@ -140,7 +153,7 @@ export function StaffCard({
             </Button>
           )}
 
-          {!member.is_owner && (canEdit || canManageStatus) && (
+          {showActions && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
@@ -189,7 +202,7 @@ export function StaffCard({
                   </DropdownMenuItem>
                 )}
 
-                {canManageStatus && status === "fired" && isOwner && (
+                {canManageStatus && status === "fired" && isBusinessOwner && (
                   <DropdownMenuItem onClick={() => onStatusAction(member, "reinstate")}>
                     <UserCheck className="w-4 h-4 mr-2" />
                     Reinstate
