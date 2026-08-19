@@ -37,7 +37,7 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
   const { businessId, user } = useAuth()
   const assignablePresets = getAssignablePresets({
     title: user?.title,
-    isOwner: user?.isOwner,
+    isAdmin: user?.isAdmin,
     permissions: user?.permissions,
   })
   const initial = getSwitchRoleInitialState(member)

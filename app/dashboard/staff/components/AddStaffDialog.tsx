@@ -27,11 +27,11 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
   const { businessId, logout, user } = useAuth()
   const actor = {
     title: user?.title,
-    isOwner: user?.isOwner,
+    isAdmin: user?.isAdmin,
     permissions: user?.permissions,
   }
   const canInvite = canInviteStaffMembers(actor)
-  const assignablePresets = getAssignablePresets(actor, { includeFullAccess: !!user?.isOwner })
+  const assignablePresets = getAssignablePresets(actor, { includeFullAccess: !!user?.isAdmin })
   const defaultPreset: PermissionPresetKey =
     (assignablePresets.find((key) => key === "front_desk") as PermissionPresetKey | undefined) ||
     (assignablePresets.find((key) => key !== "custom") as PermissionPresetKey | undefined) ||
@@ -61,7 +61,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
 
   const handleNext = () => {
     if (!canInvite) {
-      toast.error("Only the owner, general manager, or human resource can add staff")
+      toast.error("Only the admin, general manager, or human resource can add staff")
       return
     }
     if (!email.trim()) {
@@ -113,7 +113,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
             last_name: lastName,
             title: title.trim(),
             permissions,
-            is_owner: selectedPreset === "full_access",
+            is_admin: selectedPreset === "full_access",
           }),
         }
       )
@@ -155,7 +155,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
             <DialogTitle>Add Staff Member</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            Only the business owner, general manager, or human resource can add staff.
+            Only the business admin, general manager, or human resource can add staff.
           </p>
           <DialogFooter>
             <Button onClick={onCancel}>Close</Button>

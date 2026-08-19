@@ -72,13 +72,13 @@ export function StaffCard({
   const status = member.status || "active"
   const isActive = status === "active"
 
-  const hasEditPermission = !!user?.isOwner || !!user?.permissions?.staff?.edit
-  const hasStatusPermission = !!user?.isOwner || !!user?.permissions?.staff?.remove
-  const isBusinessOwner = !!user?.isOwner
+  const hasEditPermission = !!user?.isAdmin || !!user?.permissions?.staff?.edit
+  const hasStatusPermission = !!user?.isAdmin || !!user?.permissions?.staff?.remove
+  const isBusinessAdmin = !!user?.isAdmin
   const canManageThisMember = canManageStaffMember(
     {
       title: user?.title,
-      isOwner: user?.isOwner,
+      isAdmin: user?.isAdmin,
       memberId: user?.memberId,
       userId: user?.id,
     },
@@ -87,7 +87,7 @@ export function StaffCard({
 
   const canEdit = hasEditPermission && canManageThisMember
   const canManageStatus = hasStatusPermission && canManageThisMember
-  const showActions = !member.is_owner && (canEdit || canManageStatus)
+  const showActions = !member.is_admin && (canEdit || canManageStatus)
 
   return (
     <TableRow className="border-slate-100">
@@ -101,13 +101,13 @@ export function StaffCard({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-medium text-slate-900 truncate">{userName}</span>
-              {member.is_owner && (
+              {member.is_admin && (
                 <Badge
                   variant="secondary"
                   className="h-5 px-1.5 text-[10px] bg-slate-100 text-slate-600 border-slate-200 gap-1 rounded-md font-normal shadow-none"
                 >
                   <Crown className="w-2.5 h-2.5" />
-                  Owner
+                  Admin
                 </Badge>
               )}
             </div>
@@ -119,9 +119,9 @@ export function StaffCard({
         {member.title || "—"}
       </TableCell>
       <TableCell className="py-2.5">
-        {member.is_owner ? (
+        {member.is_admin ? (
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] rounded-md font-normal border-slate-200 text-slate-600">
-            Owner
+            Admin
           </Badge>
         ) : (
           <Badge
@@ -134,7 +134,7 @@ export function StaffCard({
       </TableCell>
       <TableCell className="py-2.5 text-[11px] text-slate-500 max-w-[220px]">
         <span className="line-clamp-2">
-          {member.is_owner
+          {member.is_admin
             ? "Full access"
             : `${permissionsCount} · ${permissionsSummary}`}
         </span>
@@ -202,7 +202,7 @@ export function StaffCard({
                   </DropdownMenuItem>
                 )}
 
-                {canManageStatus && status === "fired" && isBusinessOwner && (
+                {canManageStatus && status === "fired" && isBusinessAdmin && (
                   <DropdownMenuItem onClick={() => onStatusAction(member, "reinstate")}>
                     <UserCheck className="w-4 h-4 mr-2" />
                     Reinstate

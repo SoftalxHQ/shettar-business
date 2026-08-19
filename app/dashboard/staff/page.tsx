@@ -68,7 +68,7 @@ export default function StaffPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
   useEffect(() => {
-    if (user && !user.isOwner && user.role !== "admin") {
+    if (user && !user.isAdmin && user.role !== "admin") {
       if (!user.permissions?.staff?.view) {
         router.push("/dashboard/business")
       }
@@ -79,7 +79,7 @@ export default function StaffPage() {
   logoutRef.current = logout
 
   const canViewStaff =
-    !!user?.isOwner || user?.role === "admin" || Boolean(user?.permissions?.staff?.view)
+    !!user?.isAdmin || user?.role === "admin" || Boolean(user?.permissions?.staff?.view)
 
   useEffect(() => {
     if (!businessId || !canViewStaff) return
@@ -137,19 +137,19 @@ export default function StaffPage() {
     return matchesSearch && matchesStatus
   })
 
-  const ownersCount = staffMembers.filter((m) => m.is_owner).length
-  const activeCount = staffMembers.filter((m) => (m.status || "active") === "active" && !m.is_owner).length
+  const adminsCount = staffMembers.filter((m) => m.is_admin).length
+  const activeCount = staffMembers.filter((m) => (m.status || "active") === "active" && !m.is_admin).length
   const inactiveCount = staffMembers.filter(
-    (m) => !m.is_owner && (m.status || "active") !== "active"
+    (m) => !m.is_admin && (m.status || "active") !== "active"
   ).length
 
   const canAdd = canInviteStaffMembers({
     title: user?.title,
-    isOwner: user?.isOwner,
+    isAdmin: user?.isAdmin,
     permissions: user?.permissions,
   })
 
-  if (!user?.isOwner && user?.role !== "admin" && !user?.permissions?.staff?.view) {
+  if (!user?.isAdmin && user?.role !== "admin" && !user?.permissions?.staff?.view) {
     return null
   }
 
@@ -185,7 +185,7 @@ export default function StaffPage() {
 
         <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
           <MetricTile title="Total members" value={staffMembers.length} icon={Users} />
-          <MetricTile title="Owners" value={ownersCount} icon={Crown} />
+          <MetricTile title="Admins" value={adminsCount} icon={Crown} />
           <MetricTile title="Active staff" value={activeCount} icon={Users} />
           <MetricTile title="Inactive" value={inactiveCount} icon={Users} />
         </div>

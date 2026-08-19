@@ -9,7 +9,7 @@ export interface StaffMember {
   title: string
   role?: string
   permissions: Permissions
-  is_owner: boolean
+  is_admin: boolean
   status?: StaffStatus
   status_reason?: string | null
   status_changed_at?: string | null
@@ -124,7 +124,7 @@ export interface RestaurantPermissions {
 // Permission Presets
 export const PERMISSION_PRESETS = {
   full_access: {
-    name: "Full Access (Owner)",
+    name: "Full Access (Admin)",
     description: "Complete control over all business operations",
     permissions: {
       dashboard: { view_analytics: true, view_revenue: true },
@@ -368,7 +368,7 @@ export function getSwitchablePresets(): PermissionPresetKey[] {
   return ["general_manager", "human_resource", "manager", "front_desk", "kitchen", "restaurant_staff", "custom"]
 }
 
-/** Owner > General Manager > Human Resource > everyone else. */
+/** Admin > General Manager > Human Resource > everyone else. */
 export const STAFF_TITLE_RANK: Record<string, number> = {
   "general manager": 2,
   "human resource": 1,
@@ -382,33 +382,33 @@ function normalizedStaffTitleKey(title?: string | null): string {
   return key
 }
 
-export function staffTitleRank(title?: string | null, isOwner?: boolean): number {
-  if (isOwner) return 3
+export function staffTitleRank(title?: string | null, isAdmin?: boolean): number {
+  if (isAdmin) return 3
   const key = normalizedStaffTitleKey(title)
   return STAFF_TITLE_RANK[key] ?? 0
 }
 
 export function canManageStaffMember(
-  actor: { title?: string | null; isOwner?: boolean; memberId?: number | null; userId?: string | number | null },
-  target: Pick<StaffMember, "id" | "user_id" | "title" | "is_owner">
+  actor: { title?: string | null; isAdmin?: boolean; memberId?: number | null; userId?: string | number | null },
+  target: Pick<StaffMember, "id" | "user_id" | "title" | "is_admin">
 ): boolean {
   if (actor.memberId != null && Number(actor.memberId) === Number(target.id)) return false
   if (actor.userId != null && target.user_id != null && Number(actor.userId) === Number(target.user_id)) {
     return false
   }
-  if (target.is_owner) return false
-  if (actor.isOwner) return true
-  return staffTitleRank(actor.title) > staffTitleRank(target.title, target.is_owner)
+  if (target.is_admin) return false
+  if (actor.isAdmin) return true
+  return staffTitleRank(actor.title) > staffTitleRank(target.title, target.is_admin)
 }
 
-/** Only Owner, General Manager, and Human Resource may invite staff. */
+/** Only Admin, General Manager, and Human Resource may invite staff. */
 export function canInviteStaffMembers(actor: {
   title?: string | null
-  isOwner?: boolean
+  isAdmin?: boolean
   /** Used when title was not hydrated on an older session. */
   permissions?: { staff?: { add?: boolean; create?: boolean; view?: boolean } } | null
 }): boolean {
-  if (actor.isOwner) return true
+  if (actor.isAdmin) return true
   if (staffTitleRank(actor.title) >= 1) return true
 
   // Older sessions may lack title on the client; elevated presets grant staff.add.
@@ -418,11 +418,11 @@ export function canInviteStaffMembers(actor: {
   return titleMissing && canAdd
 }
 
-/** Presets the actor may assign (strictly below their own rank). Owners may assign any switchable preset. */
+/** Presets the actor may assign (strictly below their own rank). Admins may assign any switchable preset. */
 export function getAssignablePresets(
   actor: {
     title?: string | null
-    isOwner?: boolean
+    isAdmin?: boolean
     permissions?: { staff?: { add?: boolean; create?: boolean } } | null
   },
   options?: { includeFullAccess?: boolean }
@@ -430,11 +430,11 @@ export function getAssignablePresets(
   if (!canInviteStaffMembers(actor)) return []
 
   const base = getSwitchablePresets()
-  if (actor.isOwner) {
+  if (actor.isAdmin) {
     return options?.includeFullAccess ? ["full_access", ...base] : base
   }
 
-  let actorRank = staffTitleRank(actor.title, actor.isOwner)
+  let actorRank = staffTitleRank(actor.title, actor.isAdmin)
   // Title missing on older sessions: staff.add implies at least HR-level invite scope.
   if (
     actorRank < 1 &&

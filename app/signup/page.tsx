@@ -102,7 +102,6 @@ export default function SignupPage() {
     phone_number: "",
     password: "",
     password_confirmation: "",
-    title: "",
   })
 
   const totalSteps = 3
@@ -147,12 +146,6 @@ export default function SignupPage() {
 
     if (!userData.first_name || !userData.last_name || !userData.email) {
       setError("Please fill in all required account fields")
-      setIsLoading(false)
-      return
-    }
-
-    if (!userData.title) {
-      setError("Please select how you register (Human Resource or General Manager)")
       setIsLoading(false)
       return
     }
@@ -554,27 +547,6 @@ export default function SignupPage() {
                         required
                         className="h-11"
                       />
-                    </div>
-
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="register_as">
-                        Register as <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={userData.title || undefined}
-                        onValueChange={(value) => setUserData({ ...userData, title: value })}
-                      >
-                        <SelectTrigger id="register_as" className="h-11 w-full">
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Human Resource">Human Resource</SelectItem>
-                          <SelectItem value="General Manager">General Manager</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        The person registering typically manages day-to-day operations — not the property owner.
-                      </p>
                     </div>
 
                     <div className="col-span-2 space-y-2">

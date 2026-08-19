@@ -10,7 +10,7 @@ export interface User {
   zip_code?: string
   role: "admin" | "manager" | "staff"
   title?: string
-  isOwner?: boolean
+  isAdmin?: boolean
   memberId?: number
   hotelId: string
   hotelName: string

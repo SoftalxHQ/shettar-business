@@ -68,16 +68,16 @@ export default function LoginPage() {
         zip_code: data.data.zip_code,
         profilePicture: data.data.avatar_url,
         role: (() => {
-          if (data.data.business?.is_owner) return "admin"
+          if (data.data.business?.is_admin) return "admin"
           const title = (data.data.business?.title || "").toLowerCase()
           if (title.includes("manager")) return "manager"
           const apiRole = (data.data.business?.role || "staff").toLowerCase()
-          // Signup GM/HR historically used role=admin without is_owner; treat as staff/manager via title.
+          // Signup GM/HR historically used role=admin without is_admin; treat as staff/manager via title.
           if (apiRole === "admin") return "manager"
           return apiRole === "manager" ? "manager" : "staff"
         })() as "admin" | "manager" | "staff",
         title: data.data.business?.title || undefined,
-        isOwner: !!data.data.business?.is_owner,
+        isAdmin: !!data.data.business?.is_admin,
         memberId: data.data.business?.member_id ?? undefined,
         hotelId: data.data.business?.id.toString() || "",
         hotelName: data.data.business?.name || "",

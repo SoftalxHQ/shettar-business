@@ -96,10 +96,10 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
               <p className="text-sm font-medium">{userName}</p>
               <p className="text-xs text-muted-foreground">{member.user?.email}</p>
             </div>
-            {member.is_owner && (
+            {member.is_admin && (
               <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
                 <Crown className="w-3 h-3 mr-1" />
-                Owner
+                Admin
               </Badge>
             )}
           </div>
@@ -117,15 +117,15 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
           </div>
         </div>
 
-        {/* Owner Warning */}
-        {member.is_owner ? (
+        {/* Admin Warning */}
+        {member.is_admin ? (
           <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
             <Crown className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-yellow-900 mb-1">Owner Account</h4>
+              <h4 className="font-semibold text-yellow-900 mb-1">Admin Account</h4>
               <p className="text-sm text-yellow-800">
-                This user is a business owner and has full access to all features by default.
-                Owner permissions cannot be modified.
+                This user is a business admin and has full access to all features by default.
+                Admin permissions cannot be modified.
               </p>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
             <Button variant="outline" onClick={onCancel} disabled={isSaving}>
               Cancel
             </Button>
-            {!member.is_owner && (
+            {!member.is_admin && (
               <Button
                 onClick={handleSave}
                 disabled={isSaving || !hasChanges}
