@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.56
+
+### Highlights
+
+- Fix Windows desktop build: declare the `windows` crate so USB/system printer printing can compile
+
 ## 0.1.55
 
 ### Highlights

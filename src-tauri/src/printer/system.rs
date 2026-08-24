@@ -207,11 +207,11 @@ pub fn send_system(printer_name: &str, bytes: &[u8]) -> Result<(), String> {
 fn windows_raw_print(printer_name: &str, bytes: &[u8]) -> Result<(), String> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    use windows::core::PCWSTR;
+    use windows::core::{PCWSTR, PWSTR};
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Graphics::Printing::{
         ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW,
-        StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_HANDLE,
+        StartPagePrinter, WritePrinter, DOC_INFO_1W,
     };
 
     fn to_wide(s: &str) -> Vec<u16> {
@@ -224,49 +224,48 @@ fn windows_raw_print(printer_name: &str, bytes: &[u8]) -> Result<(), String> {
         OpenPrinterW(PCWSTR(name_wide.as_ptr()), &mut handle, None)
             .map_err(|e| format!("Could not open printer '{printer_name}': {e}"))?;
     }
-    let printer = PRINTER_HANDLE(handle.0);
 
-    let doc_name = to_wide("Shettar Receipt");
-    let datatype = to_wide("RAW");
+    let mut doc_name = to_wide("Shettar Receipt");
+    let mut datatype = to_wide("RAW");
     let doc_info = DOC_INFO_1W {
-        pDocName: windows::core::PWSTR(doc_name.as_ptr() as *mut u16),
-        pOutputFile: windows::core::PWSTR::null(),
-        pDatatype: windows::core::PWSTR(datatype.as_ptr() as *mut u16),
+        pDocName: PWSTR(doc_name.as_mut_ptr()),
+        pOutputFile: PWSTR::null(),
+        pDatatype: PWSTR(datatype.as_mut_ptr()),
     };
 
     let result = (|| -> Result<(), String> {
         unsafe {
-            let job_id = StartDocPrinterW(printer, 1, &doc_info as *const _ as *const _);
+            let job_id = StartDocPrinterW(handle, 1, &doc_info as *const _ as *const _);
             if job_id == 0 {
                 return Err(format!(
                     "StartDocPrinter failed for '{printer_name}'. Is the printer online?"
                 ));
             }
-            if !StartPagePrinter(printer).as_bool() {
-                let _ = EndDocPrinter(printer);
+            if !StartPagePrinter(handle).as_bool() {
+                let _ = EndDocPrinter(handle);
                 return Err("StartPagePrinter failed".into());
             }
             let mut written = 0u32;
             if !WritePrinter(
-                printer,
+                handle,
                 bytes.as_ptr() as *const _,
                 bytes.len() as u32,
                 &mut written,
             )
             .as_bool()
             {
-                let _ = EndPagePrinter(printer);
-                let _ = EndDocPrinter(printer);
+                let _ = EndPagePrinter(handle);
+                let _ = EndDocPrinter(handle);
                 return Err("WritePrinter failed".into());
             }
-            let _ = EndPagePrinter(printer);
-            let _ = EndDocPrinter(printer);
+            let _ = EndPagePrinter(handle);
+            let _ = EndDocPrinter(handle);
         }
         Ok(())
     })();
 
     unsafe {
-        let _ = ClosePrinter(printer);
+        let _ = ClosePrinter(handle);
     }
     result
 }
