@@ -83,9 +83,49 @@ impl EscPosBuilder {
         self
     }
 
+    /// White-on-black (matches the indigo ticket header on the HTML receipt).
+    pub fn reverse(&mut self, on: bool) -> &mut Self {
+        self.buffer.extend_from_slice(&[GS, b'B', on as u8]);
+        self
+    }
+
     pub fn text_line(&mut self, content: &str) -> &mut Self {
         self.buffer.extend_from_slice(sanitize(content).as_bytes());
         self.buffer.push(LF);
+        self
+    }
+
+    /// Centered line padded to full width — needed so reverse mode paints a solid bar.
+    pub fn text_line_filled(&mut self, content: &str) -> &mut Self {
+        let content = sanitize(content);
+        let width = self.line_width;
+        let pad = width.saturating_sub(content.chars().count());
+        let left = pad / 2;
+        let right = pad - left;
+        let mut line = String::with_capacity(width);
+        line.push_str(&" ".repeat(left));
+        line.push_str(&content);
+        line.push_str(&" ".repeat(right));
+        // Truncate if oversized glyphs somehow exceed width.
+        let line: String = line.chars().take(width).collect();
+        self.buffer.extend_from_slice(line.as_bytes());
+        self.buffer.push(LF);
+        self
+    }
+
+    /// Ticket-style perforation row between header and body.
+    pub fn perforation(&mut self) -> &mut Self {
+        let mut line = String::with_capacity(self.line_width);
+        while line.chars().count() + 2 <= self.line_width {
+            if !line.is_empty() {
+                line.push(' ');
+            }
+            line.push('o');
+        }
+        self.align(Align::Center);
+        self.buffer.extend_from_slice(line.as_bytes());
+        self.buffer.push(LF);
+        self.align(Align::Left);
         self
     }
 
@@ -133,6 +173,36 @@ impl EscPosBuilder {
                 self.buffer.extend_from_slice(line.as_bytes());
                 self.buffer.push(LF);
             }
+        }
+        self
+    }
+
+    /// Print a packed 1-bit raster image (`GS v 0`): 8 px/byte, MSB first,
+    /// 1 = black. Sent in bands so cheap printers don't overflow their buffer.
+    pub fn raster_image(&mut self, width_px: usize, height_px: usize, packed: &[u8]) -> &mut Self {
+        let row_bytes = width_px.div_ceil(8);
+        if row_bytes == 0 || row_bytes > u16::MAX as usize || height_px == 0 {
+            return self;
+        }
+
+        const MAX_BAND_ROWS: usize = 1024;
+        let mut row = 0;
+        while row < height_px {
+            let band_rows = (height_px - row).min(MAX_BAND_ROWS);
+            let start = row * row_bytes;
+            let end = start + band_rows * row_bytes;
+            let Some(band) = packed.get(start..end) else {
+                break;
+            };
+            let xl = (row_bytes % 256) as u8;
+            let xh = (row_bytes / 256) as u8;
+            let yl = (band_rows % 256) as u8;
+            let yh = (band_rows / 256) as u8;
+            // GS v 0 m xL xH yL yH data (m = 0: normal density)
+            self.buffer
+                .extend_from_slice(&[GS, b'v', b'0', 0, xl, xh, yl, yh]);
+            self.buffer.extend_from_slice(band);
+            row += band_rows;
         }
         self
     }

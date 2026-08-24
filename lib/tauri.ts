@@ -112,6 +112,12 @@ export const setupNativeWindow = async () => {
     const isMobileOs = /Android|iPhone|iPad|iPod/i.test(ua)
     if (!isMobileOs) {
       document.documentElement.classList.remove("native-edge")
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window")
+        await getCurrentWindow().setTheme("light")
+      } catch {
+        // Window theme permission/platform — title stays on the system default.
+      }
       return
     }
     document.documentElement.classList.add("native-edge")
@@ -188,18 +194,67 @@ export const printHtml = async (html: string) => {
     })
   );
 
+  let cleaned = false;
+  let afterPrintTimer: ReturnType<typeof setTimeout> | null = null;
+  const printMql =
+    typeof window.matchMedia === "function" ? window.matchMedia("print") : null;
+
   const cleanup = () => {
-    window.removeEventListener("afterprint", cleanup);
+    if (cleaned) return;
+    cleaned = true;
+
+    if (afterPrintTimer != null) {
+      clearTimeout(afterPrintTimer);
+      afterPrintTimer = null;
+    }
+    window.removeEventListener("afterprint", onAfterPrint);
+    if (printMql) {
+      if (typeof printMql.removeEventListener === "function") {
+        printMql.removeEventListener("change", onPrintMqlChange);
+      } else if (typeof printMql.removeListener === "function") {
+        printMql.removeListener(onPrintMqlChange);
+      }
+    }
+
     document.body.classList.remove("shettar-printing");
     if (document.body.contains(root)) {
       document.body.removeChild(root);
     }
   };
 
-  window.addEventListener("afterprint", cleanup);
+  /** WebView2 often fires afterprint as the dialog opens — debounce so isolation stays up. */
+  const onAfterPrint = () => {
+    if (afterPrintTimer != null) clearTimeout(afterPrintTimer);
+    afterPrintTimer = setTimeout(() => {
+      // Still in print media → dialog/preview still active; wait for matchMedia.
+      if (printMql?.matches) return;
+      cleanup();
+    }, 400);
+  };
+
+  const onPrintMqlChange = () => {
+    if (printMql && !printMql.matches) cleanup();
+  };
+
+  window.addEventListener("afterprint", onAfterPrint);
+  if (printMql) {
+    if (typeof printMql.addEventListener === "function") {
+      printMql.addEventListener("change", onPrintMqlChange);
+    } else if (typeof printMql.addListener === "function") {
+      printMql.addListener(onPrintMqlChange);
+    }
+  }
   window.setTimeout(cleanup, 60_000);
 
+  const waitTwoFrames = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
   try {
+    await waitTwoFrames();
     window.focus();
     window.print();
   } catch (error) {

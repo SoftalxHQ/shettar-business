@@ -21,6 +21,8 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       printer::commands::get_printers,
       printer::commands::print_ops,
+      printer::commands::print_image,
+      printer::commands::fetch_url_data_url,
       printer::commands::test_print,
       printer::commands::open_cash_drawer,
     ]);

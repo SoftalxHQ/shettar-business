@@ -1,11 +1,16 @@
 "use client"
 
-import { DashboardLayout } from "@/components/dashboard-layout"
+import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
 import { usePrinter } from "@/lib/hooks/usePrinter"
+import {
+  canConfigurePrinter,
+  getDefaultDashboardPath,
+  usesFullPrinterSettings,
+} from "@/lib/portal-access"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
@@ -25,6 +30,7 @@ export default function PrinterSettingsPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [networkHost, setNetworkHost] = useState("")
+  const full = usesFullPrinterSettings(user)
   const {
     available,
     printers,
@@ -43,8 +49,8 @@ export default function PrinterSettingsPage() {
   } = usePrinter()
 
   useEffect(() => {
-    if (user && user.role !== "admin" && !user.permissions?.settings?.view) {
-      router.push("/dashboard")
+    if (user && !canConfigurePrinter(user)) {
+      router.push(getDefaultDashboardPath(user))
     }
   }, [user, router])
 
@@ -55,19 +61,23 @@ export default function PrinterSettingsPage() {
   }, [available, discover])
 
   return (
-    <DashboardLayout activeTab="printer">
+    <RestaurantLayoutWrapper activeTab="printer">
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
         <div className="shrink-0">
-          <Link
-            href="/dashboard/business/settings"
-            className="mb-1 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Settings
-          </Link>
+          {full && (
+            <Link
+              href="/dashboard/business/settings"
+              className="mb-1 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Settings
+            </Link>
+          )}
           <h1 className="text-xl font-semibold tracking-tight text-slate-900">Printer</h1>
           <p className="text-xs text-slate-500">
-            Thermal receipt printer for bookings and restaurant orders
+            {full
+              ? "Thermal receipt printer for bookings and restaurant orders"
+              : "Choose the thermal printer this station uses for receipts"}
           </p>
         </div>
 
@@ -80,8 +90,9 @@ export default function PrinterSettingsPage() {
                   <p className="text-sm font-semibold text-slate-900">Desktop app required</p>
                 </div>
                 <p className="text-xs text-slate-500">
-                  USB and network thermal printing is available in the Shettar Business desktop app.
-                  In the browser, receipts continue to use the system print dialog.
+                  {full
+                    ? "USB and network thermal printing is available in the Shettar Business desktop app. In the browser, receipts continue to use the system print dialog."
+                    : "Open the Shettar Business desktop app to connect a USB or network printer. The browser still uses the system print dialog."}
                 </p>
               </div>
             )}
@@ -90,8 +101,9 @@ export default function PrinterSettingsPage() {
               <div className="shrink-0 border-b border-slate-100 px-3.5 py-2.5">
                 <h2 className="text-sm font-semibold text-slate-900">Connected printers</h2>
                 <p className="mt-0.5 text-[11px] text-slate-500">
-                  Scan for USB/serial printers. Windows spooler-only devices need a network address
-                  (usually <code className="text-[10px]">IP:9100</code>).
+                  {full
+                    ? "Scan finds USB printers installed in the system (Xprinter / POS-80), USB-serial adapters, and you can add a network address (usually IP:9100)."
+                    : "Plug in the printer, scan, then tap it to select."}
                 </p>
               </div>
               <div className="space-y-3 p-3.5">
@@ -128,8 +140,9 @@ export default function PrinterSettingsPage() {
 
                 {printers.length === 0 ? (
                   <p className="text-xs text-slate-400">
-                    No USB/serial printers found yet. Connect a printer and scan again, or add a
-                    network printer.
+                    {full
+                      ? "No printers found yet. Plug in your USB thermal printer (and install its driver if needed), scan again, or add a network printer IP."
+                      : "No printers found yet. Scan again, or add a network printer IP below."}
                   </p>
                 ) : (
                   <div className="max-h-64 space-y-1.5 overflow-y-auto">
@@ -254,7 +267,9 @@ export default function PrinterSettingsPage() {
                 <p className="mt-0.5 text-[11px] text-slate-500">
                   {selected
                     ? `Selected: ${selected.name}`
-                    : "Select a printer above to enable test print and cash drawer."}
+                    : full
+                      ? "Select a printer above to enable test print and cash drawer."
+                      : "Select a printer above to enable test print."}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 p-3.5">
@@ -272,22 +287,24 @@ export default function PrinterSettingsPage() {
                   )}
                   Test print
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-lg border-slate-200 text-xs"
-                  onClick={() => void openCashDrawer()}
-                  disabled={!available || !selected || printing}
-                >
-                  <Banknote className="mr-1.5 h-3.5 w-3.5" />
-                  Open cash drawer
-                </Button>
+                {full && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg border-slate-200 text-xs"
+                    onClick={() => void openCashDrawer()}
+                    disabled={!available || !selected || printing}
+                  >
+                    <Banknote className="mr-1.5 h-3.5 w-3.5" />
+                    Open cash drawer
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </RestaurantLayoutWrapper>
   )
 }

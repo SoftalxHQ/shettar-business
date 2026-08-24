@@ -38,6 +38,22 @@ export function getDefaultDashboardPath(user: User | null): string {
   return "/dashboard";
 }
 
+/** Who may open the thermal printer setup page. */
+export function canConfigurePrinter(user: User | null): boolean {
+  if (!user) return false;
+  if (user.role === "admin" || user.permissions?.settings?.view) return true;
+  const bookings = user.permissions?.bookings;
+  if (bookings?.view || bookings?.checkin_checkout) return true;
+  const restaurant = user.permissions?.restaurant;
+  return !!(restaurant?.view || restaurant?.create_orders || restaurant?.kitchen);
+}
+
+/** Admin / settings users see cash drawer and the settings back link. */
+export function usesFullPrinterSettings(user: User | null): boolean {
+  if (!user) return false;
+  return user.role === "admin" || !!user.permissions?.settings?.view;
+}
+
 export function getRestaurantNavItems(user: User | null) {
   const items: { name: string; href: string; tab: string }[] = [];
   if (canCreateRestaurantOrders(user) || canViewRestaurant(user)) {

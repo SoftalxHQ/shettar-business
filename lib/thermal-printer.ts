@@ -29,9 +29,14 @@ export type PrintOp =
       align?: "left" | "center" | "right"
       bold?: boolean
       size?: "normal" | "tall" | "large"
+      /** White-on-black ticket header band. */
+      reverse?: boolean
+      /** Pad to full line width (use with reverse). */
+      fill?: boolean
     }
   | { op: "two_col"; left: string; right: string; bold?: boolean }
   | { op: "divider"; char?: string }
+  | { op: "perforation" }
   | { op: "feed"; lines?: number }
   | { op: "qr_code"; data: string }
   | { op: "cut" }
@@ -106,6 +111,45 @@ function pushTwoCol(
 function pushSectionTitle(ops: PrintOp[], title: string) {
   ops.push({ op: "feed", lines: 1 })
   ops.push({ op: "text", content: title.toUpperCase(), bold: true, align: "left" })
+  ops.push({ op: "divider", char: "-" })
+}
+
+/** Dark ticket header band — mirrors the indigo HTML/card header. */
+function pushTicketHeader(ops: PrintOp[], label: string, value: string) {
+  ops.push({
+    op: "text",
+    content: " ",
+    align: "center",
+    reverse: true,
+    fill: true,
+  })
+  ops.push({
+    op: "text",
+    content: label.toUpperCase(),
+    align: "center",
+    bold: true,
+    reverse: true,
+    fill: true,
+  })
+  ops.push({
+    op: "text",
+    content: value,
+    align: "center",
+    bold: true,
+    // Tall (double height) — not large — so reverse fill still spans the full paper width.
+    size: "tall",
+    reverse: true,
+    fill: true,
+  })
+  ops.push({
+    op: "text",
+    content: " ",
+    align: "center",
+    reverse: true,
+    fill: true,
+  })
+  ops.push({ op: "perforation" })
+  ops.push({ op: "feed", lines: 1 })
 }
 
 export function getSavedPrinterPreference(): PrinterPreference | null {
@@ -135,7 +179,7 @@ export function hasConfiguredThermalPrinter(): boolean {
   return isTauri() && getSavedPrinterPreference() != null
 }
 
-/** Convert booking receipt options into ESC/POS ops matching HTML layout. */
+/** Convert booking receipt options into ESC/POS ops matching the HTML ticket design. */
 export function bookingReceiptToOps(
   options: BookingReceiptOptions,
   _width: number = 32
@@ -164,38 +208,45 @@ export function bookingReceiptToOps(
 
   const ops: PrintOp[] = []
 
-  // Header — Reservation Number
-  ops.push({ op: "text", content: "RESERVATION NUMBER", align: "center", bold: true })
-  ops.push({
-    op: "text",
-    content: reservation.booking_id,
-    align: "center",
-    bold: true,
-    size: "tall",
-  })
-  ops.push({ op: "divider", char: "=" })
+  // ── Header (indigo band on HTML / card) ──────────────────────────────────
+  pushTicketHeader(ops, "Reservation Number", reservation.booking_id)
 
-  // Business
-  ops.push({ op: "text", content: businessName, align: "center", bold: true })
+  // ── Hotel block ──────────────────────────────────────────────────────────
+  ops.push({ op: "text", content: businessName, align: "center", bold: true, size: "tall" })
   if (address) {
     ops.push({ op: "text", content: address, align: "center" })
   }
+  ops.push({ op: "feed", lines: 1 })
   ops.push({ op: "divider", char: "-" })
 
-  // Check-in / nights / check-out
-  pushTwoCol(ops, "Check-in", `${formatDate(reservation.start_date)} ${checkInTime}`)
-  pushTwoCol(ops, "Nights", `${nights} ${nights === 1 ? "Night" : "Nights"}`)
-  pushTwoCol(ops, "Check-out", `${formatDate(reservation.end_date)} ${checkOutTime}`)
+  // ── Dates strip (check-in | nights | check-out) ──────────────────────────
+  ops.push({ op: "text", content: "CHECK-IN", align: "left", bold: true })
+  ops.push({
+    op: "text",
+    content: `${formatDate(reservation.start_date)}  ${checkInTime}`,
+    align: "left",
+  })
+  ops.push({
+    op: "text",
+    content: `${nights} ${nights === 1 ? "NIGHT" : "NIGHTS"}`,
+    align: "center",
+    bold: true,
+  })
+  ops.push({ op: "text", content: "CHECK-OUT", align: "right", bold: true })
+  ops.push({
+    op: "text",
+    content: `${formatDate(reservation.end_date)}  ${checkOutTime}`,
+    align: "right",
+  })
   ops.push({ op: "divider", char: "-" })
 
-  // Guest Information
+  // ── Guest Information ────────────────────────────────────────────────────
   pushSectionTitle(ops, "Guest Information")
   pushTwoCol(ops, "Name", guestName)
   pushTwoCol(ops, "Email", email)
   pushTwoCol(ops, "Phone", phone)
-  ops.push({ op: "divider", char: "-" })
 
-  // Booking Summary
+  // ── Booking Summary ──────────────────────────────────────────────────────
   pushSectionTitle(ops, "Booking Summary")
   pushTwoCol(ops, "Room Type", reservation.room_type_name)
   if (detailed) {
@@ -203,10 +254,18 @@ export function bookingReceiptToOps(
   }
   pushTwoCol(ops, "Guests", guestLine)
   pushTwoCol(ops, "Payment", paymentMethodLabel)
-  pushTwoCol(ops, "Total Paid", total, true)
+  ops.push({ op: "feed", lines: 1 })
+  ops.push({ op: "text", content: "TOTAL PAID", align: "left", bold: true })
+  ops.push({
+    op: "text",
+    content: total,
+    align: "right",
+    bold: true,
+    size: "large",
+  })
   ops.push({ op: "divider", char: "=" })
 
-  // Stay Record (detailed)
+  // ── Stay Record (detailed) ───────────────────────────────────────────────
   if (detailed) {
     const hasAudit =
       reservation.checked_in_at ||
@@ -231,7 +290,9 @@ export function bookingReceiptToOps(
     }
   }
 
-  // Footer
+  // ── QR + footer ──────────────────────────────────────────────────────────
+  ops.push({ op: "feed", lines: 1 })
+  ops.push({ op: "qr_code", data: reservation.booking_id })
   ops.push({ op: "feed", lines: 1 })
   ops.push({
     op: "text",
@@ -310,20 +371,13 @@ export function restaurantOrderReceiptToOps(
 
   const ops: PrintOp[] = []
 
-  ops.push({ op: "text", content: "ORDER NUMBER", align: "center", bold: true })
-  ops.push({
-    op: "text",
-    content: orderNumber,
-    align: "center",
-    bold: true,
-    size: "tall",
-  })
-  ops.push({ op: "divider", char: "=" })
+  pushTicketHeader(ops, "Order Number", orderNumber)
 
-  ops.push({ op: "text", content: businessName, align: "center", bold: true })
+  ops.push({ op: "text", content: businessName, align: "center", bold: true, size: "tall" })
   if (address) {
     ops.push({ op: "text", content: address, align: "center" })
   }
+  ops.push({ op: "feed", lines: 1 })
   ops.push({ op: "divider", char: "-" })
 
   pushTwoCol(ops, "Type", orderType)
@@ -336,7 +390,6 @@ export function restaurantOrderReceiptToOps(
   pushTwoCol(ops, "Source", sourceLabel)
   pushTwoCol(ops, "Placed by", order.placed_by_name)
   pushTwoCol(ops, "Time", new Date(order.created_at).toLocaleString())
-  ops.push({ op: "divider", char: "-" })
 
   pushSectionTitle(ops, "Order Items")
   const items = order.items || []
@@ -359,7 +412,6 @@ export function restaurantOrderReceiptToOps(
       })
     }
   }
-  ops.push({ op: "divider", char: "-" })
 
   pushSectionTitle(ops, "Totals")
   if (order.refunded_amount && Number(order.refunded_amount) > 0) {
@@ -371,7 +423,15 @@ export function restaurantOrderReceiptToOps(
   if (order.amount_due != null && order.amount_due > 0) {
     pushTwoCol(ops, "Amount due", formatThermalMoney(order.amount_due))
   }
-  pushTwoCol(ops, "Total", formatThermalMoney(order.subtotal), true)
+  ops.push({ op: "feed", lines: 1 })
+  ops.push({ op: "text", content: "TOTAL", align: "left", bold: true })
+  ops.push({
+    op: "text",
+    content: formatThermalMoney(order.subtotal),
+    align: "right",
+    bold: true,
+    size: "large",
+  })
   ops.push({ op: "divider", char: "=" })
 
   if (order.notes) {
@@ -406,6 +466,24 @@ export async function invokePrintOps(
     printerType: preference.printer.printer_type,
     width: preference.width,
     ops,
+  })
+}
+
+/** Print a pre-rendered 1-bit receipt raster (pixel-exact ticket design). */
+export async function invokePrintImage(
+  preference: PrinterPreference,
+  raster: { widthPx: number; heightPx: number; data: string }
+): Promise<void> {
+  if (!isTauri()) {
+    throw new Error("Thermal printing is only available in the desktop app")
+  }
+  const { invoke } = await import("@tauri-apps/api/core")
+  await invoke("print_image", {
+    port: preference.printer.port,
+    printerType: preference.printer.printer_type,
+    widthPx: raster.widthPx,
+    heightPx: raster.heightPx,
+    data: raster.data,
   })
 }
 

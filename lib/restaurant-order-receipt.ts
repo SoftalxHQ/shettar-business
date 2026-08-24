@@ -1,14 +1,18 @@
 import type { RestaurantOrder } from "@/lib/restaurant-api"
 import {
   BookingReceiptBusiness,
+  ReceiptVariant,
+  THERMAL_RECEIPT_MONO_STYLES,
   THERMAL_RECEIPT_STYLES,
   printThermalReceipt,
+  withResolvedLogo,
 } from "@/lib/booking-receipt"
 import {
   getSavedPrinterPreference,
   hasConfiguredThermalPrinter,
   invokePrintOps,
   restaurantOrderReceiptToOps,
+  type PrinterPreference,
 } from "@/lib/thermal-printer"
 
 export type RestaurantOrderReceiptOptions = {
@@ -150,7 +154,10 @@ function paymentMethodLabel(method?: string | null): string | null {
   return PAYMENT_METHOD_LABELS[method.toLowerCase()] || method
 }
 
-export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptOptions): string {
+export function buildRestaurantOrderReceiptHtml(
+  options: RestaurantOrderReceiptOptions,
+  variant: ReceiptVariant = "screen"
+): string {
   const { order, business } = options
   const businessName = business.name || "Restaurant Order"
   const address = [business.address, business.city, business.state].filter(Boolean).join(", ")
@@ -205,7 +212,7 @@ export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptO
     <meta charset="utf-8" />
     <meta name="viewport" content="width=58mm, initial-scale=1" />
     <title>Order - ${escapeHtml(orderNumber)}</title>
-    <style>${THERMAL_RECEIPT_STYLES}${ORDER_RECEIPT_EXTRA_STYLES}</style>
+    <style>${THERMAL_RECEIPT_STYLES}${ORDER_RECEIPT_EXTRA_STYLES}${variant === "mono" ? THERMAL_RECEIPT_MONO_STYLES : ""}</style>
   </head>
   <body>
     <div class="shettar-receipt-sheet">
@@ -253,6 +260,28 @@ export function buildRestaurantOrderReceiptHtml(options: RestaurantOrderReceiptO
 </html>`
 }
 
+/**
+ * Print to a specific thermal printer: render the monochrome ticket to a
+ * raster image (pixel-exact design, logo included) and send it as an ESC/POS
+ * bitmap. Falls back to text-mode ops if rasterization fails.
+ */
+export async function printRestaurantOrderReceiptToPreference(
+  pref: PrinterPreference,
+  options: RestaurantOrderReceiptOptions
+): Promise<void> {
+  try {
+    const business = await withResolvedLogo(options.business)
+    const html = buildRestaurantOrderReceiptHtml({ ...options, business }, "mono")
+    const { renderReceiptToRaster, dotWidthForChars } = await import("@/lib/receipt-raster")
+    const raster = await renderReceiptToRaster(html, dotWidthForChars(pref.width))
+    const { invokePrintImage } = await import("@/lib/thermal-printer")
+    await invokePrintImage(pref, raster)
+  } catch (err) {
+    console.error("Raster receipt print failed, falling back to text mode:", err)
+    await invokePrintOps(pref, restaurantOrderReceiptToOps(options, pref.width))
+  }
+}
+
 export async function printRestaurantOrderReceipt(
   options: RestaurantOrderReceiptOptions
 ): Promise<void> {
@@ -260,7 +289,7 @@ export async function printRestaurantOrderReceipt(
     if (hasConfiguredThermalPrinter()) {
       const pref = getSavedPrinterPreference()
       if (pref) {
-        await invokePrintOps(pref, restaurantOrderReceiptToOps(options, pref.width))
+        await printRestaurantOrderReceiptToPreference(pref, options)
         return
       }
     }

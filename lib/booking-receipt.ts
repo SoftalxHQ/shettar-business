@@ -3,6 +3,7 @@ import { getAuthToken } from "@/lib/storage"
 import {
   getSavedPrinterPreference,
   hasConfiguredThermalPrinter,
+  type PrinterPreference,
 } from "@/lib/thermal-printer"
 
 export const PAYMENT_METHOD_LABELS: Record<number, string> = {
@@ -326,6 +327,25 @@ export const THERMAL_RECEIPT_STYLES = `
     padding: 4px 5px;
     flex-shrink: 0;
   }
+  .night-moon {
+    position: relative;
+    display: block;
+    width: 10px;
+    height: 10px;
+    margin: 0 auto 2px;
+    background: #4f46e5;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .night-moon-cut {
+    position: absolute;
+    top: -1px;
+    left: 3px;
+    width: 9px;
+    height: 9px;
+    background: #eef0fb;
+    border-radius: 50%;
+  }
   .night-badge-label {
     font-size: 7px;
     font-weight: 800;
@@ -402,14 +422,18 @@ export const THERMAL_RECEIPT_STYLES = `
       width: 58mm;
       max-width: 58mm;
     }
-    .receipt { box-shadow: none; }
-    .ticket-header {
-      background: #4f46e5 !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+    .receipt {
+      box-shadow: none;
+      overflow: visible !important;
     }
     .perforated {
       display: flex !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ticket-header {
+      background: #4f46e5 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -422,7 +446,72 @@ export const THERMAL_RECEIPT_STYLES = `
   }
 `
 
-export function buildBookingReceiptHtml(options: BookingReceiptOptions): string {
+/**
+ * Solid black-and-white overrides applied on top of THERMAL_RECEIPT_STYLES for
+ * ESC/POS raster printing — same markup and layout, no color or gray tints.
+ * Includes the restaurant receipt selectors (meta-strip, item rows) so both
+ * receipt types share one mono theme.
+ */
+export const THERMAL_RECEIPT_MONO_STYLES = `
+  .shettar-receipt-sheet { color: #000; }
+  .ticket-header { background: #000 !important; color: #fff; }
+  .ticket-label { opacity: 1; }
+  .perforated-dot { background: #fff !important; border: 1px solid #000 !important; }
+  .hotel-row { background: #fff; border: 1px solid #000; }
+  .hotel-logo {
+    filter: none;
+    width: 36px;
+    height: 36px;
+    background: #fff;
+    border: 1px solid #000;
+    object-fit: contain;
+  }
+  .hotel-logo-fallback { background: #000; color: #fff; }
+  .hotel-address { color: #000; }
+  .dates-strip { background: #fff; border: 1px solid #000; border-left: 3px solid #000; }
+  .date-label, .date-time { color: #000; }
+  .night-badge { background: #fff; border: 1px solid #000; }
+  .night-moon { background: #000; }
+  .night-moon-cut { background: #fff; }
+  .night-badge-label { color: #000; }
+  .section-title { color: #000; }
+  .summary-box { background: #fff; border: 1px solid #000; }
+  .summary-label, .summary-value { color: #000; }
+  .summary-row-total { border-top: 1px solid #000; }
+  .summary-row-total .summary-label, .summary-row-total .summary-value { color: #000; }
+  .footer { color: #000; }
+  .footer-brand { color: #000; border-top: 1px solid #000; }
+  .meta-strip { background: #fff; border: 1px solid #000; border-left: 3px solid #000; }
+  .meta-label, .meta-value { color: #000; }
+  .item-name span { color: #000 !important; }
+`
+
+export type ReceiptVariant = "screen" | "mono"
+
+/**
+ * Swap a remote logo URL for an inlined data URL so html2canvas can paint it
+ * (S3 signed URLs are typically CORS-blocked in the webview). Returns the
+ * business unchanged when there is no logo; drops the URL if fetch fails so
+ * the letter fallback renders instead of an empty box.
+ */
+export async function withResolvedLogo(
+  business: BookingReceiptBusiness
+): Promise<BookingReceiptBusiness> {
+  if (!business.logo_url) return business
+  try {
+    const { resolveReceiptLogoDataUrl } = await import("@/lib/business-logo-cache")
+    const dataUrl = await resolveReceiptLogoDataUrl(business.logo_url)
+    if (dataUrl) return { ...business, logo_url: dataUrl }
+    return { ...business, logo_url: undefined }
+  } catch {
+    return { ...business, logo_url: undefined }
+  }
+}
+
+export function buildBookingReceiptHtml(
+  options: BookingReceiptOptions,
+  variant: ReceiptVariant = "screen"
+): string {
   const { reservation, business, guestName, paymentMethodLabel, detailed, footerMessage } = options
   const nights = calcNights(reservation.start_date, reservation.end_date)
   const businessName = business.name || "Reservation Receipt"
@@ -481,7 +570,7 @@ export function buildBookingReceiptHtml(options: BookingReceiptOptions): string 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=58mm, initial-scale=1" />
     <title>Receipt - ${escapeHtml(reservation.booking_id)}</title>
-    <style>${THERMAL_RECEIPT_STYLES}</style>
+    <style>${THERMAL_RECEIPT_STYLES}${variant === "mono" ? THERMAL_RECEIPT_MONO_STYLES : ""}</style>
   </head>
   <body>
     <div class="shettar-receipt-sheet">
@@ -509,6 +598,7 @@ export function buildBookingReceiptHtml(options: BookingReceiptOptions): string 
             <div class="date-time">${escapeHtml(checkInTime)}</div>
           </div>
           <div class="night-badge">
+            <span class="night-moon" aria-hidden="true"><span class="night-moon-cut"></span></span>
             <div class="night-badge-label">${nights} ${nights === 1 ? "Night" : "Nights"}</div>
           </div>
           <div class="date-col right">
@@ -550,6 +640,29 @@ export function printBookingReceipt(html: string): void {
 }
 
 /**
+ * Print to a specific thermal printer: render the monochrome ticket to a
+ * raster image (pixel-exact design, logo included) and send it as an ESC/POS
+ * bitmap. Falls back to text-mode ops if rasterization fails.
+ */
+export async function printBookingReceiptToPreference(
+  pref: PrinterPreference,
+  options: BookingReceiptOptions
+): Promise<void> {
+  try {
+    const business = await withResolvedLogo(options.business)
+    const html = buildBookingReceiptHtml({ ...options, business }, "mono")
+    const { renderReceiptToRaster, dotWidthForChars } = await import("@/lib/receipt-raster")
+    const raster = await renderReceiptToRaster(html, dotWidthForChars(pref.width))
+    const { invokePrintImage } = await import("@/lib/thermal-printer")
+    await invokePrintImage(pref, raster)
+  } catch (err) {
+    console.error("Raster receipt print failed, falling back to text mode:", err)
+    const { bookingReceiptToOps, invokePrintOps } = await import("@/lib/thermal-printer")
+    await invokePrintOps(pref, bookingReceiptToOps(options, pref.width))
+  }
+}
+
+/**
  * Prefer a configured ESC/POS thermal printer in the Tauri desktop app.
  * Falls back to the HTML / system print dialog otherwise.
  */
@@ -559,8 +672,7 @@ export async function printBookingReceiptEscPos(
   if (!hasConfiguredThermalPrinter()) return false
   const pref = getSavedPrinterPreference()
   if (!pref) return false
-  const { bookingReceiptToOps, invokePrintOps } = await import("@/lib/thermal-printer")
-  await invokePrintOps(pref, bookingReceiptToOps(options, pref.width))
+  await printBookingReceiptToPreference(pref, options)
   return true
 }
 

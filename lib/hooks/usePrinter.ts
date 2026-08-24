@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
-import type { BookingReceiptOptions } from "@/lib/booking-receipt"
-import type { RestaurantOrderReceiptOptions } from "@/lib/restaurant-order-receipt"
+import {
+  printBookingReceiptToPreference,
+  type BookingReceiptOptions,
+} from "@/lib/booking-receipt"
+import {
+  printRestaurantOrderReceiptToPreference,
+  type RestaurantOrderReceiptOptions,
+} from "@/lib/restaurant-order-receipt"
 import { isTauri } from "@/lib/tauri"
 import {
-  bookingReceiptToOps,
   discoverPrinters,
   getSavedPrinterPreference,
   invokeOpenCashDrawer,
-  invokePrintOps,
   invokeTestPrint,
-  restaurantOrderReceiptToOps,
   savePrinterPreference,
   type PrinterInfo,
   type PrinterPreference,
@@ -144,7 +147,7 @@ export function usePrinter(): UsePrinterState {
       const message = "No printer selected"
       setError(message)
       toast.error(message, {
-        description: "Go to Settings → Printer to configure one.",
+        description: "Open Printer in the menu to configure one.",
       })
       return false
     }
@@ -166,7 +169,7 @@ export function usePrinter(): UsePrinterState {
   const printBooking = useCallback(
     async (options: BookingReceiptOptions) => {
       const ok = await withPreference(async (pref) => {
-        await invokePrintOps(pref, bookingReceiptToOps(options, pref.width))
+        await printBookingReceiptToPreference(pref, options)
       })
       if (ok) toast.success("Receipt printed")
       return ok
@@ -177,7 +180,7 @@ export function usePrinter(): UsePrinterState {
   const printRestaurantOrder = useCallback(
     async (options: RestaurantOrderReceiptOptions) => {
       const ok = await withPreference(async (pref) => {
-        await invokePrintOps(pref, restaurantOrderReceiptToOps(options, pref.width))
+        await printRestaurantOrderReceiptToPreference(pref, options)
       })
       if (ok) toast.success("Receipt printed")
       return ok

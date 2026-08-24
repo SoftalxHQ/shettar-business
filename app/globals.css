@@ -342,18 +342,35 @@ html.native-edge {
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
+  /* Hide live app (sidebar, tables, portals). display:none — not visibility
+     (WKWebView still paginates visibility:hidden nodes). */
   body.shettar-printing > *:not(#shettar-print-root) {
+    display: none !important;
+  }
+
+  body.shettar-printing aside,
+  body.shettar-printing header {
     display: none !important;
   }
 
   body.shettar-printing #shettar-print-root {
     display: block !important;
-    position: static;
-    left: auto;
-    top: auto;
-    width: 58mm;
-    pointer-events: auto;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: auto !important;
+    overflow: visible !important;
+  }
+
+  body.shettar-printing #shettar-print-root * {
+    overflow: visible !important;
   }
 }

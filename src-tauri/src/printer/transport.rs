@@ -13,6 +13,7 @@ pub fn send(port: &str, printer_type: &str, bytes: &[u8]) -> Result<(), String> 
     match printer_type {
         "usb" | "serial" => send_serial(port, bytes),
         "network" => send_network(port, bytes),
+        "system" => crate::printer::system::send_system(port, bytes),
         other => Err(format!("Unknown printer type: {other}")),
     }
 }
