@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.57
+
+### Highlights
+
+- Fix Windows desktop build: use `PRINTER_HANDLE` for the Win32 spooler APIs (windows-rs 0.61)
+
 ## 0.1.56
 
 ### Highlights
