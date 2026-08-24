@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.55
+
+### Highlights
+
+- Thermal receipts print the Shettar ticket design in black and white (logo, header, perforation), including USB and saved network printers
+- Reception, kitchen, and restaurant can set up a printer from the sound/bell toolbar icon
+- macOS title bar uses the light theme so “Shettar Business” stays readable
+
 ## 0.1.54
 
 ### Highlights
