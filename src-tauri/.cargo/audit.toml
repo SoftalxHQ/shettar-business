@@ -1,0 +1,6 @@
+[advisories]
+ignore = [
+    # glib 0.18.5 via gtk 0.18 / webkit2gtk (Tauri v2 Linux). Fixed only in glib >= 0.20.0,
+    # which gtk 0.18.2 cannot take. gtk3-rs is archived; Tauri GTK4 is targeted at v3.
+    "RUSTSEC-2024-0429",
+]
