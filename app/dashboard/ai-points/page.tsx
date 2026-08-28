@@ -179,6 +179,11 @@ export default function BuyAiPointsPage() {
               ? `Enter the 6-digit code sent to ${user?.email || "your email"} to confirm funding ₦${targetAmount.toLocaleString()} (${numericPoints} points).`
               : `Balance: ${balance?.total ?? "—"} (${balance?.free ?? 0} free · ${balance?.purchased ?? 0} purchased) · Withdrawable: ₦${withdrawable.toLocaleString()} · ₦${pricePerPoint}/point`}
           </p>
+          {!isOtpStep && (
+            <Link href="/dashboard/ai-history" className="mt-1 inline-block text-xs font-semibold text-indigo-600 hover:underline">
+              View AI history
+            </Link>
+          )}
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">

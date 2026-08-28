@@ -302,7 +302,7 @@ export const PERMISSION_LABELS = {
   ai_analyzer: {
     title: "AI Analyzer",
     permissions: {
-      view: "View AI points balance",
+      view: "View AI points and history",
       run: "Run AI Analyzer"
     }
   },

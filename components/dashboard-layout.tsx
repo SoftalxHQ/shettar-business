@@ -48,6 +48,7 @@ import {
   UtensilsCrossed,
   ClipboardList,
   ChefHat,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -87,6 +88,7 @@ const adminNavigation: AdminNavItem[] = [
   { name: "Staffs", href: "/dashboard/staff", icon: Users, section: "people" },
   { name: "Reviews", href: "/dashboard/reviews", icon: MessageSquare, section: "people" },
   { name: "Activity", href: "/dashboard/activity", icon: Activity, section: "system" },
+  { name: "AI History", href: "/dashboard/ai-history", icon: Sparkles, section: "system" },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell, section: "system" },
   { name: "Support", href: "/dashboard/support", icon: HelpCircle, section: "system" },
   { name: "Settings", href: "/dashboard/business/settings", icon: Settings, section: "system" },
@@ -240,6 +242,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         return !!user.permissions?.settings?.view
       case "Printer":
         return !!user.permissions?.settings?.view
+      case "AI History":
+        return !!user.permissions?.ai_analyzer?.view || !!user.permissions?.ai_analyzer?.run
       default:
         return true
     }
@@ -464,6 +468,14 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                     <Link href="/dashboard/business/settings" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Business Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {(user.role === "admin" || user.permissions?.ai_analyzer?.view || user.permissions?.ai_analyzer?.run) && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/ai-history" className="cursor-pointer">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      <span>AI History</span>
                     </Link>
                   </DropdownMenuItem>
                 )}

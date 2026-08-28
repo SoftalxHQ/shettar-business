@@ -136,6 +136,7 @@ export type AnalyzeAiParams = {
     recommendations?: string[]
     conversation?: BusinessAiChatMessage[]
   }
+  session_id?: number
   start_date?: string
   end_date?: string
   range?: string
@@ -167,7 +168,83 @@ export async function runBusinessAiAnalyzer(businessId: string, params: AnalyzeA
   }
   return data as {
     report: BusinessAiAnalyzerResult
+    session_id?: number | null
     points: { points_spent: number; balance: { free: number; purchased: number; total: number } }
     ai_points: AiPointsBalance
+  }
+}
+
+export type BusinessAiSessionSummary = {
+  id: number
+  page: string
+  title: string
+  preview: string | null
+  query: string | null
+  follow_up_count: number
+  points_spent_total: number
+  created_at: string
+  updated_at: string
+  user: { id: number; name: string } | null
+}
+
+export type BusinessAiSessionDetail = BusinessAiSessionSummary & {
+  filters: Record<string, string>
+  report: BusinessAiReport
+  messages: Array<BusinessAiChatMessage & { id?: number; created_at?: string }>
+}
+
+export function priorContextFromReport(
+  report: BusinessAiReport,
+  conversation: BusinessAiChatMessage[]
+): NonNullable<AnalyzeAiParams["prior_context"]> {
+  return {
+    query: report.query,
+    focused_answer: report.focused_answer,
+    executive_summary: report.executive_summary,
+    key_findings: report.key_findings,
+    trends: report.trends,
+    risks: report.risks,
+    recommendations: report.recommendations,
+    conversation,
+  }
+}
+
+export async function fetchAiAnalyzerSessions(
+  businessId: string,
+  params?: { page?: number; limit?: number; analyzer_page?: string }
+) {
+  const query = new URLSearchParams()
+  if (params?.page) query.set("page", String(params.page))
+  if (params?.limit) query.set("limit", String(params.limit))
+  if (params?.analyzer_page) query.set("analyzer_page", params.analyzer_page)
+  const suffix = query.toString() ? `?${query.toString()}` : ""
+  const res = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/ai_analyzer/sessions${suffix}`, {
+    headers: businessHeaders(businessId),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || "Failed to load AI history")
+  return data as {
+    sessions: BusinessAiSessionSummary[]
+    pagination: { count: number; last: number; page?: number }
+  }
+}
+
+export async function fetchAiAnalyzerSession(businessId: string, sessionId: number) {
+  const res = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/ai_analyzer/sessions/${sessionId}`, {
+    headers: businessHeaders(businessId),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || "Failed to load AI session")
+  return data.session as BusinessAiSessionDetail
+}
+
+export async function deleteAiAnalyzerSession(businessId: string, sessionId: number) {
+  const res = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/ai_analyzer/sessions/${sessionId}`, {
+    method: "DELETE",
+    headers: businessHeaders(businessId),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to delete AI history")
   }
 }

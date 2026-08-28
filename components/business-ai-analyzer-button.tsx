@@ -9,6 +9,7 @@ import {
   AI_POINTS_BALANCE_EVENT,
   fetchAiPoints,
   isFollowUpReply,
+  priorContextFromReport,
   runBusinessAiAnalyzer,
   type AiPointsBalance,
   type AnalyzeAiParams,
@@ -30,6 +31,7 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
   const [promptOpen, setPromptOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [report, setReport] = useState<BusinessAiReport | null>(null)
+  const [sessionId, setSessionId] = useState<number | null>(null)
   const [messages, setMessages] = useState<BusinessAiChatMessage[]>([])
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null)
   const [query, setQuery] = useState("")
@@ -106,6 +108,7 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
       })
       if (isFollowUpReply(result.report)) return
       setReport(result.report)
+      setSessionId(result.session_id ?? null)
       setMessages([])
       setPendingFollowUp(null)
       setBalance(result.ai_points)
@@ -135,17 +138,9 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
       const result = await runBusinessAiAnalyzer(businessId, {
         page,
         query: q,
+        session_id: sessionId ?? undefined,
         ...filters,
-        prior_context: {
-          query: report.query,
-          focused_answer: report.focused_answer,
-          executive_summary: report.executive_summary,
-          key_findings: report.key_findings,
-          trends: report.trends,
-          risks: report.risks,
-          recommendations: report.recommendations,
-          conversation: messages,
-        },
+        prior_context: priorContextFromReport(report, messages),
       })
       const reply = isFollowUpReply(result.report)
         ? result.report.reply
@@ -246,6 +241,10 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
             <p className="mt-3 text-xs text-slate-500">
               Balance: {total} point{total === 1 ? "" : "s"}
               {balance ? ` (${balance.free} free · ${balance.purchased} purchased)` : ""}
+              {" · "}
+              <Link href="/dashboard/ai-history" className="font-semibold text-indigo-600 hover:underline">
+                History
+              </Link>
             </p>
 
             <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

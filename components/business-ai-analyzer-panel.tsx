@@ -68,13 +68,21 @@ export function BusinessAiAnalyzerPanel({
               {balance ? ` · ${balance.total} pts left` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/dashboard/ai-history"
+              className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
+            >
+              History
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         <div ref={threadRef} className="flex-1 space-y-6 overflow-y-auto px-5 py-5 text-sm text-slate-700">
@@ -214,9 +222,14 @@ export function BusinessAiAnalyzerPanel({
             <span>
               Balance: {balance.total} ({balance.free} free · {balance.purchased} purchased)
             </span>
-            <Link href="/dashboard/ai-points" className="font-semibold text-indigo-600 hover:underline">
-              Buy points
-            </Link>
+            <span className="flex items-center gap-3">
+              <Link href="/dashboard/ai-history" className="font-semibold text-slate-600 hover:underline">
+                History
+              </Link>
+              <Link href="/dashboard/ai-points" className="font-semibold text-indigo-600 hover:underline">
+                Buy points
+              </Link>
+            </span>
           </div>
         )}
       </aside>
