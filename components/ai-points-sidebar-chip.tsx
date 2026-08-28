@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Sparkles } from "lucide-react"
 import { useAppSelector } from "@/lib/store/hooks"
 import { selectBusinessId, selectUser } from "@/lib/store/slices/authSlice"
-import { fetchAiPoints } from "@/lib/ai-points-api"
+import { AI_POINTS_BALANCE_EVENT, fetchAiPoints, type AiPointsBalance } from "@/lib/ai-points-api"
 
 export function AiPointsSidebarChip() {
   const businessId = useAppSelector(selectBusinessId)
@@ -23,6 +23,15 @@ export function AiPointsSidebarChip() {
       .then((b) => setTotal(b.total))
       .catch(() => setTotal(null))
   }, [businessId, canView])
+
+  useEffect(() => {
+    const onBalance = (event: Event) => {
+      const next = (event as CustomEvent<AiPointsBalance>).detail
+      if (next && typeof next.total === "number") setTotal(next.total)
+    }
+    window.addEventListener(AI_POINTS_BALANCE_EVENT, onBalance)
+    return () => window.removeEventListener(AI_POINTS_BALANCE_EVENT, onBalance)
+  }, [])
 
   if (!canView) return null
 

@@ -16,6 +16,7 @@ export type AiPointsBalance = {
 }
 
 export type BusinessAiReport = {
+  mode?: "report"
   page: string
   query: string | null
   focused_answer: string
@@ -24,6 +25,31 @@ export type BusinessAiReport = {
   trends: string
   risks: string[]
   recommendations: string[]
+}
+
+export type BusinessAiFollowUpReply = {
+  mode: "follow_up"
+  page: string
+  query: string | null
+  reply: string
+}
+
+export type BusinessAiAnalyzerResult = BusinessAiReport | BusinessAiFollowUpReply
+
+export type BusinessAiChatMessage = {
+  role: "user" | "assistant"
+  content: string
+}
+
+export function isFollowUpReply(result: BusinessAiAnalyzerResult): result is BusinessAiFollowUpReply {
+  return result.mode === "follow_up"
+}
+
+export const AI_POINTS_BALANCE_EVENT = "shettar:ai-points-balance-changed"
+
+export function emitAiPointsBalanceChanged(balance: AiPointsBalance) {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent(AI_POINTS_BALANCE_EVENT, { detail: balance }))
 }
 
 function businessHeaders(businessId: string) {
@@ -65,6 +91,7 @@ export async function verifyAiPointsTopup(businessId: string, reference: string)
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || "Payment verification failed")
+  if (data.ai_points) emitAiPointsBalanceChanged(data.ai_points)
   return data as { message: string; ai_points: AiPointsBalance; already_processed?: boolean; points?: number }
 }
 
@@ -86,6 +113,7 @@ export async function transferAiPointsFromWithdrawable(
   )
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || "Transfer failed")
+  if (data.ai_points) emitAiPointsBalanceChanged(data.ai_points)
   return data as {
     status?: "otp_required"
     message?: string
@@ -98,6 +126,16 @@ export async function transferAiPointsFromWithdrawable(
 export type AnalyzeAiParams = {
   page: "analytics" | "finance" | "bookings" | "activity"
   query?: string
+  prior_context?: {
+    query?: string | null
+    focused_answer?: string
+    executive_summary?: string
+    key_findings?: string[]
+    trends?: string
+    risks?: string[]
+    recommendations?: string[]
+    conversation?: BusinessAiChatMessage[]
+  }
   start_date?: string
   end_date?: string
   range?: string
@@ -115,6 +153,7 @@ export async function runBusinessAiAnalyzer(businessId: string, params: AnalyzeA
     body: JSON.stringify(params),
   })
   const data = await res.json().catch(() => ({}))
+  if (data.ai_points) emitAiPointsBalanceChanged(data.ai_points)
   if (!res.ok) {
     const err = new Error(data.error || "Ops, something went wrong. Please try again shortly.") as Error & {
       code?: string
@@ -127,7 +166,7 @@ export async function runBusinessAiAnalyzer(businessId: string, params: AnalyzeA
     throw err
   }
   return data as {
-    report: BusinessAiReport
+    report: BusinessAiAnalyzerResult
     points: { points_spent: number; balance: { free: number; purchased: number; total: number } }
     ai_points: AiPointsBalance
   }

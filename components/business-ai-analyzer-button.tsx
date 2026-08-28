@@ -6,10 +6,13 @@ import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BusinessAiAnalyzerPanel } from "@/components/business-ai-analyzer-panel"
 import {
+  AI_POINTS_BALANCE_EVENT,
   fetchAiPoints,
+  isFollowUpReply,
   runBusinessAiAnalyzer,
   type AiPointsBalance,
   type AnalyzeAiParams,
+  type BusinessAiChatMessage,
   type BusinessAiReport,
 } from "@/lib/ai-points-api"
 import { cn } from "@/lib/utils"
@@ -18,7 +21,7 @@ type Props = {
   businessId: string | null | undefined
   canRun: boolean
   page: AnalyzeAiParams["page"]
-  filters?: Omit<AnalyzeAiParams, "page" | "query">
+  filters?: Omit<AnalyzeAiParams, "page" | "query" | "prior_context">
   className?: string
 }
 
@@ -27,11 +30,16 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
   const [promptOpen, setPromptOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [report, setReport] = useState<BusinessAiReport | null>(null)
+  const [messages, setMessages] = useState<BusinessAiChatMessage[]>([])
+  const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [insufficient, setInsufficient] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [followUpLoading, setFollowUpLoading] = useState(false)
+  const [followUpError, setFollowUpError] = useState<string | null>(null)
+  const [followUpInsufficient, setFollowUpInsufficient] = useState(false)
 
   useEffect(() => {
     if (!businessId || !canRun) return
@@ -40,10 +48,42 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
       .catch(() => {})
   }, [businessId, canRun])
 
+  useEffect(() => {
+    const onBalance = (event: Event) => {
+      const next = (event as CustomEvent<AiPointsBalance>).detail
+      if (next && typeof next.total === "number") setBalance(next)
+    }
+    window.addEventListener(AI_POINTS_BALANCE_EVENT, onBalance)
+    return () => window.removeEventListener(AI_POINTS_BALANCE_EVENT, onBalance)
+  }, [])
+
   if (!canRun) return null
 
   const pointsCost = balance?.config.points_per_request ?? 1
   const total = balance?.total ?? 0
+
+  const applyAnalyzeError = (
+    e: unknown,
+    setters: {
+      setError: (value: string | null) => void
+      setInsufficient: (value: boolean) => void
+      setStatus: (value: string | null) => void
+    }
+  ) => {
+    const err = e as Error & { code?: string; ai_points?: AiPointsBalance }
+    if (err.ai_points) setBalance(err.ai_points)
+    if (err.code === "insufficient_ai_points") {
+      setters.setInsufficient(true)
+      setters.setError(err.message || "Insufficient AI points")
+    } else if (err.code === "ai_provider_unavailable") {
+      setters.setError("Ops, something went wrong. Please try again shortly.")
+    } else if (err.code === "no_activity") {
+      setters.setError(err.message || "No activity events to analyze for the selected filters")
+    } else {
+      setters.setError(err.message || "Ops, something went wrong. Please try again shortly.")
+    }
+    setters.setStatus(null)
+  }
 
   const handleAnalyze = async (mode: "general" | "request") => {
     if (!businessId) return
@@ -64,27 +104,68 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
         query: q || undefined,
         ...filters,
       })
+      if (isFollowUpReply(result.report)) return
       setReport(result.report)
+      setMessages([])
+      setPendingFollowUp(null)
       setBalance(result.ai_points)
       setStatus(null)
+      setFollowUpError(null)
+      setFollowUpInsufficient(false)
       setPromptOpen(false)
       setPanelOpen(true)
     } catch (e) {
-      const err = e as Error & { code?: string; ai_points?: AiPointsBalance }
-      if (err.ai_points) setBalance(err.ai_points)
-      if (err.code === "insufficient_ai_points") {
-        setInsufficient(true)
-        setError(err.message || "Insufficient AI points")
-      } else if (err.code === "ai_provider_unavailable") {
-        setError("Ops, something went wrong. Please try again shortly.")
-      } else if (err.code === "no_activity") {
-        setError(err.message || "No activity events to analyze for the selected filters")
-      } else {
-        setError(err.message || "Ops, something went wrong. Please try again shortly.")
-      }
-      setStatus(null)
+      applyAnalyzeError(e, { setError, setInsufficient, setStatus })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFollowUp = async (followUpQuery: string) => {
+    if (!businessId || !report) return
+    const q = followUpQuery.trim()
+    if (!q) return
+
+    setFollowUpError(null)
+    setFollowUpInsufficient(false)
+    setPendingFollowUp(q)
+    setFollowUpLoading(true)
+
+    try {
+      const result = await runBusinessAiAnalyzer(businessId, {
+        page,
+        query: q,
+        ...filters,
+        prior_context: {
+          query: report.query,
+          focused_answer: report.focused_answer,
+          executive_summary: report.executive_summary,
+          key_findings: report.key_findings,
+          trends: report.trends,
+          risks: report.risks,
+          recommendations: report.recommendations,
+          conversation: messages,
+        },
+      })
+      const reply = isFollowUpReply(result.report)
+        ? result.report.reply
+        : result.report.focused_answer
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: q },
+        { role: "assistant", content: reply },
+      ])
+      setBalance(result.ai_points)
+      setPendingFollowUp(null)
+    } catch (e) {
+      applyAnalyzeError(e, {
+        setError: setFollowUpError,
+        setInsufficient: setFollowUpInsufficient,
+        setStatus: () => {},
+      })
+      setPendingFollowUp(null)
+    } finally {
+      setFollowUpLoading(false)
     }
   }
 
@@ -201,7 +282,13 @@ export function BusinessAiAnalyzerButton({ businessId, canRun, page, filters, cl
         open={panelOpen}
         onClose={() => setPanelOpen(false)}
         report={report}
+        messages={messages}
+        pendingFollowUp={pendingFollowUp}
         balance={balance}
+        onFollowUp={handleFollowUp}
+        followUpLoading={followUpLoading}
+        followUpError={followUpError}
+        followUpInsufficient={followUpInsufficient}
       />
     </>
   )
