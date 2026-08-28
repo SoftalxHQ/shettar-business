@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchAnalytics()
-  }, [startDate, endDate, businessId])
+  }, [startDate, endDate, rangeSelection, businessId])
 
   const dateRangeControl = (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
@@ -373,7 +373,9 @@ export default function AnalyticsPage() {
           >
             <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
-                <p className="text-sm font-semibold text-slate-900">Daily revenue</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {charts.trend_granularity === "month" ? "Monthly revenue" : "Daily revenue"}
+                </p>
                 <p className="text-[11px] text-slate-500">Income flow over the selected period</p>
               </div>
               <div className="flex-1 min-h-0 p-3">

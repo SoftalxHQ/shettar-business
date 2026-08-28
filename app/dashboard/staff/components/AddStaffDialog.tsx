@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
+import { notifySessionExpired } from "@/lib/session-expiry"
 import {
   PERMISSION_PRESETS,
   canInviteStaffMembers,
@@ -126,7 +127,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
           if (errorData.errors?.[0]?.id === "expiration" || errorData.message === "Signature has expired") {
-            toast.error("Session expired. Please login again.")
+            notifySessionExpired()
             logout()
             return
           }

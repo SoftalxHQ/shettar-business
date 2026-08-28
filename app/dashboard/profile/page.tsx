@@ -26,6 +26,7 @@ import { getAuthToken, getStoredBusinessId } from "@/lib/storage"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { api, ApiError } from "@/lib/api-client"
+import { notifySessionExpired } from "@/lib/session-expiry"
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuth()
@@ -152,7 +153,7 @@ export default function ProfilePage() {
             errorData.errors?.[0]?.id === "expiration" ||
             errorData.message === "Signature has expired"
           ) {
-            toast.error("Session expired. Please login again.")
+            notifySessionExpired()
             logout()
             return
           }
@@ -205,7 +206,7 @@ export default function ProfilePage() {
             errorData.errors?.[0]?.id === "expiration" ||
             errorData.message === "Signature has expired"
           ) {
-            toast.error("Session expired. Please login again.")
+            notifySessionExpired()
             logout()
             return
           }

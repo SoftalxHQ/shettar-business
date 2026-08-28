@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { api } from "./api-client"
 import type { User } from "./mock-auth"
+import { notifySessionExpired, resetSessionExpiryGuard } from "./session-expiry"
 
 export function useAuth() {
   const dispatch = useAppDispatch();
@@ -28,6 +29,7 @@ export function useAuth() {
     setAuthToken(token);
     setStoredBusinessId(userBusinessId);
     setStoredBusinessName(userBusinessName);
+    resetSessionExpiryGuard();
     toast.success(`Welcome back, ${userData.name}!`, {
       description: `Signed in to ${userBusinessName}`,
     });
@@ -46,7 +48,7 @@ export function useAuth() {
       storageLogout();
 
       if (skipApiCall) {
-        toast.error("Session expired. Please login again.");
+        notifySessionExpired();
       } else {
         toast.success("Signed out successfully", {
           description: `You've been logged out of ${currentBusinessName || "your account"}`,
