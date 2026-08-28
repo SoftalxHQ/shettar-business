@@ -3,7 +3,7 @@
  * HTML receipt design; Rust turns them into printer bytes.
  */
 
-import type { BookingReceiptOptions } from "@/lib/booking-receipt"
+import { SHETTAR_SITE_URL, type BookingReceiptOptions } from "@/lib/booking-receipt"
 import type { RestaurantOrderReceiptOptions } from "@/lib/restaurant-order-receipt"
 import type { RestaurantOrder } from "@/lib/restaurant-api"
 import { isTauri } from "@/lib/tauri"
@@ -95,6 +95,12 @@ function calcNights(start: string, end: string): number {
 
   const diffDays = Math.round((bTime - aTime) / 86_400_000)
   return diffDays > 0 ? diffDays : 1
+}
+
+function pushShettarSiteFooter(ops: PrintOp[]) {
+  ops.push({ op: "text", content: "Powered by Shettar", align: "center" })
+  ops.push({ op: "text", content: SHETTAR_SITE_URL, align: "center" })
+  ops.push({ op: "qr_code", data: SHETTAR_SITE_URL })
 }
 
 function pushTwoCol(
@@ -299,12 +305,8 @@ export function bookingReceiptToOps(
     content: footerMessage || "Thank you for staying with us!",
     align: "center",
   })
-  ops.push({
-    op: "text",
-    content: `Printed on ${new Date().toLocaleString()}`,
-    align: "center",
-  })
-  ops.push({ op: "text", content: "Powered by Shettar", align: "center" })
+  ops.push({ op: "text", content: `Printed on ${new Date().toLocaleString()}`, align: "center" })
+  pushShettarSiteFooter(ops)
   ops.push({ op: "cut" })
 
   return ops
@@ -447,7 +449,7 @@ export function restaurantOrderReceiptToOps(
     content: `Printed on ${new Date().toLocaleString()}`,
     align: "center",
   })
-  ops.push({ op: "text", content: "Powered by Shettar", align: "center" })
+  pushShettarSiteFooter(ops)
   ops.push({ op: "cut" })
 
   return ops

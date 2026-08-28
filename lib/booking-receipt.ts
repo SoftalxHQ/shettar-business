@@ -5,6 +5,7 @@ import {
   hasConfiguredThermalPrinter,
   type PrinterPreference,
 } from "@/lib/thermal-printer"
+import qrcode from "qrcode-generator"
 
 export const PAYMENT_METHOD_LABELS: Record<number, string> = {
   0: "Wallet",
@@ -90,6 +91,30 @@ export type BookingReceiptOptions = {
   /** Include room number and actual check-in/out audit fields (scan/checkout flow). */
   detailed?: boolean
   footerMessage?: string
+}
+
+export const SHETTAR_SITE_URL = "https://shettar.com"
+
+let shettarSiteQrSvgCache: string | null = null
+
+function shettarSiteQrSvg(): string {
+  if (shettarSiteQrSvgCache) return shettarSiteQrSvgCache
+  const qr = qrcode(0, "M")
+  qr.addData(SHETTAR_SITE_URL)
+  qr.make()
+  shettarSiteQrSvgCache = qr.createSvgTag({ cellSize: 2, margin: 1, scalable: true })
+  return shettarSiteQrSvgCache
+}
+
+export function receiptFooterBrandHtml(): string {
+  return `
+        <div class="footer-brand">
+          <div class="footer-brand-copy">
+            <div>Powered by Shettar</div>
+            <div class="footer-brand-url">${escapeHtml(SHETTAR_SITE_URL)}</div>
+          </div>
+          <div class="footer-brand-qr">${shettarSiteQrSvg()}</div>
+        </div>`
 }
 
 function escapeHtml(value: string | number | null | undefined): string {
@@ -412,10 +437,34 @@ export const THERMAL_RECEIPT_STYLES = `
   }
   .footer-brand {
     margin-top: 6px;
-    font-size: 7px;
-    color: #94a3b8;
     border-top: 1px solid #e2e8f0;
     padding-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+  }
+  .footer-brand-copy {
+    font-size: 7px;
+    color: #94a3b8;
+    line-height: 1.4;
+    min-width: 0;
+  }
+  .footer-brand-url {
+    margin-top: 1px;
+    color: #64748b;
+    word-break: break-all;
+  }
+  .footer-brand-qr {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  .footer-brand-qr svg {
+    width: 32px;
+    height: 32px;
+    display: block;
   }
   @media print {
     .shettar-receipt-sheet {
@@ -481,6 +530,7 @@ export const THERMAL_RECEIPT_MONO_STYLES = `
   .summary-row-total .summary-label, .summary-row-total .summary-value { color: #000; }
   .footer { color: #000; }
   .footer-brand { color: #000; border-top: 1px solid #000; }
+  .footer-brand-copy, .footer-brand-url { color: #000; }
   .meta-strip { background: #fff; border: 1px solid #000; border-left: 3px solid #000; }
   .meta-label, .meta-value { color: #000; }
   .item-name span { color: #000 !important; }
@@ -627,7 +677,7 @@ export function buildBookingReceiptHtml(
       <div class="footer">
         <p>${escapeHtml(footerMessage || "Thank you for staying with us!")}</p>
         <p>Printed on ${escapeHtml(new Date().toLocaleString())}</p>
-        <div class="footer-brand">Powered by Shettar</div>
+        ${receiptFooterBrandHtml()}
       </div>
     </div>
     </div>

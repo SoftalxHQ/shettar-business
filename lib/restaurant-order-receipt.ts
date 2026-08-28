@@ -5,6 +5,7 @@ import {
   THERMAL_RECEIPT_MONO_STYLES,
   THERMAL_RECEIPT_STYLES,
   printThermalReceipt,
+  receiptFooterBrandHtml,
   withResolvedLogo,
 } from "@/lib/booking-receipt"
 import {
@@ -252,7 +253,7 @@ export function buildRestaurantOrderReceiptHtml(
       <div class="footer">
         <p>Thank you!</p>
         <p>Printed on ${escapeHtml(new Date().toLocaleString())}</p>
-        <div class="footer-brand">Powered by Shettar</div>
+        ${receiptFooterBrandHtml()}
       </div>
     </div>
     </div>
