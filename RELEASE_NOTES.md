@@ -1,5 +1,14 @@
 # Shettar Business release notes
 
+## 0.1.58
+
+### Highlights
+
+- Booking and restaurant receipts include a QR code to the Shettar site
+- AI analyzer history: open past sessions, continue follow-ups, and delete a session from history
+- AI points chip updates live after follow-ups; session-expired toasts no longer stack
+- Analytics “All time” uses the full booking range, with monthly vs daily revenue on the chart
+
 ## 0.1.57
 
 ### Highlights
