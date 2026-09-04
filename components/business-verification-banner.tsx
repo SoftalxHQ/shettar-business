@@ -6,11 +6,14 @@ import { getAuthToken } from "@/lib/storage";
 import {
   type BusinessVerification,
   type VerificationDisplayStatus,
+  SALES_BLOCKED_COPY,
   VERIFICATION_LABELS,
+  parseBusinessVerification,
+  salesBlockedBannerClass,
   verificationBadgeClass,
 } from "@/lib/business-verification";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2, Clock, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, Ban, CheckCircle2, Clock, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -47,14 +50,7 @@ export function BusinessVerificationBanner({
       });
       if (!res.ok) return;
       const data = await res.json();
-      const v: BusinessVerification = {
-        verification_status: data.verification_status,
-        verification_display_status: data.verification_display_status || "unverified",
-        verification_notes: data.verification_notes,
-        verification_requested_at: data.verification_requested_at,
-        verified_at: data.verified_at,
-        can_request_verification: data.can_request_verification,
-      };
+      const v = parseBusinessVerification(data);
       setVerification(v);
       onStatusChange?.(v.verification_display_status);
     } catch {
@@ -98,12 +94,54 @@ export function BusinessVerificationBanner({
     }
   };
 
-  if (loading || !verification || user?.role === "staff") {
+  if (loading || !verification) {
     return null;
   }
 
+  const salesBlocked = verification.can_process_sales === false;
+  const isStaff = user?.role === "staff";
   const status = verification.verification_display_status;
-  if (status === "verified") {
+
+  if (salesBlocked) {
+    const reason = verification.sales_blocked_reason ?? "unverified_grace_elapsed";
+    const copy = SALES_BLOCKED_COPY[reason];
+    const showRequestCta = !isStaff && verification.can_request_verification;
+
+    return (
+      <div className={cn(
+        "mb-6 rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-4",
+        salesBlockedBannerClass(),
+      )}>
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <Ban className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">{copy.title}</p>
+            <p className="text-sm opacity-90 mt-0.5">{copy.description}</p>
+          </div>
+        </div>
+
+        {showRequestCta && (
+          <Button
+            size="sm"
+            onClick={requestVerification}
+            disabled={submitting}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Submitting…
+              </>
+            ) : (
+              "Request verification"
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (isStaff || status === "verified") {
     return null;
   }
 

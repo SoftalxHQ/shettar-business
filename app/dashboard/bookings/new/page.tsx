@@ -10,7 +10,8 @@ import { ArrowLeft, Calendar, UserPlus, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/storage"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
+import { salesBlockedToastMessage } from "@/lib/business-verification"
 import Link from "next/link"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import Flatpickr from "react-flatpickr"
@@ -28,7 +29,6 @@ interface RoomType {
 export default function NewBookingPage() {
   const router = useRouter()
   const { businessId, logout } = useAuth()
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
   const [loadingRoomTypes, setLoadingRoomTypes] = useState(false)
@@ -89,29 +89,17 @@ export default function NewBookingPage() {
         if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}))
           if (errorData.errors?.[0]?.id === 'expiration' || errorData.message === 'Signature has expired') {
-            toast({
-              variant: "destructive",
-              title: "Session Expired",
-              description: "Please login again.",
-            })
+            toast.error("Session expired. Please login again.")
             logout()
             return
           }
         }
         const errorData = await response.json().catch(() => ({}))
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorData.errors || "Failed to fetch available room types",
-        })
+        toast.error(errorData.errors || "Failed to fetch available room types")
       }
     } catch (error) {
       console.error("Failed to fetch room types:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load available rooms",
-      })
+      toast.error("Failed to load available rooms")
     } finally {
       setLoadingRoomTypes(false)
     }
@@ -121,20 +109,12 @@ export default function NewBookingPage() {
     e.preventDefault()
 
     if (!businessId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Business information not found. Please try logging in again.",
-      })
+      toast.error("Business information not found. Please try logging in again.")
       return
     }
 
     if (!formData.room_type_id) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a room type",
-      })
+      toast.error("Please select a room type")
       return
     }
 
@@ -176,10 +156,7 @@ export default function NewBookingPage() {
       const data = await response.json()
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: data.message || "Booking created successfully",
-        })
+        toast.success(data.message || "Booking created successfully")
         const bookingId =
           data.reservations?.[0]?.booking_id ||
           data.data?.booking_id ||
@@ -196,28 +173,23 @@ export default function NewBookingPage() {
       } else {
         if (response.status === 401) {
           if (data.errors?.[0]?.id === 'expiration' || data.message === 'Signature has expired') {
-            toast({
-              variant: "destructive",
-              title: "Session Expired",
-              description: "Please login again.",
-            })
+            toast.error("Session expired. Please login again.")
             logout()
             return
           }
         }
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.errors || data.error?.message || "Failed to create booking",
-        })
+        toast.error(
+          salesBlockedToastMessage(data) ||
+            (typeof data.error === "string" && data.error) ||
+            data.error?.message ||
+            (typeof data.errors === "string" && data.errors) ||
+            (Array.isArray(data.errors) ? data.errors.join(", ") : null) ||
+            "Failed to create booking"
+        )
       }
     } catch (error) {
       console.error("Failed to create booking:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
-      })
+      toast.error("An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }

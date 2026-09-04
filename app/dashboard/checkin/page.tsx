@@ -186,6 +186,10 @@ export default function CheckInOutPage() {
 
   const handleCheckOut = async () => {
     if (!selectedBooking) return
+    if (!checkOutNotes.trim()) {
+      toast.error("Checkout notes are required")
+      return
+    }
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
@@ -198,7 +202,7 @@ export default function CheckInOutPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ notes: checkOutNotes.trim() || undefined }),
+        body: JSON.stringify({ notes: checkOutNotes.trim() }),
       })
 
       const data = await response.json()
@@ -528,10 +532,10 @@ export default function CheckInOutPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="checkOutNotes">Notes (Optional)</Label>
+                <Label htmlFor="checkOutNotes">Checkout notes</Label>
                 <Textarea
                   id="checkOutNotes"
-                  placeholder="Add any notes about the check-out..."
+                  placeholder="Room condition, keys, minibar, damages…"
                   value={checkOutNotes}
                   onChange={(e) => setCheckOutNotes(e.target.value)}
                 />
@@ -541,7 +545,11 @@ export default function CheckInOutPage() {
               <Button variant="outline" onClick={() => setIsCheckOutDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCheckOut} className="bg-purple-600 hover:bg-purple-700">
+              <Button
+                onClick={handleCheckOut}
+                disabled={!checkOutNotes.trim()}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 Confirm Check-out
               </Button>
             </div>

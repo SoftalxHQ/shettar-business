@@ -224,6 +224,10 @@ function ScanContent() {
 
   const handleCheckOut = async () => {
     if (!reservation || !businessId) return
+    if (!checkoutNotes.trim()) {
+      toast.error("Checkout notes are required")
+      return
+    }
 
     try {
       setIsLoading(true)
@@ -238,7 +242,7 @@ function ScanContent() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ notes: checkoutNotes.trim() || undefined }),
+          body: JSON.stringify({ notes: checkoutNotes.trim() }),
         }
       )
 
@@ -633,6 +637,7 @@ function ScanContent() {
         confirmText="Confirm check-out"
         isDestructive
         loading={isLoading}
+        confirmDisabled={!checkoutNotes.trim()}
         onConfirm={handleCheckOut}
       >
         <div className="space-y-2 py-2">

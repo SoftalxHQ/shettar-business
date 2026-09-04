@@ -1,4 +1,5 @@
 import { getAuthToken, getStoredBusinessId } from "@/lib/storage";
+import { salesBlockedToastMessage } from "@/lib/business-verification";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -19,7 +20,7 @@ function headers(businessId: string, json = true) {
 type MenuItemPayload = {
   restaurant_menu_category_id: number;
   name: string;
-  description?: string;
+  description?: string | null;
   price: number;
   available?: boolean;
   position?: number;
@@ -288,7 +289,11 @@ export async function createOrder(
     body: JSON.stringify({ order: payload }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.errors?.join?.(", ") || "Failed to create order");
+  if (!res.ok) {
+    throw new Error(
+      salesBlockedToastMessage(data) || data.error || data.errors?.join?.(", ") || "Failed to create order"
+    );
+  }
   return data.order as RestaurantOrder;
 }
 
@@ -325,7 +330,9 @@ export async function markOrderPaid(
     body: JSON.stringify({ payment_method, paystack_reference }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to mark order paid");
+  if (!res.ok) {
+    throw new Error(salesBlockedToastMessage(data) || data.error || "Failed to mark order paid");
+  }
   return data.order as RestaurantOrder;
 }
 
