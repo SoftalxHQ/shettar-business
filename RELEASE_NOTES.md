@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.59
+
+### Highlights
+
+- Checkout notes are required on check-in and scan before a stay can be closed
+- Deactivated properties show a clear sales-paused banner; bookings and restaurant payments toast a short “contact Shettar support” message
+- New booking errors use real toasts instead of a console-only error
+
 ## 0.1.58
 
 ### Highlights
