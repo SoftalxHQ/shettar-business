@@ -75,6 +75,8 @@ App id: `com.shettar.business` (same as desktop).
 
 **Tablet-only Android:** the committed [`AndroidManifest.xml`](src-tauri/gen/android/app/src/main/AndroidManifest.xml) locks landscape (`sensorLandscape`) and declares `<supports-screens requiresSmallestWidthDp="600">` so phones are excluded in the Play Store. Re-apply those edits if you re-run `pnpm tauri:android:init` (it can regenerate `gen/android`).
 
+**Google Play target SDK:** `src-tauri/gen/android/app/build.gradle.kts` must keep `compileSdk = 36` and `targetSdk = 36` (required as of 31 Aug 2026). `tauri android init` can reset those — put them back before you upload an AAB.
+
 **Dev AVDs:** use a **tablet** image (e.g. Pixel Tablet, sw ≥ 600dp), not a phone emulator — the app is tablet-only. Prefer a normal 4 KB tablet AVD for day-to-day work; the `*16k*` images are for testing Android’s 16 KB page size. Rust `libapp_lib.so` is linked with 16 KB ELF alignment via `src-tauri/build.rs` (required for Play / Android 15+). Rebuild with `pnpm tauri:android:dev` after pulling this change.
 
 ### CI releases
@@ -98,6 +100,8 @@ Generate a keystore and secret values with [`scripts/generate-android-keystore.s
 Tag this repository (`v*` / `v*-staging`) to build macOS, Windows, Linux, Android APK, and (when secrets are set) iOS IPA — not the API repo. Installers are registered to S3 + Rails and appear on shettar-web `/download`.
 
 ### Re-register an existing tag (e.g. after a missed APK)
+
+The public download page uses `android_apk`. The Play Store `.aab` is stored as `android_aab_url` and is only shown in Shettar Super → Desktop Releases.
 
 If desktop installers registered but `android_apk` / `ios_store` are still empty on `/api/v1/desktop_releases/latest`:
 

@@ -170,6 +170,7 @@ content_type_for() {
     *.deb) echo "application/vnd.debian.binary-package" ;;
     *.rpm) echo "application/x-rpm" ;;
     *.apk) echo "application/vnd.android.package-archive" ;;
+    *.aab) echo "application/octet-stream" ;;
     *) echo "application/octet-stream" ;;
   esac
 }
@@ -202,8 +203,8 @@ upload_release_asset_to_s3() {
     return 1
   fi
 
-  # Reject HTML/XML mistakenly saved as .apk (private GitHub 404, etc.)
-  if [[ "$name" == *.apk ]]; then
+  # Reject HTML/XML mistakenly saved as .apk/.aab (private GitHub 404, etc.)
+  if [[ "$name" == *.apk || "$name" == *.aab ]]; then
     local magic
     magic="$(head -c 2 "$local_file" | od -An -t x1 | tr -d ' \n')"
     if [ "$magic" != "504b" ]; then
@@ -269,11 +270,15 @@ MAC_X64_DMG="$(find_url '_x64\.dmg$')"
 LINUX_APPIMAGE="$(find_url '\.AppImage$')"
 LINUX_DEB="$(find_url '\.deb$')"
 ANDROID_APK="$(find_url '\.apk$')"
+ANDROID_AAB="$(find_url '\.aab$')"
 ANDROID_STORE_URL="${BUSINESS_ANDROID_STORE_URL:-}"
 IOS_STORE_URL="${BUSINESS_IOS_STORE_URL:-}"
 
 if [ -z "$ANDROID_APK" ]; then
   echo "::warning::No .apk asset on GitHub release $TAG — android_apk_url will not be updated"
+fi
+if [ -z "$ANDROID_AAB" ]; then
+  echo "::warning::No .aab asset on GitHub release $TAG — android_aab_url will not be updated"
 fi
 if [ -z "$ANDROID_STORE_URL" ]; then
   echo "::warning::BUSINESS_ANDROID_STORE_URL unset — android_store_url will not be updated (APK direct update still works)"
@@ -313,6 +318,7 @@ echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
 echo "  android_apk=$ANDROID_APK"
+echo "  android_aab=$ANDROID_AAB"
 echo "  android_store=$ANDROID_STORE_URL"
 echo "  ios_store=$IOS_STORE_URL"
 echo "Mapped updater sources (GitHub):"
@@ -340,6 +346,9 @@ fi
 if [ -n "$ANDROID_APK" ]; then
   ANDROID_APK="$(upload_release_asset_to_s3 "$ANDROID_APK" "installer")"
 fi
+if [ -n "$ANDROID_AAB" ]; then
+  ANDROID_AAB="$(upload_release_asset_to_s3 "$ANDROID_AAB" "play-bundle")"
+fi
 
 if [ -n "$WIN_UPDATER" ]; then
   WIN_UPDATER="$(upload_updater_to_s3 "$WIN_UPDATER")"
@@ -361,6 +370,7 @@ echo "  macos_x64=$MAC_X64_DMG"
 echo "  linux_appimage=$LINUX_APPIMAGE"
 echo "  linux_deb=$LINUX_DEB"
 echo "  android_apk=$ANDROID_APK"
+echo "  android_aab=$ANDROID_AAB"
 echo "Mapped updater object URLs (S3):"
 echo "  windows=$WIN_UPDATER"
 echo "  macos_arm=$MAC_ARM_UPD"
@@ -383,6 +393,7 @@ PAYLOAD="$(jq -n \
   --arg linux_installer_url "$LINUX_APPIMAGE" \
   --arg linux_deb_installer_url "$LINUX_DEB" \
   --arg android_apk_url "$ANDROID_APK" \
+  --arg android_aab_url "$ANDROID_AAB" \
   --arg android_store_url "$ANDROID_STORE_URL" \
   --arg ios_store_url "$IOS_STORE_URL" \
   --arg windows_updater_url "$WIN_UPDATER" \
@@ -416,6 +427,7 @@ PAYLOAD="$(jq -n \
         linux_updater_sig: (if $linux_updater_sig == "" then null else $linux_updater_sig end)
       }
       + (if $android_apk_url == "" then {} else { android_apk_url: $android_apk_url } end)
+      + (if $android_aab_url == "" then {} else { android_aab_url: $android_aab_url } end)
       + (if $android_store_url == "" then {} else { android_store_url: $android_store_url } end)
       + (if $ios_store_url == "" then {} else { ios_store_url: $ios_store_url } end)
     )

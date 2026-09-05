@@ -14,6 +14,7 @@ val tauriProperties = Properties().apply {
 }
 
 android {
+    // Google Play requires targetSdk 36 (Android 16) as of 31 Aug 2026.
     compileSdk = 36
     namespace = "com.shettar.business"
     defaultConfig {

@@ -316,6 +316,12 @@ jobs:
       - name: setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK Platform 36
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
+
       - name: setup Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
@@ -408,9 +414,9 @@ jobs:
           echo "NDK_HOME=$NDK_HOME"
           ls "$NDK_HOME" | head
           if [ "${ANDROID_SIGNING_MODE}" = "debug" ]; then
-            pnpm tauri android build --apk --debug --ci --target aarch64
+            pnpm tauri android build --apk --aab --debug --ci --target aarch64
           else
-            pnpm tauri android build --apk --ci --target aarch64
+            pnpm tauri android build --apk --aab --ci --target aarch64
           fi
 
       - name: Upload APK to GitHub Release
@@ -464,6 +470,19 @@ jobs:
           DEST="Shettar-Business_${VERSION}_android.apk"
           cp "$APK" "$DEST"
           gh release upload "$TAG" "$DEST" --clobber
+
+          AAB_ROOT="src-tauri/gen/android/app/build/outputs/bundle"
+          echo "AAB outputs (mode=${BUILD_KIND}):"
+          find "$AAB_ROOT" -name '*.aab' -type f -print || true
+          AAB="$(find "$AAB_ROOT" -name '*.aab' -type f | head -1 || true)"
+          if [ -n "$AAB" ] && [ -f "$AAB" ]; then
+            AAB_DEST="Shettar-Business_${VERSION}_android.aab"
+            cp "$AAB" "$AAB_DEST"
+            echo "Publishing AAB: $AAB ($(du -h "$AAB" | cut -f1))"
+            gh release upload "$TAG" "$AAB_DEST" --clobber
+          else
+            echo "::warning::No AAB found under $AAB_ROOT"
+          fi
 
   publish-ios:
     name: Build iOS IPA
