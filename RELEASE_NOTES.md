@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.60
+
+### Highlights
+
+- Android CI builds a Play Store `.aab` alongside the public APK
+- Registers the AAB for Super admins; the website download page still serves the APK
+- Keeps Android `targetSdk` 36 so Play accepts the bundle
+
 ## 0.1.59
 
 ### Highlights
