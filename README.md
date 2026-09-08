@@ -92,7 +92,7 @@ The [Publish Release](.github/workflows/release.yml) workflow sets `NEXT_PUBLIC_
 | `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` / `ANDROID_STORE_PASSWORD` | Android signing |
 
 Generate a keystore and secret values with [`scripts/generate-android-keystore.sh`](scripts/generate-android-keystore.sh).  
-**Staging** tags can fall back to a **debug-signed** APK if these secrets are missing (installable, not Play-ready). **Production** tags require the secrets.
+If these secrets are missing, **staging and production** both fall back to a **debug-signed** APK/AAB (installable; you can download the AAB from the GitHub release and upload it to Play yourself). Production tags still bake in production API, web URL, and Paystack keys. Add `ANDROID_KEYSTORE_*` when you want Play-ready release signing.
 | `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_PROVISIONING_PROFILE` / `APPLE_SIGNING_IDENTITY` | iOS IPA signing |
 | `APP_STORE_CONNECT_API_KEY` / `APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` | Optional TestFlight / App Store upload |
 | `BUSINESS_IOS_STORE_URL` | Public iOS download link stored with the release |
