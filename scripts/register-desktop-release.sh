@@ -21,6 +21,20 @@ VERSION="${VERSION:-$(echo "$TAG" | sed -E 's/^v//; s/-staging$//; s/-production
 
 echo "Registering $CHANNEL/$VERSION from $REPO@$TAG → $API_URL"
 
+# Production API sits behind Cloudflare Bot Fight. GitHub-hosted runners get a
+# "Just a moment..." 403 HTML page. Talk to the Kamal origin instead.
+# Override PRODUCTION_API_ORIGIN_IP if the production server IP changes (see shettar-api config/deploy.yml).
+CURL_API_OPTS=(--http1.1 -H "User-Agent: ShettarDesktopReleaseCI/1.0")
+if [[ "${API_URL}" == *api-v1.shettar.com* ]]; then
+  if [[ -n "${PRODUCTION_API_ORIGIN_IP:-}" ]]; then
+    ORIGIN_IP="$PRODUCTION_API_ORIGIN_IP"
+  else
+    ORIGIN_IP="2.28.22.67"
+  fi
+  CURL_API_OPTS+=(--resolve "api-v1.shettar.com:443:${ORIGIN_IP}")
+  echo "Bypassing Cloudflare bot challenge: api-v1.shettar.com → ${ORIGIN_IP}"
+fi
+
 RELEASE_JSON="$(gh release view "$TAG" --repo "$REPO" --json body,publishedAt,assets)"
 NOTES="$(echo "$RELEASE_JSON" | jq -r '.body // empty')"
 PUBLISHED_AT="$(echo "$RELEASE_JSON" | jq -r '.publishedAt // empty')"
@@ -231,12 +245,11 @@ upload_release_asset_to_s3() {
   local tmp_body tmp_hdr http_code
   tmp_body="$(mktemp)"
   tmp_hdr="$(mktemp)"
-  http_code="$(curl -sS --http1.1 -o "$tmp_body" -D "$tmp_hdr" -w '%{http_code}' \
+  http_code="$(curl -sS "${CURL_API_OPTS[@]}" -o "$tmp_body" -D "$tmp_hdr" -w '%{http_code}' \
     -X POST "${API_URL%/}/api/v1/internal/desktop_releases/presign_upload" \
     -H "Authorization: Bearer ${DESKTOP_RELEASE_CI_TOKEN}" \
     -H "Accept: application/json" \
     -H "Content-Type: application/json" \
-    -H "User-Agent: ShettarDesktopReleaseCI/1.0" \
     -d "$payload" || true)"
 
   if [ "$http_code" != "200" ]; then
@@ -456,7 +469,7 @@ PAYLOAD="$(jq -n \
     )
   }')"
 
-HTTP_CODE="$(curl -sS -o /tmp/register-response.json -w "%{http_code}" \
+HTTP_CODE="$(curl -sS "${CURL_API_OPTS[@]}" -o /tmp/register-response.json -w "%{http_code}" \
   -X POST "${API_URL%/}/api/v1/internal/desktop_releases" \
   -H "Authorization: Bearer ${DESKTOP_RELEASE_CI_TOKEN}" \
   -H "Content-Type: application/json" \

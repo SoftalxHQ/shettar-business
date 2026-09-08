@@ -55,6 +55,7 @@ jobs:
           TAG: ${{ steps.env.outputs.tag }}
           BUSINESS_ANDROID_STORE_URL: ${{ secrets.BUSINESS_ANDROID_STORE_URL }}
           BUSINESS_IOS_STORE_URL: ${{ secrets.BUSINESS_IOS_STORE_URL }}
+          PRODUCTION_API_ORIGIN_IP: ${{ vars.PRODUCTION_API_ORIGIN_IP }}
         shell: bash
         run: |
           set -euo pipefail
