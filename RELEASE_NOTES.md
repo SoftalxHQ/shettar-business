@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.62
+
+### Highlights
+
+- Production Android builds a debug-signed APK/AAB when Play keystore secrets are missing, so the bundle can be uploaded to Play by hand (same path as staging, with production API and Paystack)
+
 ## 0.1.61
 
 ### Highlights
