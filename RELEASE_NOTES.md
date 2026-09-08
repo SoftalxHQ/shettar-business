@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.63
+
+### Highlights
+
+- Withdrawals show bank-style totals: you receive the amount you type, and the wallet is charged that plus fees (`total_debit`)
+- Finance history lists Received / Debited / Fee on withdrawal rows
+- Production desktop-release registration can get past Cloudflare when Super records the build
+
 ## 0.1.62
 
 ### Highlights
