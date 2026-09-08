@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.61
+
+### Highlights
+
+- Production builds use the live Paystack public key
+
 ## 0.1.60
 
 ### Highlights
