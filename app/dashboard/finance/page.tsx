@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAppDispatch, useAppSelector } from "@/lib/store/hooks"
-import { logout as logoutAction, selectUser, selectBusinessId } from "@/lib/store/slices/authSlice"
-import { logout as storageLogout } from "@/lib/storage"
+import { useAppSelector } from "@/lib/store/hooks"
+import { selectUser, selectBusinessId } from "@/lib/store/slices/authSlice"
+import { useAuth } from "@/lib/auth-context"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -77,6 +77,7 @@ interface Transaction {
   status: "completed" | "pending" | "failed"
   method?: string
   net_amount?: number
+  total_debit?: number
   commission_amount?: number
   promo_code?: string
   promo_discount_amount?: number
@@ -130,10 +131,9 @@ const MOCK_ANALYTICS_DATA = [
 ]
 
 export default function FinancePage() {
-  const dispatch = useAppDispatch()
+  const { logout } = useAuth()
   const user = useAppSelector(selectUser)
   const businessId = useAppSelector(selectBusinessId)
-  const logout = () => { dispatch(logoutAction()); storageLogout(); router.push("/login") }
   const router = useRouter()
   const [balances, setBalances] = useState<BusinessDetails | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -240,6 +240,7 @@ export default function FinancePage() {
             status: t.status,
             method: t.metadata?.payment_method,
             net_amount: t.metadata?.net_amount != null ? parseFloat(t.metadata.net_amount) : undefined,
+            total_debit: t.metadata?.total_debit != null ? parseFloat(t.metadata.total_debit) : undefined,
             commission_amount: t.metadata?.commission_amount != null ? parseFloat(t.metadata.commission_amount) : undefined,
             promo_code: t.metadata?.promo_code,
             promo_discount_amount: t.metadata?.promo_discount_amount != null ? parseFloat(t.metadata.promo_discount_amount) : undefined,
@@ -1054,7 +1055,10 @@ export default function FinancePage() {
                           </span>
                           {t.type === "withdrawal" && t.net_amount != null && (
                             <div className="mt-0.5 space-y-0.5 text-[10px] font-normal text-slate-500">
-                              <div className="text-emerald-700">Net: ₦{t.net_amount.toLocaleString()}</div>
+                              <div className="text-emerald-700">Received: ₦{t.net_amount.toLocaleString()}</div>
+                              {t.total_debit != null && (
+                                <div>Debited: ₦{t.total_debit.toLocaleString()}</div>
+                              )}
                               <div className="text-rose-500">Fee: ₦{(t.commission_amount ?? 0).toLocaleString()}</div>
                             </div>
                           )}

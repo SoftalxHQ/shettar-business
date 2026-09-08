@@ -34,6 +34,8 @@ interface CommissionPreview {
   flat_fee: number
   commission_amount: number
   net_amount: number
+  total_debit?: number
+  sufficient?: boolean
   minimum_withdrawal?: number
 }
 
@@ -151,7 +153,8 @@ export default function WithdrawalPage() {
     }
     const withdrawAmount = parseFloat(amount)
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) { toast.error("Please enter a valid amount"); return }
-    if (withdrawAmount > balance) { toast.error("Insufficient funds"); return }
+    const totalDebit = preview?.total_debit ?? withdrawAmount
+    if (totalDebit > balance || preview?.sufficient === false) { toast.error("Insufficient funds"); return }
 
     setLoading(true)
     try {
@@ -181,6 +184,15 @@ export default function WithdrawalPage() {
   const platformFee = (p: CommissionPreview) =>
     p.platform_commission ?? Math.max(0, Number(p.commission_amount || 0) - Number(p.flat_fee || 0))
 
+  const parsedAmount = parseFloat(amount)
+  const totalDebit = preview?.total_debit
+  const insufficientFunds =
+    !!amount &&
+    !isNaN(parsedAmount) &&
+    parsedAmount > 0 &&
+    (preview?.sufficient === false ||
+      (typeof totalDebit === "number" ? totalDebit > balance : parsedAmount > balance))
+
   const Breakdown = ({ p }: { p: CommissionPreview }) => (
     <>
       <div className="flex justify-between text-xs">
@@ -203,8 +215,12 @@ export default function WithdrawalPage() {
         </div>
       )}
       <div className="flex justify-between border-t border-slate-200 pt-2 text-xs">
+        <span className="font-semibold text-slate-800">Total to deduct</span>
+        <span className="font-semibold tabular-nums text-slate-900">{fmt(p.total_debit ?? p.amount + Number(p.commission_amount || 0))}</span>
+      </div>
+      <div className="flex justify-between text-xs">
         <span className="font-semibold text-slate-800">You will receive</span>
-        <span className="font-semibold tabular-nums text-emerald-700">{fmt(p.net_amount)}</span>
+        <span className="font-semibold tabular-nums text-emerald-700">{fmt(p.net_amount ?? p.amount)}</span>
       </div>
     </>
   )
@@ -327,8 +343,8 @@ export default function WithdrawalPage() {
                         onChange={(e) => setAmount(e.target.value)}
                         disabled={verifiedAccounts.length === 0}
                       />
-                      {amount && !isNaN(Number(amount)) && Number(amount) > balance && (
-                        <p className="text-xs font-medium text-red-600">Amount exceeds available balance</p>
+                      {insufficientFunds && (
+                        <p className="text-xs font-medium text-red-600">Insufficient funds</p>
                       )}
                       {previewError && (
                         <p className="text-xs font-medium text-amber-700">{previewError}</p>
@@ -410,7 +426,7 @@ export default function WithdrawalPage() {
                     verifiedAccounts.length === 0 ||
                     !selectedAccountId ||
                     !amount ||
-                    Number(amount) > balance ||
+                    insufficientFunds ||
                     !!previewError ||
                     (isOtpStep && otp.length < 6)
                   }
