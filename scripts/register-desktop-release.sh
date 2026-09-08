@@ -216,21 +216,44 @@ upload_release_asset_to_s3() {
     fi
   fi
 
-  local ctype
-  ctype="$(content_type_for "$name")"
+  # Always octet-stream: Cloudflare WAF on production often 403s multipart
+  # POSTs that include an .exe filename or a Windows executable MIME type.
+  local ctype="application/octet-stream"
 
-  local presign_json
-  if ! presign_json="$(curl -fsS -X POST "${API_URL%/}/api/v1/internal/desktop_releases/presign_upload" \
+  local payload
+  payload="$(jq -n \
+    --arg channel "$CHANNEL" \
+    --arg version "$VERSION" \
+    --arg filename "$name" \
+    --arg content_type "$ctype" \
+    '{channel:$channel,version:$version,filename:$filename,content_type:$content_type}')"
+
+  local tmp_body tmp_hdr http_code
+  tmp_body="$(mktemp)"
+  tmp_hdr="$(mktemp)"
+  http_code="$(curl -sS --http1.1 -o "$tmp_body" -D "$tmp_hdr" -w '%{http_code}' \
+    -X POST "${API_URL%/}/api/v1/internal/desktop_releases/presign_upload" \
     -H "Authorization: Bearer ${DESKTOP_RELEASE_CI_TOKEN}" \
     -H "Accept: application/json" \
-    -F "channel=${CHANNEL}" \
-    -F "version=${VERSION}" \
-    -F "filename=${name}" \
-    -F "content_type=${ctype}")"; then
-    echo "::error::presign_upload failed for ${name}" >&2
+    -H "Content-Type: application/json" \
+    -H "User-Agent: ShettarDesktopReleaseCI/1.0" \
+    -d "$payload" || true)"
+
+  if [ "$http_code" != "200" ]; then
+    echo "::error::presign_upload failed for ${name} (HTTP ${http_code})" >&2
+    echo "Response headers:" >&2
+    grep -iE '^(HTTP/|cf-ray:|server:|content-type:|x-request-id:)' "$tmp_hdr" >&2 || true
+    echo "Response body:" >&2
+    head -c 800 "$tmp_body" >&2 || true
+    echo >&2
+    rm -f "$tmp_body" "$tmp_hdr"
     rm -rf "$tmpdir"
     return 1
   fi
+
+  local presign_json
+  presign_json="$(cat "$tmp_body")"
+  rm -f "$tmp_body" "$tmp_hdr"
 
   local upload_url object_url
   upload_url="$(echo "$presign_json" | jq -r '.upload_url // empty')"
