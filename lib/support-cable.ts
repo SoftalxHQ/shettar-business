@@ -43,7 +43,7 @@ function openSupportChannel(
   const connect = () => {
     if (closed || !token) return;
 
-    ws = new WebSocket(`${cableUrl()}?token=${encodeURIComponent(token)}`);
+    ws = new WebSocket(cableUrl());
 
     ws.onopen = () => {
       ws?.send(JSON.stringify({ command: "subscribe", identifier }));

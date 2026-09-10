@@ -192,7 +192,7 @@ function ensureSocket() {
   teardownSocket();
   socketToken = token;
 
-  const ws = new WebSocket(`${cableUrl()}?token=${encodeURIComponent(token)}`);
+  const ws = new WebSocket(cableUrl());
   sharedSocket = ws;
   const identifier = JSON.stringify({ channel: "UserNotificationsChannel" });
 

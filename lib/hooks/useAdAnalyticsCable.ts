@@ -21,7 +21,7 @@ export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
     const token = getAuthToken()
     if (!token) return
 
-    const ws = new WebSocket(`${cableUrl()}?token=${encodeURIComponent(token)}`)
+    const ws = new WebSocket(cableUrl())
     wsRef.current = ws
 
     const identifier = JSON.stringify({

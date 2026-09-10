@@ -363,6 +363,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ] || [ -z "${ANDROID_STORE_PASSWORD:-}" ]; then
+            if [ "${APP_ENV}" = "production" ]; then
+              echo "::error::Android keystore secrets are required for production. Set ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, and ANDROID_STORE_PASSWORD. Refusing to debug-sign production."
+              exit 1
+            fi
             echo "mode=debug" >> "$GITHUB_OUTPUT"
             echo "::warning::No Android keystore secrets — building a debug-signed APK/AAB (same as staging). App env is still ${APP_ENV} (production API/Paystack when this is a production tag). Add ANDROID_KEYSTORE_* later for Play-ready release signing."
             exit 0

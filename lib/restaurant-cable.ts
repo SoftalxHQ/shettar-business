@@ -115,7 +115,7 @@ function ensureSocket(businessId: string) {
     business_id: businessId,
   });
 
-  const ws = new WebSocket(`${cableUrl()}?token=${encodeURIComponent(token)}`);
+  const ws = new WebSocket(cableUrl());
   sharedSocket = ws;
 
   ws.onopen = () => {
