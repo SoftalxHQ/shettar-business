@@ -1,7 +1,7 @@
 // Service worker — image cache for Shettar Business (Tauri + browser)
 // Scope: only caches GET requests where the response content-type is image/*
 
-const CACHE_NAME = "shettar-images-v1"
+const CACHE_NAME = "shettar-images-v2"
 const MAX_ENTRIES = 200          // evict oldest when over limit
 const MAX_AGE_SECONDS = 604800   // 7 days
 
@@ -27,6 +27,9 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return
 
   const url = new URL(request.url)
+
+  // Never cache tab icons — browsers (and App Router files) must always see the latest.
+  if (/\/favicon(\.|$)|\/icon(\.|$)|\/apple-icon/i.test(url.pathname)) return
 
   // Only intercept known image origins (API server + S3)
   const isImageRequest =

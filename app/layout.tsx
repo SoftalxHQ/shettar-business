@@ -21,7 +21,10 @@ export const metadata: Metadata = {
   title: "Shettar Business | Hotel Management",
   description: "Professional hotel business management platform",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+    ],
     apple: [{ url: "/favicon.png", type: "image/png" }],
   },
   appleWebApp: {
