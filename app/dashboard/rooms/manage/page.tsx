@@ -252,64 +252,65 @@ function RoomManagementContent() {
 
   return (
     <DashboardLayout activeTab="rooms">
-      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
-        <div className="shrink-0 flex items-start justify-between gap-3">
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-x-hidden overflow-y-auto lg:overflow-hidden min-w-0">
+        <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-1">
-              <Link href="/dashboard/rooms" className="hover:text-indigo-600 transition-colors">Rooms</Link>
-              <span>/</span>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-1 min-w-0">
+              <Link href="/dashboard/rooms" className="hover:text-indigo-600 transition-colors shrink-0">Rooms</Link>
+              <span className="shrink-0">/</span>
               <span className="text-slate-600 truncate">{roomType.name}</span>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
               <Hotel className="w-5 h-5 text-indigo-600 shrink-0" />
               <span className="truncate">{roomType.name}</span>
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">{rooms.length} rooms</p>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Link href="/dashboard/rooms">
-              <Button variant="outline" size="sm" className="h-9 rounded-xl">
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                Back
+          <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+            <Link href="/dashboard/rooms" className="flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" className="h-9 rounded-xl w-full">
+                <ArrowLeft className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Back</span>
               </Button>
             </Link>
-            <Button size="sm" onClick={() => setShowBulkCreate(true)} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-1.5" />
-              Add rooms
+            <Button size="sm" onClick={() => setShowBulkCreate(true)} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Add rooms</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>
 
-        <div className="shrink-0 grid gap-3 grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total</p>
-              <Hotel className="h-3.5 w-3.5 text-slate-400" />
+        <div className="shrink-0 grid gap-2 sm:gap-3 grid-cols-3 min-w-0">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2 py-2 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Total</p>
+              <Hotel className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{rooms.length}</p>
+            <p className="text-lg sm:text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none truncate">{rooms.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Available</p>
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2 py-2 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Available</p>
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-emerald-700 leading-none">{availableCount}</p>
+            <p className="text-lg sm:text-2xl font-semibold tabular-nums tracking-tight text-emerald-700 leading-none truncate">{availableCount}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Unavailable</p>
-              <XCircle className="h-3.5 w-3.5 text-rose-500" />
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2 py-2 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Unavailable</p>
+              <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-rose-700 leading-none">{unavailableCount}</p>
+            <p className="text-lg sm:text-2xl font-semibold tabular-nums tracking-tight text-rose-700 leading-none truncate">{unavailableCount}</p>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-5 overflow-hidden">
-          <div className="lg:col-span-3 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100">
+        <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-5 overflow-hidden min-w-0">
+          <div className="lg:col-span-3 min-h-0 min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden max-h-[50vh] lg:max-h-none">
+            <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
               <p className="text-sm font-semibold text-slate-900">Room numbers</p>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 min-h-0 min-w-0 overflow-auto">
               {rooms.length === 0 ? (
                 <div className="h-full min-h-[10rem] flex flex-col items-center justify-center px-4 text-center">
                   <Hotel className="w-8 h-8 text-slate-300 mb-2" />
@@ -338,25 +339,25 @@ function RoomManagementContent() {
                           <TableCell className="px-3 py-2.5 font-mono text-sm font-semibold text-slate-900">
                             Room {room.number}
                           </TableCell>
-                          <TableCell className="px-3 py-2.5">
+                          <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5">
                             {isAvailable ? (
                               <Badge variant="outline" className="rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
-                                <CheckCircle className="w-3 h-3" /> Available
+                                <CheckCircle className="w-3 h-3" /> <span className="hidden sm:inline">Available</span>
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="rounded-md border border-rose-100 bg-rose-50 text-rose-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
-                                <XCircle className="w-3 h-3" /> Unavailable
+                                <XCircle className="w-3 h-3" /> <span className="hidden sm:inline">Unavailable</span>
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className="px-3 py-2.5 text-center">
+                          <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5 text-center">
                             <Switch
                               checked={isAvailable}
                               onCheckedChange={() => openStatusModal(room)}
                               className="data-[state=checked]:bg-emerald-500"
                             />
                           </TableCell>
-                          <TableCell className="px-3 py-2.5 text-right">
+                          <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5 text-right">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -375,11 +376,11 @@ function RoomManagementContent() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-indigo-600" />
-                Activity
+          <div className="lg:col-span-2 min-h-0 min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden max-h-[40vh] lg:max-h-none">
+            <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5 min-w-0">
+                <Activity className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="truncate">Activity</span>
               </p>
               <Button
                 variant="ghost"

@@ -151,7 +151,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
   if (!canInvite) {
     return (
       <Dialog open onOpenChange={onCancel}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-full max-w-[calc(100%-2rem)] p-4 sm:p-6 sm:max-w-md overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Add Staff Member</DialogTitle>
           </DialogHeader>
@@ -168,7 +168,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>
             {currentStep === 1 ? "Add Staff Member" : "Configure Permissions"}
@@ -197,7 +197,7 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>
                   <Input
@@ -271,26 +271,27 @@ export function AddStaffDialog({ onSuccess, onCancel }: AddStaffDialogProps) {
           </div>
         )}
 
-        <DialogFooter className="flex justify-between border-t pt-4">
+        <DialogFooter className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between">
           {currentStep === 2 && (
             <Button
               variant="outline"
               onClick={() => setCurrentStep(1)}
               disabled={isSaving}
+              className="w-full sm:w-auto"
             >
               ← Back
             </Button>
           )}
-          <div className="flex gap-2 ml-auto">
-            <Button variant="ghost" onClick={onCancel} disabled={isSaving}>
+          <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
+            <Button variant="ghost" onClick={onCancel} disabled={isSaving} className="w-full sm:w-auto">
               Cancel
             </Button>
             {currentStep === 1 ? (
-              <Button onClick={handleNext} disabled={isSaving || assignablePresets.length === 0}>
+              <Button onClick={handleNext} disabled={isSaving || assignablePresets.length === 0} className="w-full sm:w-auto">
                 {selectedPreset === "custom" ? "Next: Permissions →" : "Add Staff Member"}
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={isSaving}>
+              <Button onClick={handleSubmit} disabled={isSaving} className="w-full sm:w-auto">
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

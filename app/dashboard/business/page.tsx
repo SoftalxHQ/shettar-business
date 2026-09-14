@@ -170,23 +170,23 @@ export default function BusinessDashboardPage() {
 
   return (
     <DashboardLayout activeTab="business">
-      <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Business overview</h1>
+      <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="space-y-4 min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">Business overview</h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Welcome back, {user?.name?.split(" ")[0] || "there"} — today&apos;s performance at a glance
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline" className="h-9 rounded-xl">
+            <Button asChild size="sm" variant="outline" className="h-9 rounded-xl flex-1 sm:flex-none">
               <Link href="/dashboard/analytics">
                 <TrendingUp className="w-4 h-4 mr-1.5" />
                 Analytics
               </Link>
             </Button>
-            <Button asChild size="sm" className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700">
+            <Button asChild size="sm" className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 flex-1 sm:flex-none">
               <Link href="/dashboard/business/settings">
                 <Settings className="w-4 h-4 mr-1.5" />
                 Settings
@@ -195,10 +195,10 @@ export default function BusinessDashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {isLoadingStats ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3">
+              <div key={i} className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 sm:px-4 py-3">
                 <Skeleton className="h-3 w-20 mb-3" />
                 <Skeleton className="h-7 w-28 mb-2" />
                 <Skeleton className="h-4 w-14" />
@@ -208,13 +208,13 @@ export default function BusinessDashboardPage() {
             displayStats.map((stat) => (
               <div
                 key={stat.title}
-                className="rounded-xl border border-slate-200 bg-slate-50/40 px-4 py-3 hover:bg-white hover:border-slate-300 transition-colors"
+                className="rounded-xl border border-slate-200 bg-slate-50/40 px-3 sm:px-4 py-3 hover:bg-white hover:border-slate-300 transition-colors min-w-0"
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{stat.title}</p>
-                  <stat.icon className="h-3.5 w-3.5 text-slate-400" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">{stat.title}</p>
+                  <stat.icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                 </div>
-                <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">
+                <p className="text-xl sm:text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none truncate">
                   {stat.value}
                 </p>
                 <div className="mt-2">
@@ -235,37 +235,37 @@ export default function BusinessDashboardPage() {
           )}
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-3 min-w-0">
           {user.role === "admin" && (
-            <div className="lg:col-span-2 rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div>
+            <div className="lg:col-span-2 rounded-xl border border-slate-200 overflow-hidden min-w-0">
+              <div className="px-3 sm:px-4 py-3 border-b border-slate-100 flex items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900">Business profile</p>
                   <p className="text-[11px] text-slate-500">Identity shown on receipts and the app header</p>
                 </div>
-                <Button variant="outline" size="sm" className="h-8 rounded-lg" asChild>
+                <Button variant="outline" size="sm" className="h-8 rounded-lg shrink-0" asChild>
                   <Link href="/dashboard/business/settings">
                     <Settings className="w-3.5 h-3.5 mr-1.5" />
                     Edit
                   </Link>
                 </Button>
               </div>
-              <div className="p-4 grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+              <div className="p-3 sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-4 min-w-0">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Business name</p>
-                    <p className="text-sm font-medium text-slate-900">{user.hotelName}</p>
+                    <p className="text-sm font-medium text-slate-900 break-words">{user.hotelName}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Business ID</p>
-                    <div className="flex items-center gap-1.5">
-                      <code className="text-xs bg-slate-100 px-2 py-1 rounded-md font-mono text-slate-700">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <code className="text-xs bg-slate-100 px-2 py-1 rounded-md font-mono text-slate-700 truncate">
                         {user.businessId}
                       </code>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                        className="h-7 w-7 text-slate-400 hover:text-slate-700 shrink-0"
                         onClick={() => {
                           navigator.clipboard.writeText(user.businessId || "")
                           toast.success("Business ID copied to clipboard")
@@ -276,7 +276,7 @@ export default function BusinessDashboardPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 flex flex-col items-center justify-center text-center">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 flex flex-col items-center justify-center text-center min-w-0">
                   {logoSrc ? (
                     <div className="relative mb-2 h-16 w-16 overflow-hidden rounded-2xl border border-slate-200 bg-white">
                       <Image
@@ -302,8 +302,8 @@ export default function BusinessDashboardPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
+          <div className="rounded-xl border border-slate-200 overflow-hidden min-w-0">
+            <div className="px-3 sm:px-4 py-3 border-b border-slate-100">
               <p className="text-sm font-semibold text-slate-900">Quick actions</p>
             </div>
             <div className="p-2 space-y-0.5">
@@ -311,7 +311,7 @@ export default function BusinessDashboardPage() {
                 href="/dashboard/rooms"
                 className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
               >
-                <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -323,7 +323,7 @@ export default function BusinessDashboardPage() {
                 href="/dashboard/staff"
                 className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
               >
-                <div className="p-1.5 rounded-lg bg-sky-50 text-sky-600">
+                <div className="p-1.5 rounded-lg bg-sky-50 text-sky-600 shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -335,7 +335,7 @@ export default function BusinessDashboardPage() {
                 href="/dashboard/analytics"
                 className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
               >
-                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -349,7 +349,7 @@ export default function BusinessDashboardPage() {
                   onClick={() => setShowMapModal(true)}
                   className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
                 >
-                  <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                  <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 shrink-0">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
@@ -366,17 +366,17 @@ export default function BusinessDashboardPage() {
 
       {showMapModal && businessInfo && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => { setShowMapModal(false); setMapLoading(true); }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-300"
+            className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92dvh] overflow-y-auto animate-in fade-in zoom-in duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">{businessInfo.name} — Location</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+            <div className="p-3 sm:p-4 border-b border-slate-100 flex items-start justify-between gap-3 sticky top-0 bg-white z-10">
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold text-slate-900 truncate">{businessInfo.name} — Location</h3>
+                <p className="text-xs text-slate-500 mt-0.5 break-words">
                   {businessInfo.address}, {businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}
                 </p>
               </div>
@@ -384,25 +384,25 @@ export default function BusinessDashboardPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => { setShowMapModal(false); setMapLoading(true); }}
-                className="rounded-xl hover:bg-slate-100"
+                className="rounded-xl hover:bg-slate-100 shrink-0"
               >
                 <X className="w-5 h-5" />
               </Button>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <div>
+            <div className="p-3 sm:p-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="min-w-0">
                   <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Latitude</p>
-                  <p className="text-sm font-semibold text-slate-900">{businessInfo.latitude}</p>
+                  <p className="text-sm font-semibold text-slate-900 break-all">{businessInfo.latitude}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Longitude</p>
-                  <p className="text-sm font-semibold text-slate-900">{businessInfo.longitude}</p>
+                  <p className="text-sm font-semibold text-slate-900 break-all">{businessInfo.longitude}</p>
                 </div>
               </div>
 
-              <div className="w-full h-[380px] rounded-xl overflow-hidden border border-slate-200 relative bg-slate-100">
+              <div className="w-full h-[240px] sm:h-[380px] rounded-xl overflow-hidden border border-slate-200 relative bg-slate-100">
                 {mapLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-10">
                     <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />

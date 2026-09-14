@@ -163,17 +163,17 @@ export default function AdsFundPage() {
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden max-w-lg">
-        <div className="shrink-0">
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden max-w-lg">
+        <div className="shrink-0 min-w-0">
           <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
             <Link href="/dashboard/ads">
               <ArrowLeft className="h-3.5 w-3.5" /> Back to ads
             </Link>
           </Button>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">
             {isOtpStep ? "Verify transfer" : "Fund ads wallet"}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 break-words">
             {isOtpStep
               ? `Enter the 6-digit code sent to ${user?.email || "your email"} to confirm funding ₦${numericAmount.toLocaleString()}.`
               : `Ads balance: ₦${(account?.ads_balance ?? 0).toLocaleString()} · Withdrawable: ₦${(
@@ -182,8 +182,8 @@ export default function AdsFundPage() {
           </p>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 sm:p-3.5 space-y-4">
             {isOtpStep ? (
               <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -196,7 +196,7 @@ export default function AdsFundPage() {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     placeholder="Enter 6-digit code"
-                    className="h-14 text-2xl text-center font-bold tracking-[0.5em] rounded-lg border-slate-200"
+                    className="h-12 sm:h-14 text-xl sm:text-2xl text-center font-bold tracking-[0.35em] sm:tracking-[0.5em] rounded-lg border-slate-200 min-w-0"
                     value={otp}
                     maxLength={6}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}

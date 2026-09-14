@@ -7,7 +7,7 @@ import { useAppSelector } from "@/lib/store/hooks"
 import { selectBusinessId, selectUser } from "@/lib/store/slices/authSlice"
 import { AI_POINTS_BALANCE_EVENT, fetchAiPoints, type AiPointsBalance } from "@/lib/ai-points-api"
 
-export function AiPointsSidebarChip() {
+export function AiPointsSidebarChip({ collapsed = false }: { collapsed?: boolean }) {
   const businessId = useAppSelector(selectBusinessId)
   const user = useAppSelector(selectUser)
   const [total, setTotal] = useState<number | null>(null)
@@ -34,6 +34,27 @@ export function AiPointsSidebarChip() {
   }, [])
 
   if (!canView) return null
+
+  if (collapsed) {
+    return (
+      <div className="space-y-1 flex flex-col items-center">
+        <Link
+          href="/dashboard/ai-points"
+          title={`AI points${total != null ? `: ${total}` : ""}`}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-slate-50/80 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-100 transition-colors"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </Link>
+        <Link
+          href="/dashboard/ai-history"
+          title="AI history"
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-50 hover:text-indigo-800 transition-colors"
+        >
+          <History className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1">

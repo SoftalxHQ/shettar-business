@@ -78,11 +78,11 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden overflow-x-hidden p-4 sm:p-6 sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            Manage Permissions - {userName}
+          <DialogTitle className="flex min-w-0 items-center gap-2">
+            <Shield className="w-5 h-5 text-primary shrink-0" />
+            <span className="truncate">Manage Permissions - {userName}</span>
           </DialogTitle>
           <DialogDescription>
             Configure what {userName} can access and manage
@@ -90,21 +90,21 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
         </DialogHeader>
 
         {/* Header Info */}
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-          <div className="flex items-center gap-3">
-            <div>
-              <p className="text-sm font-medium">{userName}</p>
-              <p className="text-xs text-muted-foreground">{member.user?.email}</p>
+        <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-muted rounded-lg min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{userName}</p>
+              <p className="text-xs text-muted-foreground truncate">{member.user?.email}</p>
             </div>
             {member.is_admin && (
-              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 shrink-0">
                 <Crown className="w-3 h-3 mr-1" />
                 Admin
               </Badge>
             )}
           </div>
 
-          <div className="text-right">
+          <div className="text-left sm:text-right shrink-0">
             <p className="text-2xl font-bold">{currentCount}</p>
             <p className="text-xs text-muted-foreground">
               {currentCount === 1 ? "permission" : "permissions"} enabled
@@ -138,7 +138,7 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
           </div>
         )}
 
-        <DialogFooter className="flex justify-between border-t pt-4">
+        <DialogFooter className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {hasChanges ? (
               <>
@@ -153,14 +153,15 @@ export function EditPermissionsDialog({ member, onSuccess, onCancel }: EditPermi
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button variant="outline" onClick={onCancel} disabled={isSaving} className="w-full sm:w-auto">
               Cancel
             </Button>
             {!member.is_admin && (
               <Button
                 onClick={handleSave}
                 disabled={isSaving || !hasChanges}
+                className="w-full sm:w-auto"
               >
                 {isSaving ? (
                   <>

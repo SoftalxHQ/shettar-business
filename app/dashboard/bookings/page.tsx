@@ -362,12 +362,12 @@ function BookingsContent() {
     }
 
     return (
-      <div className="h-full min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-auto">
+      <div className="h-full min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden min-w-0">
+        <div className="flex-1 min-h-0 min-w-0 overflow-x-auto overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-slate-50 [&_tr]:border-slate-200">
               <TableRow className="hover:bg-slate-50">
-                <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[200px]">Client</TableHead>
+                <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] sm:w-[200px]">Client</TableHead>
                 <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Booking ID</TableHead>
                 <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Amount</TableHead>
                 <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Start</TableHead>
@@ -381,19 +381,21 @@ function BookingsContent() {
               {paginatedData.map((reservation) => (
                 <TableRow key={reservation.id} className="hover:bg-slate-50/80">
                   <TableCell className="px-3 py-2.5 font-medium">
-                    <div className="text-sm text-slate-900">{reservation.client_name || `${reservation.other_first_name || ''} ${reservation.other_last_name || ''}`}</div>
-                    <div className="text-[11px] text-slate-500">{reservation.client_email || reservation.other_email_address || 'N/A'}</div>
+                    <div className="min-w-0 max-w-[10rem] sm:max-w-[14rem]">
+                      <div className="text-sm text-slate-900 truncate">{reservation.client_name || `${reservation.other_first_name || ''} ${reservation.other_last_name || ''}`}</div>
+                      <div className="text-[11px] text-slate-500 truncate">{reservation.client_email || reservation.other_email_address || 'N/A'}</div>
+                    </div>
                   </TableCell>
                   <TableCell className="px-3 py-2.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-700 font-medium font-mono text-xs">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-slate-700 font-medium font-mono text-xs truncate">
                         {reservation.booking_id}
                       </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-slate-700"
+                        className="h-6 w-6 text-slate-400 hover:text-slate-700 shrink-0"
                         onClick={() => {
                           void navigator.clipboard.writeText(reservation.booking_id).then(() => {
                             toast.success("Booking code copied")
@@ -405,10 +407,10 @@ function BookingsContent() {
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="px-3 py-2.5 text-sm tabular-nums font-medium text-slate-900">₦{reservation.total_amount?.toLocaleString()}</TableCell>
-                  <TableCell className="px-3 py-2.5 text-sm text-slate-600">{new Date(reservation.start_date).toLocaleDateString()}</TableCell>
-                  <TableCell className="px-3 py-2.5 text-sm text-slate-600">{new Date(reservation.end_date).toLocaleDateString()}</TableCell>
-                  <TableCell className="px-3 py-2.5 text-sm text-slate-700">{reservation.room_type_name}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-sm tabular-nums font-medium text-slate-900 whitespace-nowrap">₦{reservation.total_amount?.toLocaleString()}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-sm text-slate-600 whitespace-nowrap">{new Date(reservation.start_date).toLocaleDateString()}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-sm text-slate-600 whitespace-nowrap">{new Date(reservation.end_date).toLocaleDateString()}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-sm text-slate-700 max-w-[8rem] truncate">{reservation.room_type_name}</TableCell>
                   <TableCell className="px-3 py-2.5">
                     <Badge variant="outline" className={cn("rounded-md border text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0", getStatusColor(getReservationStatus(reservation)))}>
                       {getReservationStatus(reservation)}
@@ -462,11 +464,11 @@ function BookingsContent() {
         </div>
 
         {totalPages > 1 && (
-          <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 bg-slate-50/50">
-            <div className="text-[11px] text-slate-500">
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-2 py-2 sm:px-3 border-t border-slate-100 bg-slate-50/50">
+            <div className="text-[11px] text-slate-500 truncate min-w-0">
               {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, data.length)} of {data.length}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -524,16 +526,16 @@ function BookingsContent() {
 
   return (
     <DashboardLayout activeTab="bookings">
-      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
-        <div className="shrink-0 flex items-start justify-between gap-3">
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-x-hidden overflow-hidden min-w-0">
+        <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-600" />
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-600 shrink-0" />
               Bookings
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">Hotel reservations</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap sm:shrink-0">
             <BusinessAiAnalyzerButton
               businessId={businessId}
               canRun={user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run}
@@ -566,9 +568,10 @@ function BookingsContent() {
             </div>
             {(user?.role === "admin" || user?.permissions?.bookings?.create) && (
               <Link href="/dashboard/bookings/new">
-                <Button className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  New Booking
+                <Button className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-2.5 sm:px-4">
+                  <Plus className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">New Booking</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </Link>
             )}
@@ -589,22 +592,22 @@ function BookingsContent() {
 
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 px-3 flex items-center gap-2.5 border-slate-200 bg-white hover:bg-slate-50 rounded-lg justify-between min-w-[180px] shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                    <div className="flex flex-col items-start">
+                <Button variant="outline" className="h-9 px-3 flex items-center gap-2.5 border-slate-200 bg-white hover:bg-slate-50 rounded-lg justify-between w-full sm:w-auto sm:min-w-[180px] shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <div className="flex flex-col items-start min-w-0">
                       <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide leading-none mb-0.5">Date range</span>
-                      <span className="text-xs font-medium text-slate-700">
+                      <span className="text-xs font-medium text-slate-700 truncate">
                         {rangeSelection === "Custom" ? (
                           startDate && endDate ? `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}` : "Custom"
                         ) : rangeSelection}
                       </span>
                     </div>
                   </div>
-                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform duration-200", popoverOpen && "rotate-180")} />
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0", popoverOpen && "rotate-180")} />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0 rounded-xl shadow-sm border-slate-200 overflow-hidden" align="end">
+              <PopoverContent className="w-[min(300px,calc(100vw-2rem))] p-0 rounded-xl shadow-sm border-slate-200 overflow-hidden" align="end">
                 <div className="p-2 border-b border-slate-100 bg-slate-50/50">
                   <div className="grid grid-cols-2 gap-1">
                     {["Today", "Last 7 days", "This month", "Last month", "All time", "Custom"].map((range) => (
@@ -690,25 +693,25 @@ function BookingsContent() {
           </div>
         </div>
 
-        <Tabs value={statusTab} onValueChange={setStatusTab} className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-          <TabsList className="shrink-0 h-9 w-fit max-w-full overflow-x-auto">
-            <TabsTrigger value="all" className="gap-1.5 text-sm">
+        <Tabs value={statusTab} onValueChange={setStatusTab} className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden min-w-0">
+          <TabsList className="shrink-0 h-8 sm:h-9 w-full sm:w-fit max-w-full overflow-x-auto justify-start">
+            <TabsTrigger value="all" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2">
               All
               <span className="text-[10px] font-semibold tabular-nums text-slate-400">{filteredReservations.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="active" className="gap-1.5 text-sm">
+            <TabsTrigger value="active" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2">
               Active
               <span className="text-[10px] font-semibold tabular-nums text-slate-400">{activeReservations.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="upcoming" className="gap-1.5 text-sm">
+            <TabsTrigger value="upcoming" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2">
               Upcoming
               <span className="text-[10px] font-semibold tabular-nums text-slate-400">{upcomingReservations.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="past" className="gap-1.5 text-sm">
+            <TabsTrigger value="past" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2">
               Past
               <span className="text-[10px] font-semibold tabular-nums text-slate-400">{pastReservations.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="cancelled" className="gap-1.5 text-sm">
+            <TabsTrigger value="cancelled" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2">
               Cancelled
               <span className="text-[10px] font-semibold tabular-nums text-slate-400">{cancelledReservations.length}</span>
             </TabsTrigger>
@@ -743,16 +746,16 @@ function BookingsContent() {
         </Tabs>
 
         <Dialog open={!!selectedReservation} onOpenChange={(open) => !open && setSelectedReservation(null)}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 gap-0">
-            <DialogHeader className="px-5 py-4 border-b border-slate-100 flex flex-row items-center justify-between space-y-0">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-0 gap-0 w-[calc(100%-1rem)] sm:w-full">
+            <DialogHeader className="px-3 py-3 sm:px-5 sm:py-4 border-b border-slate-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between space-y-0">
               <div className="space-y-0.5 min-w-0">
                 <DialogTitle className="text-base font-semibold text-slate-900">Reservation</DialogTitle>
                 <DialogDescription className="text-xs">
-                  <span className="font-mono text-slate-600">{selectedReservation?.booking_id}</span>
+                  <span className="font-mono text-slate-600 break-all">{selectedReservation?.booking_id}</span>
                 </DialogDescription>
               </div>
               {selectedReservation && (
-                <Button variant="outline" size="sm" onClick={() => handlePrintReceipt(selectedReservation)} className="h-8 gap-1.5 shrink-0 rounded-lg">
+                <Button variant="outline" size="sm" onClick={() => handlePrintReceipt(selectedReservation)} className="h-8 gap-1.5 shrink-0 rounded-lg w-full sm:w-auto">
                   <Printer className="w-3.5 h-3.5" />
                   Print
                 </Button>
@@ -760,13 +763,13 @@ function BookingsContent() {
             </DialogHeader>
 
             {selectedReservation && (
-              <div className="px-5 py-4 space-y-5">
+              <div className="px-3 py-3 sm:px-5 sm:py-4 space-y-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-slate-900 break-words">
                       {selectedReservation.client_name || `${selectedReservation.other_first_name || ''} ${selectedReservation.other_last_name || ''}`}
                     </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5 break-words">
                       {selectedReservation.client_email || selectedReservation.other_email_address || 'N/A'}
                     </p>
                   </div>
@@ -775,40 +778,40 @@ function BookingsContent() {
                   </Badge>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-slate-100 pt-4">
-                  <div>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-slate-100 pt-4">
+                  <div className="min-w-0">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Check-in</dt>
-                    <dd className="mt-0.5 font-medium text-slate-900">{formatDateTime(selectedReservation.start_date)}</dd>
+                    <dd className="mt-0.5 font-medium text-slate-900 break-words">{formatDateTime(selectedReservation.start_date)}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Check-out</dt>
-                    <dd className="mt-0.5 font-medium text-slate-900">{formatDateTime(selectedReservation.end_date)}</dd>
+                    <dd className="mt-0.5 font-medium text-slate-900 break-words">{formatDateTime(selectedReservation.end_date)}</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Guests</dt>
-                    <dd className="mt-0.5 font-medium text-slate-900">{selectedReservation.guests} adults, {selectedReservation.children} children</dd>
+                    <dd className="mt-0.5 font-medium text-slate-900 break-words">{selectedReservation.guests} adults, {selectedReservation.children} children</dd>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total</dt>
                     <dd className="mt-0.5 font-medium tabular-nums text-slate-900">₦{selectedReservation.total_amount?.toLocaleString()}</dd>
                   </div>
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2 min-w-0">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Phone</dt>
-                    <dd className="mt-0.5 font-medium text-slate-900">{selectedReservation.client_phone || selectedReservation.other_phone_number || 'N/A'}</dd>
+                    <dd className="mt-0.5 font-medium text-slate-900 break-words">{selectedReservation.client_phone || selectedReservation.other_phone_number || 'N/A'}</dd>
                   </div>
                 </dl>
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold text-slate-900 mb-2">Emergency contact</p>
                   {reservationHasEmergencyContact(selectedReservation) ? (
-                    <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                      <div>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      <div className="min-w-0">
                         <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Name</dt>
-                        <dd className="mt-0.5 text-slate-700">{reservationEmergencyName(selectedReservation) || "N/A"}</dd>
+                        <dd className="mt-0.5 text-slate-700 break-words">{reservationEmergencyName(selectedReservation) || "N/A"}</dd>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Phone</dt>
-                        <dd className="mt-0.5 text-slate-700">{reservationEmergencyPhone(selectedReservation) || "N/A"}</dd>
+                        <dd className="mt-0.5 text-slate-700 break-words">{reservationEmergencyPhone(selectedReservation) || "N/A"}</dd>
                       </div>
                     </dl>
                   ) : (
@@ -818,24 +821,24 @@ function BookingsContent() {
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold text-slate-900 mb-2">Room & payment</p>
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div className="min-w-0">
                       <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Room type</dt>
-                      <dd className="mt-0.5 text-slate-700">{selectedReservation.room_type_name}</dd>
+                      <dd className="mt-0.5 text-slate-700 break-words">{selectedReservation.room_type_name}</dd>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Room number</dt>
-                      <dd className="mt-0.5 text-slate-700">{selectedReservation.room_number || "Unassigned"}</dd>
+                      <dd className="mt-0.5 text-slate-700 break-words">{selectedReservation.room_number || "Unassigned"}</dd>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Payment</dt>
-                      <dd className="mt-0.5 text-slate-700">
+                      <dd className="mt-0.5 text-slate-700 break-words">
                         {selectedReservation.payment_method !== null && selectedReservation.payment_method !== undefined
                           ? (paymentMethodLabels[selectedReservation.payment_method] || "Unknown")
                           : "Not specified"}
                       </dd>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Booked</dt>
                       <dd className="mt-0.5 text-slate-700">{new Date(selectedReservation.created_at).toLocaleDateString()}</dd>
                     </div>

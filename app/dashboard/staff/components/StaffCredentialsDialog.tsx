@@ -32,13 +32,13 @@ export function StaffCredentialsDialog({ email, password, userName, onClose }: S
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] overflow-x-hidden p-4 sm:p-6 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="w-5 h-5 text-green-600" />
             Staff Credentials Created
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="min-w-0 break-words">
             {userName} has been added successfully
           </DialogDescription>
         </DialogHeader>
@@ -59,8 +59,8 @@ export function StaffCredentialsDialog({ email, password, userName, onClose }: S
 
           {/* Credentials */}
           <div className="space-y-3">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 min-w-0">
+              <div className="flex min-w-0 items-center justify-between gap-2 mb-2">
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1">
                   <Mail className="w-3 h-3" />
                   Email Address
@@ -68,17 +68,17 @@ export function StaffCredentialsDialog({ email, password, userName, onClose }: S
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-xs"
+                  className="h-6 px-2 text-xs shrink-0"
                   onClick={() => copyToClipboard(email, "Email")}
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </Button>
               </div>
-              <p className="font-mono text-sm font-semibold text-gray-900">{email}</p>
+              <p className="font-mono text-sm font-semibold text-gray-900 min-w-0 break-all">{email}</p>
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 min-w-0">
+              <div className="flex min-w-0 items-center justify-between gap-2 mb-2">
                 <label className="text-xs font-medium text-green-700 uppercase tracking-wide flex items-center gap-1">
                   <Key className="w-3 h-3" />
                   Temporary Password
@@ -86,18 +86,18 @@ export function StaffCredentialsDialog({ email, password, userName, onClose }: S
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-xs text-green-700 hover:text-green-800 hover:bg-green-100"
+                  className="h-6 px-2 text-xs text-green-700 hover:text-green-800 hover:bg-green-100 shrink-0"
                   onClick={() => copyToClipboard(password, "Password")}
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </Button>
               </div>
-              <p className="font-mono text-lg font-bold text-green-900 tracking-wide">{password}</p>
+              <p className="font-mono text-lg font-bold text-green-900 tracking-wide min-w-0 break-all">{password}</p>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               className="flex-1"

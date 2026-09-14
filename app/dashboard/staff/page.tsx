@@ -40,12 +40,12 @@ function MetricTile({
   icon: React.ComponentType<{ className?: string }>
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
-        <Icon className="h-3.5 w-3.5 text-slate-400" />
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">{title}</p>
+        <Icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
       </div>
-      <p className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
+      <p className="text-xl sm:text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900 truncate">{value}</p>
     </div>
   )
 }
@@ -165,17 +165,17 @@ export default function StaffPage() {
 
   return (
     <DashboardLayout activeTab="staffs">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Staff</h1>
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">Staff</h1>
             <p className="text-xs text-slate-500">Team members, roles, and access</p>
           </div>
           {canAdd && (
             <Button
               size="sm"
               onClick={() => setShowAddDialog(true)}
-              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700"
+              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700 w-full sm:w-auto shrink-0"
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Add Staff
@@ -183,16 +183,16 @@ export default function StaffPage() {
           )}
         </div>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 min-w-0">
           <MetricTile title="Total members" value={staffMembers.length} icon={Users} />
           <MetricTile title="Admins" value={adminsCount} icon={Crown} />
           <MetricTile title="Active staff" value={activeCount} icon={Users} />
           <MetricTile title="Inactive" value={inactiveCount} icon={Users} />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="flex shrink-0 flex-col gap-2 border-b border-slate-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="flex shrink-0 flex-col gap-2 border-b border-slate-100 px-2 py-2 sm:px-3 sm:py-2.5 sm:flex-row sm:items-center sm:justify-between min-w-0">
+            <div className="relative min-w-0 w-full flex-1 sm:max-w-xs">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search name, email, or title…"
@@ -201,7 +201,7 @@ export default function StaffPage() {
                 className="h-8 rounded-lg border-slate-200 pl-8 text-xs"
               />
             </div>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 min-w-0">
               {STATUS_FILTER_OPTIONS.map((opt) => (
                 <Button
                   key={opt.value}
@@ -219,7 +219,7 @@ export default function StaffPage() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto">
             {filteredStaff.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center text-slate-400">
                 <Users className="mb-2 h-8 w-8 opacity-40" />
@@ -244,7 +244,7 @@ export default function StaffPage() {
               </div>
             ) : (
               <Table>
-                <TableHeader className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-sm">
+                <TableHeader className="sticky top-0 z-[1] hidden sm:table-header-group bg-slate-50/95 backdrop-blur-sm">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-9 text-xs">Member</TableHead>
                     <TableHead className="h-9 text-xs">Title</TableHead>

@@ -191,21 +191,21 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-full overflow-x-hidden overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {roomType ? "Edit Room Type" : "Create Room Type"}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="amenities">Amenities</TabsTrigger>
-            <TabsTrigger value="images">Images</TabsTrigger>
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="flex-1 overflow-hidden flex flex-col min-w-0">
+          <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
+            <TabsTrigger value="basic" className="text-xs sm:text-sm px-1 sm:px-3">Basic Info</TabsTrigger>
+            <TabsTrigger value="amenities" className="text-xs sm:text-sm px-1 sm:px-3">Amenities</TabsTrigger>
+            <TabsTrigger value="images" className="text-xs sm:text-sm px-1 sm:px-3">Images</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto py-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 min-w-0">
             {/* Tab 1: Basic Information */}
             <TabsContent value="basic" className="space-y-4 mt-0">
               <div className="space-y-2">
@@ -324,7 +324,7 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                         <button
                           type="button"
                           onClick={() => removeExistingImage(image.id)}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -347,7 +347,7 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
                         <button
                           type="button"
                           onClick={() => removeNewImage(index)}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -382,13 +382,13 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
           </div>
         </Tabs>
 
-        <DialogFooter className="flex justify-between border-t pt-4">
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={onCancel} disabled={isSaving}>
+        <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between border-t pt-4">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="ghost" onClick={onCancel} disabled={isSaving} className="w-full sm:w-auto">
               Cancel
             </Button>
           </div>
-          <Button onClick={handleSubmit} disabled={isSaving}>
+          <Button onClick={handleSubmit} disabled={isSaving} className="w-full sm:w-auto">
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

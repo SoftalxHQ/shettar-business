@@ -98,11 +98,11 @@ export function SwitchRoleDialog({ member, onSuccess, onCancel }: SwitchRoleDial
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Switch role</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Switch role for {member.user?.name}. Their current role (
+          <p className="text-sm text-muted-foreground min-w-0">
+            Switch role for <span className="font-medium text-foreground break-words">{member.user?.name}</span>. Their current role (
             <span className="font-medium text-foreground">{member.title || initial.title}</span>
             ) is pre-selected — pick a different preset to change their access.
           </p>

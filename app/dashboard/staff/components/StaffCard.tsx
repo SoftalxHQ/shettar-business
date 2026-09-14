@@ -90,8 +90,8 @@ export function StaffCard({
   const showActions = !member.is_admin && (canEdit || canManageStatus)
 
   return (
-    <TableRow className="border-slate-100">
-      <TableCell className="py-2.5">
+    <TableRow className="flex flex-col gap-2 border-b border-slate-100 p-3 sm:table-row sm:gap-0 sm:p-0 sm:border-slate-100">
+      <TableCell className="block min-w-0 px-0 py-0.5 sm:table-cell sm:px-4 sm:py-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <Avatar className="h-8 w-8 flex-shrink-0">
             <AvatarFallback className="bg-slate-100 text-slate-600 text-[11px] font-semibold">
@@ -115,10 +115,12 @@ export function StaffCard({
           </div>
         </div>
       </TableCell>
-      <TableCell className="py-2.5 text-xs text-slate-600">
-        {member.title || "—"}
+      <TableCell className="block min-w-0 px-0 py-0.5 sm:table-cell sm:px-4 sm:py-2.5 text-xs text-slate-600">
+        <span className="sm:hidden text-[10px] uppercase tracking-wide text-slate-400 mr-1.5">Title</span>
+        <span className="truncate">{member.title || "—"}</span>
       </TableCell>
-      <TableCell className="py-2.5">
+      <TableCell className="block min-w-0 px-0 py-0.5 sm:table-cell sm:px-4 sm:py-2.5">
+        <span className="sm:hidden text-[10px] uppercase tracking-wide text-slate-400 mr-1.5">Status</span>
         {member.is_admin ? (
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] rounded-md font-normal border-slate-200 text-slate-600">
             Admin
@@ -132,14 +134,15 @@ export function StaffCard({
           </Badge>
         )}
       </TableCell>
-      <TableCell className="py-2.5 text-[11px] text-slate-500 max-w-[220px]">
+      <TableCell className="block min-w-0 px-0 py-0.5 sm:table-cell sm:px-4 sm:py-2.5 text-[11px] text-slate-500 max-w-none sm:max-w-[220px]">
+        <span className="sm:hidden text-[10px] uppercase tracking-wide text-slate-400 mr-1.5">Access</span>
         <span className="line-clamp-2">
           {member.is_admin
             ? "Full access"
             : `${permissionsCount} · ${permissionsSummary}`}
         </span>
       </TableCell>
-      <TableCell className="py-2.5 text-right">
+      <TableCell className="block min-w-0 px-0 py-1 sm:table-cell sm:px-4 sm:py-2.5 text-right">
         <div className="flex items-center justify-end gap-1">
           {canEdit && isActive && (
             <Button

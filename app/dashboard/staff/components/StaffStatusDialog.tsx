@@ -116,13 +116,13 @@ export function StaffStatusDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] overflow-x-hidden p-4 sm:p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <p className="text-sm text-muted-foreground">
             {copy.description}
           </p>
-          <p className="text-sm font-medium pt-1">
+          <p className="text-sm font-medium pt-1 min-w-0 break-words">
             {member.user?.name} · {member.user?.email}
           </p>
         </DialogHeader>

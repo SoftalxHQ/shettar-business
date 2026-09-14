@@ -262,8 +262,8 @@ export default function NewBookingPage() {
               <h2 className="text-sm font-semibold text-slate-900">Guest</h2>
             </div>
 
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 sm:p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="first_name" className="text-xs text-slate-600">
                     First name <span className="text-rose-500">*</span>
@@ -324,7 +324,7 @@ export default function NewBookingPage() {
                 Emergency contact
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="emer_first_name" className="text-xs text-slate-600">
                     First name <span className="text-rose-500">*</span>
@@ -369,8 +369,8 @@ export default function NewBookingPage() {
               <h2 className="text-sm font-semibold text-slate-900">Stay</h2>
             </div>
 
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="p-3 sm:p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="check_in_date" className="text-xs text-slate-600">
                     Check-in <span className="text-rose-500">*</span>
@@ -423,7 +423,7 @@ export default function NewBookingPage() {
                     placeholder="Select date"
                   />
                 </div>
-                <div className="space-y-1 col-span-2">
+                <div className="space-y-1 sm:col-span-2">
                   <Label htmlFor="room_type_id" className="text-xs text-slate-600">
                     Room type <span className="text-rose-500">*</span>
                   </Label>
@@ -469,7 +469,7 @@ export default function NewBookingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs text-slate-600">Adults</Label>
                   <Input

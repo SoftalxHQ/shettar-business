@@ -49,6 +49,10 @@ import {
   ClipboardList,
   ChefHat,
   Sparkles,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -60,6 +64,8 @@ import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-pol
 import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
 import { AiPointsSidebarChip } from "@/components/ai-points-sidebar-chip"
+
+const SIDEBAR_COLLAPSED_KEY = "shettar_biz_sidebar_collapsed"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -121,18 +127,52 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const [showChangeBusinessDialog, setShowChangeBusinessDialog] = useState(false)
   const [isChangingBusiness, setIsChangingBusiness] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<VerificationDisplayStatus | null>(null)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     setupNativeWindow()
     armNotificationAudioUnlock()
+
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+      if (stored === "1" || stored === "0") {
+        setCollapsed(stored === "1")
+      } else {
+        setCollapsed(window.matchMedia("(max-width: 1023px)").matches)
+      }
+    } catch {
+      setCollapsed(window.matchMedia("(max-width: 1023px)").matches)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [mobileOpen])
 
   useEffect(() => {
     if (!isLoading && !user && mounted) {
       router.push("/login")
     }
   }, [user, isLoading, router, mounted])
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0")
+      } catch {
+        // ignore storage failures
+      }
+      return next
+    })
+  }
 
   if (!user || isLoading) {
     return (
@@ -254,12 +294,134 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   )
 
   if (isAdmin) {
-    return (
-      <div className="h-dvh overflow-hidden flex bg-[#f4f5f7] app-safe-shell">
-        <aside className="w-[15.5rem] shrink-0 h-full border-r border-slate-200/80 bg-white flex flex-col">
-          <div className="h-14 shrink-0 flex items-center gap-2.5 px-4 border-b border-slate-100">
-            <Link href="/dashboard/business" className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity">
-              <SidebarBrandLogo businessId={businessId} />
+    const renderAccountMenu = (menuCollapsed: boolean) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-auto rounded-xl hover:bg-slate-50",
+              menuCollapsed ? "w-full justify-center px-0 py-2" : "w-full justify-start gap-2.5 px-2 py-2",
+            )}
+            title={menuCollapsed ? user.name : undefined}
+          >
+            <Avatar className="h-8 w-8">
+              {user.profilePicture && !imgError && (
+                <Image
+                  src={user.profilePicture}
+                  alt={user.name}
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
+                  onError={() => setImgError(true)}
+                  unoptimized={user.profilePicture.startsWith("data:")}
+                />
+              )}
+              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">{initials}</AvatarFallback>
+            </Avatar>
+            {!menuCollapsed && (
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-medium text-slate-900 truncate">{user.name}</p>
+                <p className="text-[11px] text-slate-400 capitalize truncate">{user.role}</p>
+              </div>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/profile" className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile Settings</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
+            <Building2 className="mr-2 h-4 w-4" />
+            <span>Change Business</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+
+    const renderNav = (opts: { collapsed: boolean; onNavigate?: () => void }) => (
+      <nav
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto py-3 space-y-4",
+          opts.collapsed ? "px-1.5" : "px-2.5",
+        )}
+      >
+        {adminSections.map((section) => (
+          <div key={section}>
+            {!opts.collapsed && (
+              <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                {adminSectionLabels[section]}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {visibleAdminNav
+                .filter((item) => item.section === section)
+                .map((item) => {
+                  let isActive = item.restaurantNav
+                    ? activeTab === item.restaurantNav
+                    : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
+
+                  if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
+                    isActive = true
+                  }
+
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      title={opts.collapsed ? item.name : undefined}
+                      onClick={opts.onNavigate}
+                      className={cn(
+                        "flex items-center rounded-lg text-[13px] font-medium transition-colors",
+                        opts.collapsed ? "justify-center px-0 py-2" : "gap-2.5 px-2.5 py-1.5",
+                        isActive
+                          ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                      )}
+                    >
+                      <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
+                      {!opts.collapsed && <span className="truncate flex-1">{item.name}</span>}
+                      {!opts.collapsed && item.name === "Support" && <SupportUnreadBadge />}
+                    </Link>
+                  )
+                })}
+            </div>
+          </div>
+        ))}
+      </nav>
+    )
+
+    const sidebarBody = (opts: { collapsed: boolean; showDesktopToggle?: boolean; onNavigate?: () => void }) => (
+      <>
+        <div
+          className={cn(
+            "shrink-0 flex border-b border-slate-100",
+            opts.collapsed
+              ? "h-auto min-h-14 flex-col items-center justify-center gap-1 px-1 py-2"
+              : "h-14 items-center gap-1 px-3",
+          )}
+        >
+          <Link
+            href="/dashboard/business"
+            onClick={opts.onNavigate}
+            className={cn(
+              "flex items-center min-w-0 hover:opacity-80 transition-opacity",
+              opts.collapsed ? "justify-center" : "flex-1 gap-2.5",
+            )}
+            title={opts.collapsed ? user.hotelName : undefined}
+          >
+            <SidebarBrandLogo businessId={businessId} />
+            {!opts.collapsed && (
               <div className="min-w-0">
                 <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate">{user.hotelName}</h1>
                 <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
@@ -269,98 +431,146 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                   )}
                 </div>
               </div>
-            </Link>
+            )}
+          </Link>
+          {opts.showDesktopToggle && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-slate-400 hover:text-slate-700"
+              onClick={toggleCollapsed}
+              title={opts.collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {opts.collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+          )}
+          {!opts.showDesktopToggle && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-slate-400 hover:text-slate-700 ml-auto"
+              onClick={() => setMobileOpen(false)}
+              title="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {renderNav({ collapsed: opts.collapsed, onNavigate: opts.onNavigate })}
+
+        <div className={cn("shrink-0 border-t border-slate-100 space-y-2", opts.collapsed ? "p-1.5" : "p-2.5")}>
+          <AiPointsSidebarChip collapsed={opts.collapsed} />
+          <div className={cn("flex items-center", opts.collapsed ? "justify-center" : "justify-end px-1")}>
+            <TopBarNotifications businessId={businessId} />
           </div>
+          {renderAccountMenu(opts.collapsed)}
+        </div>
+      </>
+    )
 
-          <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-4">
-            {adminSections.map((section) => (
-              <div key={section}>
-                <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                  {adminSectionLabels[section]}
-                </p>
-                <div className="space-y-0.5">
-                  {visibleAdminNav
-                    .filter((item) => item.section === section)
-                    .map((item) => {
-                      let isActive = item.restaurantNav
-                        ? activeTab === item.restaurantNav
-                        : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
-
-                      if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
-                        isActive = true
-                      }
-
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          className={cn(
-                            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors",
-                            isActive
-                              ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                          )}
-                        >
-                          <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
-                          <span className="truncate flex-1">{item.name}</span>
-                          {item.name === "Support" && <SupportUnreadBadge />}
-                        </Link>
-                      )
-                    })}
+    return (
+      <div className="h-dvh overflow-hidden flex flex-col md:flex-row bg-[#f4f5f7] app-safe-shell">
+        {/* Phone top bar */}
+        <header className="md:hidden shrink-0 z-30 h-14 bg-white/95 backdrop-blur border-b border-slate-200/80">
+          <div className="h-full px-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <Link href="/dashboard/business" className="flex items-center gap-2 min-w-0 hover:opacity-80">
+                <SidebarBrandLogo businessId={businessId} />
+                <div className="min-w-0">
+                  <h1 className="font-semibold text-[13px] leading-tight text-slate-900 truncate max-w-[10rem]">
+                    {user.hotelName}
+                  </h1>
+                  <p className="text-[10px] text-slate-400 font-mono truncate tracking-wide">{businessId || "N/A"}</p>
                 </div>
-              </div>
-            ))}
-          </nav>
-
-          <div className="shrink-0 border-t border-slate-100 p-2.5 space-y-2">
-            <AiPointsSidebarChip />
-            <div className="flex items-center justify-end px-1">
-              <TopBarNotifications businessId={businessId} />
+              </Link>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-2.5 h-auto px-2 py-2 rounded-xl hover:bg-slate-50">
-                  <Avatar className="h-8 w-8">
-                    {user.profilePicture && !imgError && (
-                      <Image
-                        src={user.profilePicture}
-                        alt={user.name}
-                        width={32}
-                        height={32}
-                        className="rounded-full object-cover"
-                        onError={() => setImgError(true)}
-                        unoptimized={user.profilePicture.startsWith("data:")}
-                      />
-                    )}
-                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-[13px] font-medium text-slate-900 truncate">{user.name}</p>
-                    <p className="text-[11px] text-slate-400 capitalize truncate">{user.role}</p>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
-                  <Building2 className="mr-2 h-4 w-4" />
-                  <span>Change Business</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1 shrink-0">
+              <TopBarNotifications businessId={businessId} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      {user.profilePicture && !imgError && (
+                        <Image
+                          src={user.profilePicture}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="rounded-full object-cover"
+                          onError={() => setImgError(true)}
+                          unoptimized={user.profilePicture.startsWith("data:")}
+                        />
+                      )}
+                      <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>Change Business</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+        </header>
+
+        {/* Mobile overlay drawer */}
+        {mobileOpen && (
+          <button
+            type="button"
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            aria-label="Close navigation backdrop"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 w-[15.5rem] h-full border-r border-slate-200/80 bg-white flex flex-col transition-transform duration-200 ease-out md:hidden",
+            mobileOpen ? "translate-x-0" : "-translate-x-full pointer-events-none",
+          )}
+          aria-hidden={!mobileOpen}
+        >
+          {sidebarBody({ collapsed: false, onNavigate: () => setMobileOpen(false) })}
+        </aside>
+
+        {/* Desktop / tablet sidebar */}
+        <aside
+          className={cn(
+            "hidden md:flex shrink-0 h-full border-r border-slate-200/80 bg-white flex-col transition-[width] duration-200 ease-out",
+            collapsed ? "w-16" : "w-[15.5rem]",
+          )}
+        >
+          {sidebarBody({ collapsed, showDesktopToggle: true })}
         </aside>
 
         <div className="flex-1 min-w-0 min-h-0 flex flex-col">
@@ -369,7 +579,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
             </div>
             <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-5">{children}</div>
+              <div className="flex h-full min-h-0 flex-col overflow-hidden p-3 sm:p-4 md:p-5">{children}</div>
             </div>
           </main>
         </div>

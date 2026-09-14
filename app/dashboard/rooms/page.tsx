@@ -183,61 +183,62 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout activeTab="rooms">
-      <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
-        <div className="shrink-0 flex items-start justify-between gap-3">
+      <div className="h-full min-h-0 flex flex-col gap-3 overflow-x-hidden overflow-hidden min-w-0">
+        <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
-              <Hotel className="w-5 h-5 text-indigo-600" />
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
+              <Hotel className="w-5 h-5 text-indigo-600 shrink-0" />
               Rooms
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">Room types and inventory</p>
           </div>
           {(user?.role === "admin" || user?.permissions?.rooms?.create) && (
-            <Button onClick={handleCreateRoomType} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 shrink-0">
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create room type
+            <Button onClick={handleCreateRoomType} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 shrink-0 w-full sm:w-auto px-2.5 sm:px-4">
+              <Plus className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Create room type</span>
+              <span className="sm:hidden">Create type</span>
             </Button>
           )}
         </div>
 
-        <div className="shrink-0 grid gap-3 grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+        <div className="shrink-0 grid gap-2 sm:gap-3 grid-cols-2 xl:grid-cols-4 min-w-0">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Room types</p>
-              <Hotel className="h-3.5 w-3.5 text-slate-400" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Room types</p>
+              <Hotel className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{roomTypes.length}</p>
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none truncate">{roomTypes.length}</p>
             <p className="text-[11px] text-slate-500 mt-1.5">Categories</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total rooms</p>
-              <Bed className="h-3.5 w-3.5 text-slate-400" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Total rooms</p>
+              <Bed className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">{totalRooms}</p>
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none truncate">{totalRooms}</p>
             <p className="text-[11px] text-slate-500 mt-1.5">All types</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Available</p>
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Available</p>
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-emerald-700 leading-none">{totalAvailable}</p>
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums tracking-tight text-emerald-700 leading-none truncate">{totalAvailable}</p>
             <p className="text-[11px] text-slate-500 mt-1.5">Ready to book</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Avg price</p>
-              <DollarSign className="h-3.5 w-3.5 text-slate-400" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Avg price</p>
+              <DollarSign className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             </div>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums tracking-tight text-slate-900 leading-none truncate">
               ₦{avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
             <p className="text-[11px] text-slate-500 mt-1.5">Per night</p>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200 bg-white min-w-0">
           {roomTypes.length === 0 ? (
             <div className="h-full min-h-[12rem] flex flex-col items-center justify-center px-4 text-center">
               <Hotel className="w-10 h-10 text-slate-300 mb-3" />
@@ -251,7 +252,7 @@ export default function RoomsPage() {
               )}
             </div>
           ) : (
-            <div className="p-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 content-start">
+            <div className="p-2 sm:p-3 grid gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-3 content-start min-w-0">
               {roomTypes.map((roomType) => (
                 <RoomTypeCard
                   key={roomType.id}

@@ -113,7 +113,7 @@ export default function NewAdCampaignPage() {
 
   return (
     <DashboardLayout activeTab="ads">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden max-w-xl">
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden max-w-xl">
         <div className="shrink-0">
           <Button asChild variant="ghost" size="sm" className="h-7 -ml-2 mb-1 gap-1.5 px-2 text-xs text-slate-500">
             <Link href="/dashboard/ads/campaigns">
@@ -128,7 +128,7 @@ export default function NewAdCampaignPage() {
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-3.5">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 sm:p-3.5">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <Label htmlFor="name" className="text-xs text-slate-600">Campaign name</Label>
@@ -142,7 +142,7 @@ export default function NewAdCampaignPage() {
                 <FieldHelp>Internal label for your reports and campaign list.</FieldHelp>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <Label htmlFor="daily_budget" className="text-xs text-slate-600">Daily budget (₦)</Label>
                   <Input

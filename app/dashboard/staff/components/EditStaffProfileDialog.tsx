@@ -109,7 +109,7 @@ export function EditStaffProfileDialog({
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] overflow-x-hidden p-4 sm:p-6 sm:max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>Edit staff profile</DialogTitle>
           <DialogDescription>
@@ -130,7 +130,7 @@ export function EditStaffProfileDialog({
               className="h-9 text-sm bg-slate-50"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="staff-first-name" className="text-xs text-slate-600">
                 First name

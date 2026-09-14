@@ -267,16 +267,16 @@ export default function PromosPage() {
 
   return (
     <DashboardLayout activeTab="promos">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Promo codes</h1>
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">Promo codes</h1>
             <p className="text-xs text-slate-500">
               Discount codes guests can apply when booking on Shettar
             </p>
           </div>
           {canCreate && (
-            <Button size="sm" onClick={openCreate} className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700">
+            <Button size="sm" onClick={openCreate} className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-700 w-full sm:w-auto shrink-0">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Create promo
             </Button>
@@ -284,31 +284,31 @@ export default function PromosPage() {
         </div>
 
         {stats && (
-          <div className="grid shrink-0 grid-cols-3 gap-2">
+          <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 min-w-0">
             {[
               { label: "Total codes", value: stats.total_count },
               { label: "Active now", value: stats.active_count },
               { label: "Redemptions", value: stats.total_redemptions },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{s.label}</p>
-                <p className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{s.value}</p>
+              <div key={s.label} className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-2.5 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900 truncate">{s.value}</p>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <Tag className="h-3.5 w-3.5 text-slate-400" />
-              <div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-2 py-2 sm:px-3 sm:py-2.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Tag className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-slate-900">Your promo codes</h2>
-                <p className="text-[11px] text-slate-500">Unique across Shettar · applied at checkout</p>
+                <p className="text-[11px] text-slate-500 truncate">Unique across Shettar · applied at checkout</p>
               </div>
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
             {loading ? (
               <div className="flex h-40 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
@@ -320,15 +320,15 @@ export default function PromosPage() {
                 <p className="mt-1 text-xs">Create your first code to offer discounts.</p>
               </div>
             ) : (
-              <table className="w-full text-xs">
+              <table className="w-full min-w-[36rem] text-xs">
                 <thead className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-sm">
                   <tr className="border-b border-slate-100 text-left text-slate-400">
-                    <th className="px-3 py-2.5 font-semibold">Code</th>
-                    <th className="px-3 py-2.5 font-semibold">Discount</th>
-                    <th className="px-3 py-2.5 font-semibold">Validity</th>
-                    <th className="px-3 py-2.5 font-semibold">Usage</th>
-                    <th className="px-3 py-2.5 font-semibold">Status</th>
-                    <th className="px-3 py-2.5 text-right font-semibold">Actions</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 font-semibold">Code</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 font-semibold">Discount</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 font-semibold">Validity</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 font-semibold">Usage</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 font-semibold">Status</th>
+                    <th className="px-2 py-2 sm:px-3 sm:py-2.5 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -336,23 +336,23 @@ export default function PromosPage() {
                     const st = effectiveStatus(p);
                     return (
                       <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                        <td className="px-3 py-2.5 font-mono font-semibold text-slate-900">{p.code}</td>
-                        <td className="px-3 py-2.5 tabular-nums text-slate-700">{formatDiscount(p)}</td>
-                        <td className="px-3 py-2.5 text-slate-500">
+                        <td className="max-w-[7rem] truncate px-2 py-2 sm:px-3 sm:py-2.5 font-mono font-semibold text-slate-900">{p.code}</td>
+                        <td className="whitespace-nowrap px-2 py-2 sm:px-3 sm:py-2.5 tabular-nums text-slate-700">{formatDiscount(p)}</td>
+                        <td className="max-w-[9rem] truncate px-2 py-2 sm:px-3 sm:py-2.5 text-slate-500">
                           {p.valid_from || p.valid_to
                             ? `${formatDate(p.valid_from)} → ${formatDate(p.valid_to)}`
                             : "No date limit"}
                         </td>
-                        <td className="px-3 py-2.5 tabular-nums text-slate-700">
+                        <td className="whitespace-nowrap px-2 py-2 sm:px-3 sm:py-2.5 tabular-nums text-slate-700">
                           {p.usage_count}
                           {p.usage_limit != null ? ` / ${p.usage_limit}` : " / ∞"}
                         </td>
-                        <td className="px-3 py-2.5">
-                          <Badge variant={st.variant} className="rounded-md px-1.5 py-0 text-[10px]">
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                          <Badge variant={st.variant} className="rounded-md px-1.5 py-0 text-[10px] max-w-[5.5rem] truncate">
                             {st.label}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2.5 text-right">
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5 text-right">
                           {canEdit ? (
                             <div className="flex justify-end gap-0.5">
                               <Button
@@ -387,7 +387,7 @@ export default function PromosPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-xl border-slate-200 sm:max-w-md">
+        <DialogContent className="w-full max-w-[calc(100%-2rem)] rounded-xl border-slate-200 p-4 sm:max-w-md sm:p-6 overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-base">{editing ? "Edit promo code" : "Create promo code"}</DialogTitle>
             <DialogDescription className="text-xs">
@@ -409,7 +409,7 @@ export default function PromosPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Type</Label>
                 <select
@@ -441,7 +441,7 @@ export default function PromosPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Usage limit</Label>
                 <Input
@@ -465,7 +465,7 @@ export default function PromosPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Valid from</Label>
                 <Input

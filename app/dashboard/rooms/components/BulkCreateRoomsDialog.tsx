@@ -98,12 +98,12 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-full overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Add Rooms to {roomType.name}</DialogTitle>
+          <DialogTitle className="min-w-0 truncate">Add Rooms to {roomType.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 min-w-0">
           <div className="space-y-2">
             <Label htmlFor="startingNumber">Starting Room Number *</Label>
             <Input
@@ -136,12 +136,12 @@ export function BulkCreateRoomsDialog({ roomType, onSuccess, onCancel }: BulkCre
           </div>
 
           {roomNumbers.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-0 overflow-hidden">
               <p className="text-sm font-medium text-blue-900 mb-2">Preview</p>
               <p className="text-sm text-blue-700">
                 <span className="font-semibold">{roomNumbers.length} rooms</span> will be created:
               </p>
-              <p className="text-xs text-blue-600 mt-1 font-mono">
+              <p className="text-xs text-blue-600 mt-1 font-mono break-all">
                 {roomNumbers.length <= 20
                   ? roomNumbers.join(', ')
                   : `${roomNumbers.slice(0, 20).join(', ')}... and ${roomNumbers.length - 20} more`

@@ -35,7 +35,7 @@ export function PermissionPresetSelector({ selected, onSelect, presets }: Permis
         return (
           <label
             key={String(key)}
-            className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
+            className={`flex items-start gap-3 p-3 sm:gap-4 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
                 ? "border-blue-600 bg-blue-50"
                 : "border-gray-200 hover:border-gray-300"
               }`}
@@ -48,7 +48,7 @@ export function PermissionPresetSelector({ selected, onSelect, presets }: Permis
               onChange={() => onSelect(key as keyof typeof PERMISSION_PRESETS)}
               className="mt-1"
             />
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Icon className={`w-5 h-5 ${isSelected ? "text-blue-600" : "text-muted-foreground"}`} />
                 <span className={`font-semibold ${isSelected ? "text-blue-900" : ""}`}>

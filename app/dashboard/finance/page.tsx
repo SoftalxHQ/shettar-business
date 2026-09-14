@@ -572,13 +572,13 @@ export default function FinancePage() {
 
   return (
     <DashboardLayout activeTab="finance">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Finance</h1>
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">Finance</h1>
             <p className="text-xs text-slate-500">Balances and transactions</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0 w-full sm:w-auto">
             <BusinessAiAnalyzerButton
               businessId={businessId}
               canRun={user?.role === "admin" || !!user?.permissions?.ai_analyzer?.run}
@@ -704,10 +704,10 @@ export default function FinancePage() {
         </div>
 
         {showAnalytics ? (
-          <div className="flex min-h-[220px] flex-[2] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-2.5">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900">Financial growth</h2>
+          <div className="flex min-h-[220px] min-w-0 flex-[2] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 px-2.5 py-2 sm:px-4 sm:py-2.5 min-w-0">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-slate-900 truncate">Financial growth</h2>
                 <p className="text-[11px] text-slate-500">Income vs withdrawal</p>
               </div>
               <Popover>
@@ -772,26 +772,26 @@ export default function FinancePage() {
             </div>
           </div>
         ) : (
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 min-w-0">
             {balanceTiles.map((tile) => (
               <div
                 key={tile.title}
                 className={cn(
-                  "rounded-xl border px-3 py-2.5",
+                  "rounded-xl border px-2 py-2 sm:px-3 sm:py-2.5 min-w-0 overflow-hidden",
                   tile.emphasize ? "border-indigo-200 bg-indigo-50/40" : "border-slate-200 bg-slate-50/40",
                 )}
               >
                 <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{tile.title}</p>
-                  <tile.icon className={cn("h-3.5 w-3.5", tile.emphasize ? "text-indigo-500" : "text-slate-400")} />
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">{tile.title}</p>
+                  <tile.icon className={cn("h-3.5 w-3.5 shrink-0", tile.emphasize ? "text-indigo-500" : "text-slate-400")} />
                 </div>
                 <p
-                  className="text-lg font-semibold tabular-nums leading-none tracking-tight text-slate-900"
+                  className="text-lg font-semibold tabular-nums leading-none tracking-tight text-slate-900 truncate min-w-0"
                   title={formatNairaFull(tile.value)}
                 >
                   {formatNairaCompact(tile.value)}
                 </p>
-                <p className="mt-1.5 text-[10px] text-slate-400">
+                <p className="mt-1.5 text-[10px] text-slate-400 truncate">
                   {tile.desc}
                   {!tile.emphasize && (
                     <> · {balanceRangeSelection === "All time" ? "All time" : balanceRangeSelection}</>
@@ -802,9 +802,9 @@ export default function FinancePage() {
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="flex shrink-0 flex-col gap-2 border-b border-slate-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="flex shrink-0 flex-col gap-2 border-b border-slate-100 px-2 py-2 sm:px-3 sm:py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-sm font-semibold text-slate-900">Transactions</h2>
               {(filterType !== "all" || filterStatus !== "all" || searchQuery !== "" || dateRangeSelection !== "All time") && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-2 text-[11px] text-slate-400 hover:text-indigo-600">
@@ -812,8 +812,8 @@ export default function FinancePage() {
                 </Button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <div className="relative min-w-0 w-full flex-1 sm:min-w-[180px] sm:max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   placeholder="Search transactions…"
@@ -970,7 +970,7 @@ export default function FinancePage() {
             </div>
           </div>
 
-          <div className="relative min-h-0 flex-1 overflow-auto">
+          <div className="relative min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
             {isTableLoading && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
                 <LoadingSpinner size={28} />
@@ -979,7 +979,7 @@ export default function FinancePage() {
             <Table className={cn(isTableLoading && "opacity-50")}>
               <TableHeader className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-sm">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-9 w-[160px] text-xs">Date</TableHead>
+                  <TableHead className="h-9 w-[100px] sm:w-[160px] text-xs">Date</TableHead>
                   <TableHead className="h-9 text-xs">Details</TableHead>
                   <TableHead className="h-9 text-xs">Type</TableHead>
                   <TableHead className="h-9 text-xs">Status</TableHead>
@@ -992,7 +992,7 @@ export default function FinancePage() {
                     const promo = getPromoBreakdown(t)
                     return (
                       <TableRow key={t.id} className="border-slate-100">
-                        <TableCell className="whitespace-nowrap py-2.5">
+                        <TableCell className="whitespace-nowrap py-2 sm:py-2.5">
                           <div className="flex flex-col">
                             <span className="text-xs font-medium text-slate-900">{format(new Date(t.date), "MMM d, yyyy")}</span>
                             <span className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
@@ -1001,10 +1001,10 @@ export default function FinancePage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-2.5">
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-medium text-slate-900">{t.description}</span>
+                        <TableCell className="py-2 sm:py-2.5">
+                          <div className="space-y-1 min-w-0 max-w-[14rem] sm:max-w-none">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <span className="text-xs font-medium text-slate-900 truncate">{t.description}</span>
                               {t.bookingCode && (
                                 <button
                                   type="button"
@@ -1078,11 +1078,11 @@ export default function FinancePage() {
             </Table>
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 px-3 py-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 sm:justify-end border-t border-slate-100 px-2 py-2 sm:px-3">
             <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={currentPage === 1} className="h-8 rounded-lg border-slate-200 text-xs">
-              <ChevronLeft className="mr-1 h-3.5 w-3.5" />Previous
+              <ChevronLeft className="mr-1 h-3.5 w-3.5" /><span className="hidden sm:inline">Previous</span><span className="sm:hidden">Prev</span>
             </Button>
-            <span className="px-2 text-xs text-slate-500">Page {currentPage} of {totalPages || 1}</span>
+            <span className="px-2 text-xs text-slate-500 truncate">Page {currentPage} of {totalPages || 1}</span>
             <Button variant="outline" size="sm" onClick={handleNextPage} disabled={currentPage === totalPages || totalPages === 0} className="h-8 rounded-lg border-slate-200 text-xs">
               Next<ChevronRight className="ml-1 h-3.5 w-3.5" />
             </Button>

@@ -46,7 +46,7 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
     : 0
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 transition-colors flex flex-col">
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 transition-colors flex flex-col min-w-0">
       <div className="relative h-40 bg-slate-100 shrink-0">
         {hasImages ? (
           <>
@@ -108,12 +108,12 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
               <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{roomType.description}</p>
             )}
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-sm font-semibold tabular-nums text-slate-900">
+          <div className="text-right shrink-0 max-w-[40%] min-w-0">
+            <div className="text-sm font-semibold tabular-nums text-slate-900 truncate">
               ₦{Number(roomType.price).toLocaleString()}
             </div>
             {roomType.old_price && (
-              <div className="text-[10px] text-slate-400 line-through tabular-nums">
+              <div className="text-[10px] text-slate-400 line-through tabular-nums truncate">
                 ₦{Number(roomType.old_price).toLocaleString()}
               </div>
             )}
@@ -150,26 +150,26 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
           </span>
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 min-w-0">
           {(user?.role === "admin" || user?.permissions?.rooms?.edit) && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEdit(roomType)}
-              className="flex-1 h-8 text-xs rounded-lg"
+              className="flex-1 h-8 text-xs rounded-lg min-w-0"
             >
-              <Edit className="w-3.5 h-3.5 mr-1" />
-              Edit
+              <Edit className="w-3.5 h-3.5 sm:mr-1 shrink-0" />
+              <span className="truncate">Edit</span>
             </Button>
           )}
           {(user?.role === "admin" || user?.permissions?.rooms?.edit) && (
             <Button
               size="sm"
               onClick={() => onManageRooms(roomType.id)}
-              className="flex-1 h-8 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700"
+              className="flex-1 h-8 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 min-w-0"
             >
-              <Settings className="w-3.5 h-3.5 mr-1" />
-              Rooms
+              <Settings className="w-3.5 h-3.5 sm:mr-1 shrink-0" />
+              <span className="truncate">Rooms</span>
             </Button>
           )}
           {(user?.role === "admin" || user?.permissions?.rooms?.delete) && (
@@ -177,7 +177,7 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
               variant="ghost"
               size="sm"
               onClick={() => onDelete(roomType.id)}
-              className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+              className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50 shrink-0"
             >
               <Trash className="w-3.5 h-3.5" />
             </Button>

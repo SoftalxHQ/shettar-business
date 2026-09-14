@@ -411,11 +411,11 @@ function CommentNode({
   const replyCount = countReplyTree(allComments, comment.id)
   const isBusiness = comment.author_role === "business"
   const avatarSize = depth === 0 ? ROOT_AVATAR : NESTED_AVATAR
-  const indent = depth * NEST_INDENT_PX
+  const indent = Math.min(depth, 2) * NEST_INDENT_PX
 
   return (
-    <div style={{ marginBottom: depth === 0 ? 16 : 10 }}>
-      <div className="flex items-start" style={{ marginLeft: indent }}>
+    <div className="min-w-0 overflow-x-hidden" style={{ marginBottom: depth === 0 ? 16 : 10 }}>
+      <div className="flex min-w-0 items-start" style={{ marginLeft: indent }}>
         <div className="flex-shrink-0" style={{ width: avatarSize, marginRight: AVATAR_GAP }}>
           <CommentAvatar name={comment.author_name} avatarUrl={comment.author_avatar_url} isBusiness={isBusiness} size={avatarSize} />
         </div>
@@ -553,10 +553,10 @@ function ReviewCard({
   const avatarInitials = initials(displayName)
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 space-y-3">
+    <div className="rounded-xl border border-slate-200 bg-white px-2.5 py-3.5 space-y-3 sm:px-4">
         {/* ── Guest row ── */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             {/* Avatar */}
             <Avatar className="h-9 w-9 flex-shrink-0">
               <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-semibold">
@@ -564,9 +564,9 @@ function ReviewCard({
               </AvatarFallback>
             </Avatar>
 
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold text-slate-900 text-sm">{displayName}</p>
+                <p className="min-w-0 truncate font-semibold text-slate-900 text-sm">{displayName}</p>
                 {review.verified && (
                   <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-emerald-600 border-emerald-200 bg-emerald-50 gap-0.5">
                     <CheckCircle2 className="w-2.5 h-2.5" /> Verified
@@ -592,11 +592,11 @@ function ReviewCard({
         </div>
 
         {/* Review content */}
-        <p className="text-sm text-slate-600 leading-relaxed">{review.content}</p>
+        <p className="break-words text-sm text-slate-600 leading-relaxed">{review.content}</p>
 
         {/* Comment thread — collapsed under the guest review */}
         {roots.length > 0 && (
-          <div>
+          <div className="min-w-0 overflow-x-hidden">
             {!needsReply && !showReplyBox && (
               <button
                 type="button"
@@ -647,7 +647,7 @@ function ReviewCard({
         {showReplyBox && (
           <div className="flex gap-3 pt-1 items-start">
             <div className="flex-shrink-0 rounded-full bg-slate-100" style={{ width: NESTED_AVATAR, height: NESTED_AVATAR }} />
-            <div className="flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
                 <Textarea
                   rows={3}
                   className="resize-none text-sm rounded-lg border-slate-200"
@@ -838,9 +838,9 @@ export default function ReviewsPage() {
 
   return (
     <DashboardLayout activeTab="reviews">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
-          <div>
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-hidden">
+        <div className="flex shrink-0 flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start">
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">Reviews</h1>
             <p className="text-xs text-slate-500">Read and respond to guest feedback</p>
           </div>
@@ -849,7 +849,7 @@ export default function ReviewsPage() {
             size="sm"
             onClick={() => fetchReviews(page, true)}
             disabled={refreshing}
-            className="h-8 gap-1.5 rounded-lg border-slate-200 text-xs"
+            className="h-8 w-full gap-1.5 rounded-lg border-slate-200 text-xs sm:w-auto"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -857,28 +857,28 @@ export default function ReviewsPage() {
         </div>
 
         {summary && (
-          <div className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Total reviews", value: String(summary.total), icon: MessageSquare },
               { label: "Avg. rating", value: String(summary.average_rating), icon: Star },
               { label: "Replied", value: String(summary.replied), icon: CheckCircle2 },
               { label: "Awaiting reply", value: String(summary.pending_reply), icon: Clock },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-xl border border-slate-200 bg-slate-50/40 px-3.5 py-3">
+              <div key={label} className="rounded-xl border border-slate-200 bg-slate-50/40 px-2.5 py-3 sm:px-3.5">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-                  <Icon className="h-3.5 w-3.5 text-slate-400" />
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 </div>
-                <p className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
+                <p className="truncate text-2xl font-semibold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5">
             <Select defaultValue="all" onValueChange={(v) => { setRatingFilter(v); setPage(1) }}>
-              <SelectTrigger className="h-8 w-[140px] rounded-lg border-slate-200 text-xs">
+              <SelectTrigger className="h-8 w-full rounded-lg border-slate-200 text-xs sm:w-[140px]">
                 <SelectValue placeholder="All ratings" />
               </SelectTrigger>
               <SelectContent>
@@ -895,7 +895,7 @@ export default function ReviewsPage() {
             </Select>
 
             <Select defaultValue="all" onValueChange={setReplyFilter}>
-              <SelectTrigger className="h-8 w-[150px] rounded-lg border-slate-200 text-xs">
+              <SelectTrigger className="h-8 w-full rounded-lg border-slate-200 text-xs sm:w-[150px]">
                 <SelectValue placeholder="Reply status" />
               </SelectTrigger>
               <SelectContent>
@@ -939,7 +939,7 @@ export default function ReviewsPage() {
           </div>
 
           {pagination && pagination.last > 1 && (
-            <div className="flex shrink-0 items-center justify-between border-t border-slate-100 px-3 py-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -947,7 +947,9 @@ export default function ReviewsPage() {
                 disabled={page <= 1 || loading}
                 className="h-8 gap-1 rounded-lg border-slate-200 text-xs"
               >
-                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </Button>
               <span className="text-xs text-slate-500">
                 Page <span className="font-medium text-slate-800">{page}</span> of{" "}
