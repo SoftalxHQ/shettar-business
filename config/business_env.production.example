@@ -1,0 +1,12 @@
+# Keys required for Kamal / Docker production builds (baked as NEXT_PUBLIC_* build-args).
+# Copy values into .env.production (committed for public client keys) and ensure
+# config/registry.yml exists locally (Docker Hub PAT, gitignored).
+#
+# DNS: busn.shettar.com → 49.13.95.30 (Cloudflare SSL mode: Full)
+# Deploy: bundle install && bin/kamal setup && bin/kamal deploy
+
+NEXT_PUBLIC_API_URL=https://api-v1.shettar.com
+NEXT_PUBLIC_WEB_URL=https://shettar.com
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=
+NEXT_PUBLIC_APP_ENV=production
+NODE_ENV=production

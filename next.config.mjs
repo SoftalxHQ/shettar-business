@@ -46,7 +46,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: ["@softalxhq/location-selector"],
-  output: "export",
+  // Tauri embeds static `out/`; Docker/Kamal needs Next standalone (`DOCKER_BUILD=1`).
+  output: process.env.DOCKER_BUILD === "1" ? "standalone" : "export",
   images: {
     unoptimized: true,
     remotePatterns: [

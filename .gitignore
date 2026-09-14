@@ -22,6 +22,9 @@ yarn-error.log*
 !.env.staging
 !.env.production
 
+# Docker Hub PAT for Kamal (copy from shettar-web / shettar-marketer locally)
+/config/registry.yml
+
 # vercel
 .vercel
 

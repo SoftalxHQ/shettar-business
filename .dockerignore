@@ -1,0 +1,43 @@
+# Dependencies & build output
+node_modules
+.next
+out
+build
+coverage
+
+# Git / IDE
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+
+# Env / secrets — not needed in context (Kamal passes NEXT_PUBLIC_* as build-args)
+.env
+.env.*
+!.env.example
+.kamal
+config/registry.yml
+config/business_env.production.example
+
+# Ruby / Kamal
+.bundle
+vendor/bundle
+Gemfile
+Gemfile.lock
+bin/kamal
+
+# Tauri (desktop/mobile) — heavy and unused in the web container
+src-tauri
+
+# Docs / misc / large local artifacts
+README.md
+*.md
+.DS_Store
+*.pem
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+**/*.map

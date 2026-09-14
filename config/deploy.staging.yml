@@ -1,0 +1,52 @@
+# Staging deploy for shettar-business (destination: staging).
+# Usage: bin/kamal deploy -d staging
+#
+# DNS: point stg-busn.shettar.com A → 49.13.95.30
+# Cloudflare SSL/TLS mode: Full
+# Secrets: .kamal/secrets.staging (Paystack + web URL from .env.staging)
+
+service: shettar_business_staging
+
+image: alexohre/shettar_business_staging
+
+servers:
+  web:
+    - 49.13.95.30
+
+proxy:
+  ssl: true
+  hosts:
+    - stg-busn.shettar.com
+  app_port: 3000
+  healthcheck:
+    path: /up
+    interval: 3
+    timeout: 5
+
+deploy_timeout: 120
+drain_timeout: 30
+
+registry:
+  username: alexohre
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+
+aliases:
+  shell: app exec --interactive --reuse "sh"
+  logs: app logs -f
+
+builder:
+  arch: amd64
+  remote: ssh://root@49.13.95.30
+  args:
+    PNPM_VERSION: "10.33.0"
+    NEXT_PUBLIC_API_URL: https://api.stg.shettar.com
+    NEXT_PUBLIC_APP_ENV: staging
+    NEXT_PUBLIC_WEB_URL: <%= ENV.fetch("NEXT_PUBLIC_WEB_URL", "https://stg-web.shettar.com") %>
+    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: <%= ENV.fetch("NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY", "") %>
