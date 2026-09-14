@@ -360,7 +360,7 @@ export default function AnalyticsPage() {
           />
         </div>
 
-        <Tabs defaultValue="revenue" className="flex-1 min-h-[28rem] sm:min-h-0 flex flex-col gap-3 overflow-hidden min-w-0">
+        <Tabs defaultValue="revenue" className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden max-sm:min-h-[28rem] max-sm:overflow-visible min-w-0">
           <TabsList className="shrink-0 h-9 w-full max-w-full sm:w-fit overflow-x-auto justify-start">
             <TabsTrigger value="revenue" className="text-sm">Revenue</TabsTrigger>
             <TabsTrigger value="bookings" className="text-sm">Bookings</TabsTrigger>
@@ -369,16 +369,16 @@ export default function AnalyticsPage() {
 
           <TabsContent
             value="revenue"
-            className="mt-0 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden data-[state=inactive]:hidden min-w-0"
+            className="mt-0 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto sm:overflow-hidden data-[state=inactive]:hidden min-w-0"
           >
-            <div className="flex-1 min-h-[260px] sm:min-h-[320px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="h-[240px] shrink-0 sm:h-auto sm:flex-1 sm:min-h-[320px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
                 <p className="text-sm font-semibold text-slate-900">
                   {charts.trend_granularity === "month" ? "Monthly revenue" : "Daily revenue"}
                 </p>
                 <p className="text-[11px] text-slate-500">Income flow over the selected period</p>
               </div>
-              <div className="flex-1 min-h-[200px] min-w-0 p-2.5 sm:p-3">
+              <div className="flex-1 min-h-[180px] min-w-0 p-2.5 sm:p-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -408,7 +408,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="shrink-0 grid gap-2 sm:grid-cols-3">
+            <div className="shrink-0 grid grid-cols-1 gap-2 sm:grid-cols-3 min-w-0">
               <SecondaryStat label="RevPAR" value={`₦${Number(metrics.revpar || 0).toLocaleString()}`} hint="Revenue per available room" />
               <SecondaryStat label="ADR" value={`₦${Number(metrics.avg_daily_rate?.value || 0).toLocaleString()}`} hint="Average daily rate" />
               <SecondaryStat label="Avg LOS" value={`${metrics.avg_los || 0}`} hint="Nights per stay" />
@@ -417,13 +417,13 @@ export default function AnalyticsPage() {
 
           <TabsContent
             value="bookings"
-            className="mt-0 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden data-[state=inactive]:hidden min-w-0"
+            className="mt-0 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto sm:overflow-hidden data-[state=inactive]:hidden min-w-0"
           >
-            <div className="flex-1 min-h-[260px] sm:min-h-[320px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="h-[240px] shrink-0 sm:h-auto sm:flex-1 sm:min-h-[320px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
                 <p className="text-sm font-semibold text-slate-900">Booking trends</p>
               </div>
-              <div className="flex-1 min-h-[200px] min-w-0 p-2.5 sm:p-3">
+              <div className="flex-1 min-h-[180px] min-w-0 p-2.5 sm:p-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bookingsData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -435,7 +435,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="shrink-0 grid gap-2 sm:grid-cols-3">
+            <div className="shrink-0 grid grid-cols-1 gap-2 sm:grid-cols-3 min-w-0">
               <SecondaryStat label="Total" value={`${summary.total || 0}`} hint="Reservations in period" />
               <SecondaryStat label="Confirmed" value={`${summary.confirmed || 0}`} hint="Pending check-in" />
               <SecondaryStat label="Checked in" value={`${summary.checked_in || 0}`} hint="Current guests" />
@@ -446,12 +446,12 @@ export default function AnalyticsPage() {
             value="performance"
             className="mt-0 flex-1 min-h-0 overflow-y-auto lg:overflow-hidden data-[state=inactive]:hidden min-w-0"
           >
-            <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-y-auto lg:overflow-hidden min-w-0">
-              <div className="min-h-[240px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="grid grid-cols-1 gap-3 min-w-0 lg:h-full lg:min-h-0 lg:grid-cols-2 lg:overflow-hidden">
+              <div className="min-h-[240px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden lg:h-full lg:min-h-0">
                 <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
                   <p className="text-sm font-semibold text-slate-900">Room type performance</p>
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+                <div className="p-3 space-y-4 lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
                   {roomTypeData.length === 0 ? (
                     <p className="text-sm text-slate-500 text-center py-8">No room type data</p>
                   ) : (
@@ -487,12 +487,12 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="min-h-0 min-w-0 flex flex-col gap-3 overflow-hidden">
-                <div className="flex-1 min-h-[200px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="min-h-0 min-w-0 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
+                <div className="min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden lg:flex-1 lg:min-h-0">
                   <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-sm font-semibold text-slate-900">Top revenue sources</p>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto p-2">
+                  <div className="max-h-[280px] overflow-y-auto overscroll-contain p-2 lg:max-h-none lg:flex-1 lg:min-h-0">
                     {topRevenueSourcesData.length > 0 ? (
                       topRevenueSourcesData.map((item: any, i: number) => (
                         <div key={i} className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-slate-50">
@@ -509,11 +509,11 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-[200px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+                <div className="min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden lg:flex-1 lg:min-h-0">
                   <div className="shrink-0 px-3 sm:px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-sm font-semibold text-slate-900">Guest demographics</p>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto p-2">
+                  <div className="max-h-[280px] overflow-y-auto overscroll-contain p-2 lg:max-h-none lg:flex-1 lg:min-h-0">
                     {guestDemographicsData.length > 0 ? (
                       guestDemographicsData.map((item: any, i: number) => (
                         <div key={i} className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-slate-50">

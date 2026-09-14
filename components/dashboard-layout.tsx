@@ -129,6 +129,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
   const [verificationStatus, setVerificationStatus] = useState<VerificationDisplayStatus | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  /** null until client media query runs — avoids mounting TopBarNotifications in both sidebars + header. */
+  const [isMdUp, setIsMdUp] = useState<boolean | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -145,6 +147,14 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     } catch {
       setCollapsed(window.matchMedia("(max-width: 1023px)").matches)
     }
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const sync = () => setIsMdUp(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
   }, [])
 
   useEffect(() => {
@@ -401,7 +411,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
       </nav>
     )
 
-    const sidebarBody = (opts: { collapsed: boolean; showDesktopToggle?: boolean; onNavigate?: () => void }) => (
+    const sidebarBody = (opts: {
+      collapsed: boolean
+      showDesktopToggle?: boolean
+      onNavigate?: () => void
+      showAiPoints?: boolean
+      showNotifications?: boolean
+    }) => (
       <>
         <div
           className={cn(
@@ -462,10 +478,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         {renderNav({ collapsed: opts.collapsed, onNavigate: opts.onNavigate })}
 
         <div className={cn("shrink-0 border-t border-slate-100 space-y-2", opts.collapsed ? "p-1.5" : "p-2.5")}>
-          <AiPointsSidebarChip collapsed={opts.collapsed} />
-          <div className={cn("flex items-center", opts.collapsed ? "justify-center" : "justify-end px-1")}>
-            <TopBarNotifications businessId={businessId} />
-          </div>
+          {opts.showAiPoints && <AiPointsSidebarChip collapsed={opts.collapsed} />}
+          {opts.showNotifications && (
+            <div className={cn("flex items-center", opts.collapsed ? "justify-center" : "justify-end px-1")}>
+              <TopBarNotifications businessId={businessId} />
+            </div>
+          )}
           {renderAccountMenu(opts.collapsed)}
         </div>
       </>
@@ -498,7 +516,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               </Link>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <TopBarNotifications businessId={businessId} />
+              {isMdUp === false && <TopBarNotifications businessId={businessId} />}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
@@ -560,7 +578,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           )}
           aria-hidden={!mobileOpen}
         >
-          {sidebarBody({ collapsed: false, onNavigate: () => setMobileOpen(false) })}
+          {sidebarBody({
+            collapsed: false,
+            onNavigate: () => setMobileOpen(false),
+            // Notifications live in the mobile header; AI chip only mounts on the active viewport.
+            showAiPoints: isMdUp === false,
+            showNotifications: false,
+          })}
         </aside>
 
         {/* Desktop / tablet sidebar */}
@@ -570,7 +594,12 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             collapsed ? "w-16" : "w-[15.5rem]",
           )}
         >
-          {sidebarBody({ collapsed, showDesktopToggle: true })}
+          {sidebarBody({
+            collapsed,
+            showDesktopToggle: true,
+            showAiPoints: isMdUp === true,
+            showNotifications: isMdUp === true,
+          })}
         </aside>
 
         <div className="flex-1 min-w-0 min-h-0 flex flex-col">

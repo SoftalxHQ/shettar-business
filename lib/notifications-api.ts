@@ -38,6 +38,10 @@ export type StaffNotificationCablePayload = {
   sound?: boolean;
 };
 
+const PREFS_TTL_MS = 30_000;
+const prefsCache = new Map<string, { at: number; value: NotificationPreferences }>();
+const prefsInflight = new Map<string, Promise<NotificationPreferences>>();
+
 export async function fetchStaffNotifications(businessId: string) {
   const res = await fetch(
     `${API_URL}/api/v1/staff_notifications?business_id=${encodeURIComponent(businessId)}`,
@@ -72,13 +76,28 @@ export async function markNotificationRead(businessId: string, id: number) {
 }
 
 export async function fetchNotificationPreferences(businessId: string) {
-  const res = await fetch(
-    `${API_URL}/api/v1/staff_notifications/preferences?business_id=${encodeURIComponent(businessId)}`,
-    { headers: headers(businessId) }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed");
-  return data.preferences as NotificationPreferences;
+  const cached = prefsCache.get(businessId)
+  if (cached && Date.now() - cached.at < PREFS_TTL_MS) return cached.value
+
+  const existing = prefsInflight.get(businessId)
+  if (existing) return existing
+
+  const request = (async () => {
+    const res = await fetch(
+      `${API_URL}/api/v1/staff_notifications/preferences?business_id=${encodeURIComponent(businessId)}`,
+      { headers: headers(businessId) }
+    )
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Failed")
+    const preferences = data.preferences as NotificationPreferences
+    prefsCache.set(businessId, { at: Date.now(), value: preferences })
+    return preferences
+  })().finally(() => {
+    prefsInflight.delete(businessId)
+  })
+
+  prefsInflight.set(businessId, request)
+  return request
 }
 
 export async function updateNotificationPreferences(
@@ -89,10 +108,12 @@ export async function updateNotificationPreferences(
     method: "PATCH",
     headers: headers(businessId),
     body: JSON.stringify({ business_id: businessId, preferences }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed");
-  return data.preferences as NotificationPreferences;
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || "Failed")
+  const next = data.preferences as NotificationPreferences
+  prefsCache.set(businessId, { at: Date.now(), value: next })
+  return next
 }
 
 function cableUrl() {
@@ -132,9 +153,11 @@ type NotificationHandler = (payload: StaffNotificationCablePayload) => void;
 
 let sharedSocket: WebSocket | null = null;
 let socketToken: string | null = null;
+let teardownTimer: ReturnType<typeof setTimeout> | null = null;
 const subscribers = new Set<NotificationHandler>();
 const seenIds = new Set<number>();
 const SEEN_CAP = 200;
+const TEARDOWN_DELAY_MS = 750;
 
 function rememberId(id: number) {
   seenIds.add(id);
@@ -223,10 +246,20 @@ function ensureSocket() {
 
 /** One shared ActionCable connection; ignores ping/welcome frames. */
 export function subscribeUserNotifications(handler: NotificationHandler) {
+  if (teardownTimer != null) {
+    clearTimeout(teardownTimer);
+    teardownTimer = null;
+  }
   subscribers.add(handler);
   ensureSocket();
   return () => {
     subscribers.delete(handler);
-    if (subscribers.size === 0) teardownSocket();
+    if (subscribers.size === 0) {
+      // Delay teardown so Strict Mode remounts / brief unmounts don't thrash /cable.
+      teardownTimer = setTimeout(() => {
+        teardownTimer = null;
+        if (subscribers.size === 0) teardownSocket();
+      }, TEARDOWN_DELAY_MS);
+    }
   };
 }

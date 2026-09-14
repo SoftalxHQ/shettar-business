@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  fetchNotificationPreferences,
   fetchStaffNotifications,
   markNotificationRead,
   markNotificationsRead,
@@ -25,7 +24,6 @@ import {
 import {
   isNotificationSoundEnabled,
   playNotificationTone,
-  setNotificationSoundEnabled,
 } from "@/lib/notification-sound";
 import { resolveBusinessId } from "@/lib/restaurant-api";
 import { notify as nativeNotify } from "@/lib/tauri";
@@ -39,6 +37,8 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell({ businessId }: { businessId: string | null }) {
   const { user } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
   const bid = resolveBusinessId(businessId);
   const [notifications, setNotifications] = useState<StaffNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -47,17 +47,13 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
   const load = useCallback(async () => {
     if (!bid) return;
     try {
-      const [data, p] = await Promise.all([
-        fetchStaffNotifications(bid),
-        fetchNotificationPreferences(bid),
-      ]);
-      setNotifications(filterNotificationsForUser(user, data.notifications).slice(0, 8));
+      const data = await fetchStaffNotifications(bid);
+      setNotifications(filterNotificationsForUser(userRef.current, data.notifications).slice(0, 8));
       setUnreadCount(data.unread_count);
-      setNotificationSoundEnabled(p.sound_enabled !== false);
     } catch {
       /* silent on poll failure */
     }
-  }, [bid, user]);
+  }, [bid]);
 
   useEffect(() => {
     load();
@@ -65,11 +61,12 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
 
   useEffect(() => {
     const onNotification = (msg: StaffNotificationCablePayload) => {
-      if (user?.permissions && !canReceiveNotificationCategory(user, msg.category)) return;
+      const currentUser = userRef.current;
+      if (currentUser?.permissions && !canReceiveNotificationCategory(currentUser, msg.category)) return;
 
       const actorId = msg.metadata?.actor_user_id;
       const isSelfAction =
-        actorId != null && user?.id != null && Number(actorId) === Number(user.id);
+        actorId != null && currentUser?.id != null && Number(actorId) === Number(currentUser.id);
 
       const title = msg.title;
       const body = msg.message || "";
@@ -82,7 +79,7 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
     };
 
     return subscribeUserNotifications(onNotification);
-  }, [load, user]);
+  }, [load]);
 
   const markAllRead = async () => {
     if (!bid) return;
