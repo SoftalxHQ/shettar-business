@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.64
+
+### Highlights
+
+- Favicon matches Shettar Web (App Router icon + public assets; service worker no longer caches tab icons)
+- Kamal deploy config for `busn.shettar.com` / `stg-busn.shettar.com` on the shared web VPS
+- Mobile layout polish across analytics and other dashboard pages
+
 ## 0.1.63
 
 ### Highlights
