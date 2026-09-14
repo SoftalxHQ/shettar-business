@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.65
+
+### Highlights
+
+- Production Android builds again when Play keystore secrets are missing (debug-signed APK/AAB; still uses production API/Paystack)
+
 ## 0.1.64
 
 ### Highlights
