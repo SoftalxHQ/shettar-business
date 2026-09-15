@@ -1,7 +1,7 @@
 import type React from "react";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Inter } from "next/font/google";
+import { Inter, Alex_Brush } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
@@ -14,6 +14,13 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const alexBrush = Alex_Brush({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-alex-brush",
   display: "swap",
 });
 
@@ -51,7 +58,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
+      <body className={`${inter.variable} ${alexBrush.variable} font-sans antialiased text-slate-800 bg-slate-50`}>
         {/* Must be first: patch WebSocket before Next HMR client loads (Tauri Android blank screen). */}
         {hmrBridge ? (
           <script dangerouslySetInnerHTML={{ __html: hmrBridge }} />

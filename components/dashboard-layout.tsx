@@ -40,6 +40,7 @@ import {
   Settings,
   Landmark,
   Printer,
+  FileText,
   Activity,
   MessageSquare,
   HelpCircle,
@@ -63,6 +64,7 @@ import { SidebarBrandLogo } from "@/components/sidebar-brand-logo"
 import { canAccessBusinessSettings, canViewGuestPolicies } from "@/lib/guest-policies-access"
 import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
+import { ComplianceAttentionBadge } from "@/components/compliance-attention-badge"
 import { AiPointsSidebarChip } from "@/components/ai-points-sidebar-chip"
 
 const SIDEBAR_COLLAPSED_KEY = "shettar_biz_sidebar_collapsed"
@@ -83,6 +85,7 @@ type AdminNavItem = {
 const adminNavigation: AdminNavItem[] = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2, section: "overview" },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, section: "overview" },
+  { name: "Compliance", href: "/dashboard/business/settings/compliance", icon: FileText, section: "overview" },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck, section: "operations" },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel, section: "operations" },
   { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, section: "operations", restaurantNav: "menu" },
@@ -288,6 +291,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         return user.permissions.promos?.view
       case "Settings":
         return !!user.permissions?.settings?.view || canViewGuestPolicies(user)
+      case "Compliance":
+        return !!user.permissions?.settings?.view
       case "Bank Details":
         return !!user.permissions?.settings?.view
       case "Printer":
@@ -392,7 +397,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                       title={opts.collapsed ? item.name : undefined}
                       onClick={opts.onNavigate}
                       className={cn(
-                        "flex items-center rounded-lg text-[13px] font-medium transition-colors",
+                        "relative flex items-center rounded-lg text-[13px] font-medium transition-colors",
                         opts.collapsed ? "justify-center px-0 py-2" : "gap-2.5 px-2.5 py-1.5",
                         isActive
                           ? "bg-indigo-50 text-indigo-700 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.12)]"
@@ -402,6 +407,9 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                       <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
                       {!opts.collapsed && <span className="truncate flex-1">{item.name}</span>}
                       {!opts.collapsed && item.name === "Support" && <SupportUnreadBadge />}
+                      {item.name === "Compliance" && (
+                        <ComplianceAttentionBadge collapsed={opts.collapsed} />
+                      )}
                     </Link>
                   )
                 })}

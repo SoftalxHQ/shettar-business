@@ -24,7 +24,7 @@ import {
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
   ChevronDown, X, Tag, CreditCard, Send, Download, Megaphone,
-  Sparkles,
+  Sparkles, FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -69,6 +69,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "ai_points_reset": Sparkles,
   "business_updated": Building2,
   "verification_requested": ShieldCheck,
+  "partner_agreement_accepted": FileText,
   "bank_account_added": CreditCard,
   "bank_account_deleted": CreditCard,
   "bank_account_submitted": Send,
@@ -106,6 +107,7 @@ const ACTION_LABELS: Record<string, string> = {
   "ai_points_reset": "AI Points Reset",
   "business_updated": "Business Updated",
   "verification_requested": "Verification Requested",
+  "partner_agreement_accepted": "Partner Agreement Accepted",
   "bank_account_added": "Bank Account Added",
   "bank_account_deleted": "Bank Account Removed",
   "bank_account_submitted": "Bank Account Submitted",
