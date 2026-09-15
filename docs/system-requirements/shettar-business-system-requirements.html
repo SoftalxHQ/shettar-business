@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Shettar Business — System Requirements</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #0f172a;
+      margin: 0;
+    }
+    .content { position: relative; z-index: 1; }
+    .header {
+      display: table;
+      width: 100%;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #0f766e;
+      padding-bottom: 12px;
+    }
+    .header-left, .header-right {
+      display: table-cell;
+      vertical-align: middle;
+    }
+    .header-left { width: 55%; }
+    .header-right { width: 45%; text-align: right; }
+    .header-logo { height: 42px; width: auto; display: block; }
+    .header-meta { font-size: 8.5pt; color: #64748b; line-height: 1.35; }
+    .header-meta strong { color: #0f172a; }
+    h1 { font-size: 16pt; margin: 10px 0 4px; color: #0f172a; }
+    h2 {
+      font-size: 11.5pt;
+      margin: 16px 0 8px;
+      color: #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+    h3 { font-size: 10.5pt; margin: 12px 0 4px; }
+    p, li { margin: 0 0 8px; }
+    ul, ol { margin: 0 0 10px; padding-left: 18px; }
+    .muted { color: #64748b; font-size: 9.5pt; }
+    .banner {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 12px 0 16px;
+    }
+    .meta { margin-bottom: 12px; }
+    .meta table { width: 100%; border-collapse: collapse; }
+    .meta td { padding: 3px 0; vertical-align: top; }
+    .meta td:first-child { width: 140px; color: #64748b; }
+    .small { font-size: 9pt; color: #64748b; }
+    strong { font-weight: 600; }
+    table.req {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 12px;
+      font-size: 10pt;
+    }
+    table.req th, table.req td {
+      border: 1px solid #e2e8f0;
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.req th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 600;
+      width: 28%;
+    }
+    table.req td { width: 72%; }
+    .note {
+      margin: 8px 0 0;
+      font-size: 9.5pt;
+      color: #475569;
+    }
+    .footer {
+      margin-top: 22px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 9pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div class="header">
+      <div class="header-left">
+        <img class="header-logo" src="assets/shettar-logo.png" alt="Shettar" />
+      </div>
+      <div class="header-right">
+        <div class="header-meta">
+          <strong>Shettar Ltd</strong><br />
+          Document: System Requirements<br />
+          Product: Shettar Business<br />
+          Version: 0.1.x
+        </div>
+      </div>
+    </div>
+
+    <h1>Shettar Business — System Requirements</h1>
+    <p class="muted">Desktop and tablet requirements for running the Shettar Business native app.</p>
+
+    <div class="banner">
+      <p style="margin:0"><strong>Scope.</strong> This document covers the <strong>Shettar Business</strong> native application (desktop installers and tablet builds). The browser portal at the Business web URL may work on additional devices, but native features (auto-updates, local printing integrations, and packaged WebView performance) require a supported desktop or tablet build.</p>
+    </div>
+
+    <div class="meta">
+      <table>
+        <tr><td>Product</td><td>Shettar Business (<code>com.shettar.business</code>)</td></tr>
+        <tr><td>Platforms</td><td>Windows, macOS, Linux, Android tablets, iPad / iOS</td></tr>
+        <tr><td>Distribution</td><td>shettar.com/download and partner rollout channels</td></tr>
+        <tr><td>Last updated</td><td>15 September 2026</td></tr>
+      </table>
+    </div>
+
+    <h2>1. Shared requirements (all platforms)</h2>
+    <table class="req">
+      <tr>
+        <th>Internet</th>
+        <td>Stable broadband or LTE/5G connection to Shettar API and update endpoints. Offline use is limited; booking, payouts, and sync require connectivity.</td>
+      </tr>
+      <tr>
+        <th>Account</th>
+        <td>Active Shettar Business partner account with portal access.</td>
+      </tr>
+      <tr>
+        <th>Display</th>
+        <td>Minimum useful workspace roughly <strong>1280 × 720</strong> (desktop) or tablet width <strong>≥ 600 dp</strong>. Landscape is recommended for day-to-day operations.</td>
+      </tr>
+      <tr>
+        <th>Storage</th>
+        <td>At least <strong>500 MB</strong> free space for the app, WebView runtime, and updates (more recommended on tablets with photo-heavy listings).</td>
+      </tr>
+      <tr>
+        <th>Memory</th>
+        <td><strong>4 GB RAM</strong> is sufficient for normal use on PCs and Macs.</td>
+      </tr>
+    </table>
+
+    <h2>2. Desktop — Windows</h2>
+    <table class="req">
+      <tr>
+        <th>Operating system</th>
+        <td><strong>Windows 10</strong> (version 1809 or later) or <strong>Windows 11</strong>. 64-bit (x64) required.</td>
+      </tr>
+      <tr>
+        <th>WebView runtime</th>
+        <td><strong>Microsoft Edge WebView2</strong> Runtime (usually preinstalled on Windows 11; installable on Windows 10 if missing).</td>
+      </tr>
+      <tr>
+        <th>Installer</th>
+        <td>Shettar Business Windows <code>.exe</code> from the official download page.</td>
+      </tr>
+      <tr>
+        <th>Hardware</th>
+        <td>x64 CPU; <strong>4 GB RAM</strong>; 500 MB free disk.</td>
+      </tr>
+      <tr>
+        <th>Permissions</th>
+        <td>Allow outbound HTTPS to Shettar services; allow the app through local firewall if prompted.</td>
+      </tr>
+    </table>
+
+    <h2>3. Desktop — macOS</h2>
+    <table class="req">
+      <tr>
+        <th>Operating system</th>
+        <td><strong>macOS 11 Big Sur</strong> or later (Apple Silicon and Intel supported).</td>
+      </tr>
+      <tr>
+        <th>WebView</th>
+        <td>System <strong>WKWebView</strong> (bundled with macOS).</td>
+      </tr>
+      <tr>
+        <th>Installer</th>
+        <td>Shettar Business <code>.dmg</code> for Apple Silicon or Intel, matching the Mac architecture.</td>
+      </tr>
+      <tr>
+        <th>Hardware</th>
+        <td>Apple Silicon (M-series) or Intel Mac; <strong>4 GB RAM</strong>; 500 MB free disk.</td>
+      </tr>
+      <tr>
+        <th>Permissions</th>
+        <td>Grant network access when prompted. For Gatekeeper: open from Downloads or System Settings → Privacy &amp; Security if the first launch is blocked.</td>
+      </tr>
+    </table>
+
+    <h2>4. Desktop — Linux</h2>
+    <table class="req">
+      <tr>
+        <th>Operating system</th>
+        <td>64-bit Linux distributions comparable to <strong>Ubuntu 22.04+</strong> / Debian-class with desktop environment.</td>
+      </tr>
+      <tr>
+        <th>WebView library</th>
+        <td><strong>WebKitGTK 4.1</strong> (<code>libwebkit2gtk-4.1</code>) and related GTK dependencies.</td>
+      </tr>
+      <tr>
+        <th>Packages</th>
+        <td>AppImage, <code>.deb</code>, or <code>.rpm</code> from the official download page.</td>
+      </tr>
+      <tr>
+        <th>Hardware</th>
+        <td>x64 CPU; <strong>4 GB RAM</strong>; 500 MB free disk.</td>
+      </tr>
+    </table>
+    <p class="note">AppImage is the most portable option when distribution packages are unavailable. Install WebKitGTK 4.1 via the distro package manager if the app fails to start.</p>
+
+    <h2>5. Tablets — Android</h2>
+    <table class="req">
+      <tr>
+        <th>Operating system</th>
+        <td><strong>Android 7.0 (API 24)</strong> or later. Built against current Android SDK targets used by the release.</td>
+      </tr>
+      <tr>
+        <th>Form factor</th>
+        <td><strong>Tablet only.</strong> Smallest screen width <strong>≥ 600 dp</strong>. Phones are not supported and are excluded from Play Store / side-load targeting.</td>
+      </tr>
+      <tr>
+        <th>Orientation</th>
+        <td><strong>Landscape</strong> (sensor landscape). Use a tablet stand or dock for front-desk use.</td>
+      </tr>
+      <tr>
+        <th>CPU architecture</th>
+        <td><strong>arm64-v8a</strong> (64-bit ARM) for production builds.</td>
+      </tr>
+      <tr>
+        <th>Installer</th>
+        <td>Shettar Business Android APK / AAB from partner distribution or Play (when published).</td>
+      </tr>
+      <tr>
+        <th>Hardware</th>
+        <td>Android tablet with ≥ 600 dp width (e.g. 10″ class); <strong>4 GB RAM</strong>; Wi‑Fi or cellular data.</td>
+      </tr>
+      <tr>
+        <th>Examples</th>
+        <td>Samsung Galaxy Tab A/S series (10″+), Lenovo Tab, Pixel Tablet, and similar mid/full-size Android tablets meeting the width rule.</td>
+      </tr>
+    </table>
+
+    <h2>6. Tablets — iPad / iOS</h2>
+    <table class="req">
+      <tr>
+        <th>Operating system</th>
+        <td><strong>iOS / iPadOS 14.0</strong> or later.</td>
+      </tr>
+      <tr>
+        <th>Devices</th>
+        <td><strong>iPad</strong> (recommended for operations). The build may also install on supported iPhones, but the Business UI is optimised for tablet and desktop layouts.</td>
+      </tr>
+      <tr>
+        <th>Capabilities</th>
+        <td>64-bit <strong>arm64</strong> device with <strong>Metal</strong> graphics support.</td>
+      </tr>
+      <tr>
+        <th>Installer</th>
+        <td>Shettar Business iOS IPA via TestFlight, App Store, or enterprise/partner distribution when enabled.</td>
+      </tr>
+      <tr>
+        <th>Hardware</th>
+        <td>iPad (6th generation or newer class recommended); stable Wi‑Fi; adequate free storage for app updates.</td>
+      </tr>
+      <tr>
+        <th>Orientation</th>
+        <td>Portrait and landscape supported; landscape preferred for dashboard and listing workflows.</td>
+      </tr>
+    </table>
+
+    <h2>7. Recommended front-desk setup</h2>
+    <ul>
+      <li><strong>Primary:</strong> Windows 10/11 PC or Mac with <strong>4 GB RAM</strong> and wired or strong Wi‑Fi.</li>
+      <li><strong>Secondary / roaming:</strong> 10″+ Android tablet (landscape) or iPad on the same property Wi‑Fi.</li>
+      <li><strong>Display:</strong> External monitor optional on desktop; avoid phone-sized screens for checkout and calendar work.</li>
+      <li><strong>Power:</strong> Keep tablets charged or docked during peak check-in/out windows.</li>
+    </ul>
+
+    <h2>8. Unsupported or limited</h2>
+    <ul>
+      <li>Android <strong>phones</strong> (width under 600 dp) — not supported by the native Android build.</li>
+      <li>32-bit only Windows or legacy OS versions below the minima above.</li>
+      <li>ChromeOS / browsers-only kiosks — use the web portal if needed; native desktop/tablet features may be unavailable.</li>
+    </ul>
+
+    <h2>9. Updates</h2>
+    <p>Desktop builds check Shettar update endpoints and may prompt for in-app updates. Keep the app current so WebView security patches and Business portal features stay aligned. Tablet builds update through the same release channel or store listing used for distribution.</p>
+
+    <div class="footer">
+      Shettar Ltd · Shettar Business System Requirements · For partner IT and onboarding · Contact support via the Business portal or partners@shettar.com
+    </div>
+  </div>
+</body>
+</html>
