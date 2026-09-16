@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.66
+
+### Highlights
+
+- Business Settings can fill coordinates from the computer’s OS location (macOS Core Location, Windows, Linux) instead of relying on WebView geolocation
+
 ## 0.1.65
 
 ### Highlights
