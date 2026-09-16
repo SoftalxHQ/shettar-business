@@ -314,7 +314,10 @@ jobs:
           java-version: "17"
 
       - name: setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          # `tools` was removed from the SDK repo; installing it fails sdkmanager.
+          packages: platform-tools
 
       - name: Install Android SDK Platform 36
         run: |

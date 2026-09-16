@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.67
+
+### Highlights
+
+- Android CI no longer installs the removed SDK `tools` package (fixes APK/AAB builds on current GitHub runners)
+
 ## 0.1.66
 
 ### Highlights
