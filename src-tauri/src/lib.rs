@@ -1,5 +1,7 @@
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod printer;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+mod desktop_location;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +27,7 @@ pub fn run() {
       printer::commands::fetch_url_data_url,
       printer::commands::test_print,
       printer::commands::open_cash_drawer,
+      desktop_location::get_desktop_location,
     ]);
 
   builder

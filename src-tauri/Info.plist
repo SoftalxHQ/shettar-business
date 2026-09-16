@@ -4,5 +4,7 @@
 <dict>
 	<key>NSLocationUsageDescription</key>
 	<string>Shettar Business uses your location to set your business address on the map.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Shettar Business uses your location to set your business address on the map.</string>
 </dict>
 </plist>

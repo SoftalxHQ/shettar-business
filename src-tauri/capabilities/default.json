@@ -14,6 +14,7 @@
     "core:webview:allow-print",
     "geolocation:allow-check-permissions",
     "geolocation:allow-request-permissions",
-    "geolocation:allow-get-current-position"
+    "geolocation:allow-get-current-position",
+    "allow-get-desktop-location"
   ]
 }

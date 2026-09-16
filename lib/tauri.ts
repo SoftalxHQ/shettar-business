@@ -93,14 +93,62 @@ export const getDeviceLocation = async (): Promise<DeviceLocationResult> => {
     const { type } = await import('@tauri-apps/plugin-os');
     const osType = type();
 
-    // The geolocation plugin is only implemented on iOS/Android.
-    // Desktop Tauri uses the WebView geolocation API instead.
+    // Official geolocation plugin is iOS/Android only.
     if (osType === 'ios' || osType === 'android') {
       return getTauriMobileLocation();
     }
+
+    // Desktop: native OS location via Rust (Core Location / Windows / GeoClue).
+    return getTauriDesktopLocation();
   }
 
   return getBrowserLocation();
+};
+
+const getTauriDesktopLocation = async (): Promise<DeviceLocationResult> => {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const position = await invoke<{ latitude: number; longitude: number }>(
+      'get_desktop_location',
+    );
+    return {
+      ok: true,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    };
+  } catch (error) {
+    const message =
+      typeof error === 'string'
+        ? error
+        : error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : '';
+
+    const reason = message.trim().toLowerCase();
+
+    // User explicitly denied — don't mask with a browser prompt.
+    if (reason === 'denied') {
+      return { ok: false, reason: 'denied' };
+    }
+
+    // Native path unavailable (common in `tauri dev` without an .app Info.plist),
+    // timed out waiting for Core Location, or OS services unavailable — try WebView.
+    if (
+      reason === 'unavailable' ||
+      reason === 'timeout' ||
+      reason === 'unsupported' ||
+      reason === 'unknown' ||
+      reason.length > 0
+    ) {
+      console.warn('Native desktop location failed, falling back to browser', reason || error);
+      return getBrowserLocation();
+    }
+
+    console.error('Desktop geolocation failed', error);
+    return getBrowserLocation();
+  }
 };
 
 export const setupNativeWindow = async () => {

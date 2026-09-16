@@ -230,7 +230,7 @@ export default function BusinessSettingsPage() {
         result.reason === 'unsupported'
           ? "Geolocation is not supported on this device."
           : result.reason === 'denied'
-            ? "Location access was denied. Allow location for Shettar Business in system settings, then try again."
+            ? "Location access was denied. On macOS: System Settings → Privacy & Security → Location Services → Shettar Business. Then try again."
             : result.reason === 'timeout'
               ? "Location request timed out. Please try again."
               : result.reason === 'unavailable'

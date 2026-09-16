@@ -39,6 +39,9 @@
     "android": {
       "minSdkVersion": 24,
       "autoIncrementVersionCode": true
+    },
+    "macOS": {
+      "entitlements": "./Entitlements.plist"
     }
   },
   "plugins": {

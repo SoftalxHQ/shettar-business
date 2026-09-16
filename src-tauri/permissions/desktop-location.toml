@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-get-desktop-location"
+description = "Allows requesting a one-shot location fix from the OS on desktop."
+commands.allow = ["get_desktop_location"]
