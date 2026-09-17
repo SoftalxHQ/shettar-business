@@ -1,5 +1,13 @@
 # Shettar Business release notes
 
+## 0.1.68
+
+### Highlights
+
+- New bookings, check-ins, and cancellations update the dashboard and bookings list without a reload
+- Staff stay signed in when a live refresh hits a non-session error (only an expired login sends you back to sign-in)
+- Mac and Windows can list and use receipt printers (Tauri printer commands are allowlisted)
+
 ## 0.1.67
 
 ### Highlights
