@@ -1,6 +1,16 @@
 // API client with business context
 
+import { isUsableJwt } from "./cable"
 import { getAuthToken, getStoredBusinessId } from "./storage"
+
+function jwtFromAuthHeader(response: Response): string {
+  const authHeader = response.headers.get("Authorization") ?? response.headers.get("authorization")
+  return authHeader?.replace(/^Bearer\s+/i, "").trim() ?? ""
+}
+
+function jwtFromLoginBody(data: { token?: unknown }): string {
+  return typeof data?.token === "string" ? data.token.trim() : ""
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || "development"
@@ -135,10 +145,10 @@ class ApiClient {
     }
 
     const data = await response.json()
-
-    // Extract JWT from Authorization header
-    const authHeader = response.headers.get("Authorization")
-    const token = authHeader?.replace("Bearer ", "") || ""
+    const token = jwtFromAuthHeader(response) || jwtFromLoginBody(data)
+    if (!isUsableJwt(token)) {
+      throw new ApiError(401, "Login succeeded but no session token was returned", data)
+    }
 
     return {
       ...data,

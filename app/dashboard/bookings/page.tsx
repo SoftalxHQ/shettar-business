@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,6 +33,18 @@ import {
   printBookingReceiptSmart,
 } from "@/lib/booking-receipt"
 import { BusinessAiAnalyzerButton } from "@/components/business-ai-analyzer-button"
+import {
+  subscribeUserNotifications,
+  type StaffNotificationCablePayload,
+} from "@/lib/notifications-api"
+
+const BOOKING_LIST_EVENTS = new Set([
+  "booking_created",
+  "booking_cancelled",
+  "check_in",
+  "check_out",
+  "booking_updated",
+])
 
 interface Reservation {
   id: number
@@ -70,7 +82,7 @@ interface Reservation {
 import { Suspense } from "react"
 
 function BookingsContent() {
-  const { user, businessId, businessName, logout } = useAuth()
+  const { user, businessId, businessName } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const filterParam = searchParams?.get("filter") || "all"
@@ -169,51 +181,70 @@ function BookingsContent() {
     fetchBusinessDetails()
   }, [businessId])
 
-  // Fetch reservations on mount
+  const fetchReservations = useCallback(async (opts?: { silent?: boolean }) => {
+    if (user?.role !== "admin" && !user?.permissions?.bookings?.view) return
+    if (!businessId) return
+
+    try {
+      if (!opts?.silent) setIsLoading(true)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      const token = getAuthToken()
+
+      const params = new URLSearchParams()
+      if (startDate) params.append("start_date", format(startDate, "yyyy-MM-dd"))
+      if (endDate) params.append("end_date", format(endDate, "yyyy-MM-dd"))
+
+      const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setReservations(data)
+      } else if (!opts?.silent) {
+        console.error("Failed to fetch reservations")
+        toast.error("Failed to fetch reservations")
+      }
+    } catch (error) {
+      console.error("Error fetching reservations:", error)
+    } finally {
+      if (!opts?.silent) setIsLoading(false)
+    }
+  }, [businessId, user, startDate, endDate])
+
+  const fetchReservationsRef = useRef(fetchReservations)
+  fetchReservationsRef.current = fetchReservations
+
   useEffect(() => {
-    const fetchReservations = async () => {
-      // Logic only runs if we pass perm check
-      if (user?.role !== "admin" && !user?.permissions?.bookings?.view) return;
+    void fetchReservations()
+  }, [fetchReservations])
 
-      if (!businessId) return
+  const listRefreshTimer = useRef<number | null>(null)
+  useEffect(() => {
+    if (!businessId) return
 
-      try {
-        setIsLoading(true)
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        const token = getAuthToken()
+    const unsubscribe = subscribeUserNotifications((msg: StaffNotificationCablePayload) => {
+      const event = typeof msg.metadata?.event === "string" ? msg.metadata.event : ""
+      if (!BOOKING_LIST_EVENTS.has(event)) return
 
-        const params = new URLSearchParams()
-        if (startDate) params.append("start_date", format(startDate, "yyyy-MM-dd"))
-        if (endDate) params.append("end_date", format(endDate, "yyyy-MM-dd"))
+      if (listRefreshTimer.current) {
+        window.clearTimeout(listRefreshTimer.current)
+      }
+      listRefreshTimer.current = window.setTimeout(() => {
+        void fetchReservationsRef.current({ silent: true })
+      }, 400)
+    })
 
-        const response = await fetch(`${API_URL}/api/v1/user_businesses/${businessId}/reservations?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          // API now handles sorting in the updated controller
-          setReservations(data)
-        } else {
-          if (response.status === 401) {
-            logout(true)
-            return
-          }
-          console.error("Failed to fetch reservations")
-          toast.error("Failed to fetch reservations")
-        }
-      } catch (error) {
-        console.error("Error fetching reservations:", error)
-      } finally {
-        setIsLoading(false)
+    return () => {
+      unsubscribe()
+      if (listRefreshTimer.current) {
+        window.clearTimeout(listRefreshTimer.current)
       }
     }
-
-    fetchReservations()
-  }, [businessId, user, startDate, endDate])
+  }, [businessId])
 
   // Helper function to determine if a reservation is active, upcoming, or past
   const getReservationStatus = (reservation: Reservation) => {

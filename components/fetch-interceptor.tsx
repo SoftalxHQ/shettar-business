@@ -6,6 +6,7 @@ import { useAppDispatch } from "@/lib/store/hooks";
 import { logout } from "@/lib/store/slices/authSlice";
 import { logout as storageLogout } from "@/lib/storage";
 import { notifySessionExpired } from "@/lib/session-expiry";
+import { isDeviseJwtFailure } from "@/lib/devise-jwt-failure";
 
 const AUTH_URL_SKIP = ["/users/sign_in", "/users/sign_out", "/users/sign_up"];
 
@@ -26,7 +27,7 @@ export function FetchInterceptor() {
             : (args[0] as Request).url || "";
 
         const isAuthEndpoint = AUTH_URL_SKIP.some((path) => url.includes(path));
-        if (!isAuthEndpoint && notifySessionExpired()) {
+        if (!isAuthEndpoint && (await isDeviseJwtFailure(response)) && notifySessionExpired()) {
           dispatch(logout());
           storageLogout();
           router.push("/login");

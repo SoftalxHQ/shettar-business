@@ -4,12 +4,7 @@ import { useEffect, useRef } from "react"
 import { useAppDispatch } from "@/lib/store/hooks"
 import { applyRealtimeUpdate } from "@/lib/store/slices/adsSlice"
 import { getAuthToken } from "@/lib/storage"
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "")
-
-function cableUrl() {
-  return `${API_URL.replace(/^http/, "ws")}/cable`
-}
+import { isUsableJwt, openCableWebSocket } from "@/lib/cable"
 
 export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
   const dispatch = useAppDispatch()
@@ -19,9 +14,9 @@ export function useAdAnalyticsCable(businessId: string | null, enabled = true) {
     if (!enabled || !businessId || typeof window === "undefined") return
 
     const token = getAuthToken()
-    if (!token) return
+    if (!isUsableJwt(token)) return
 
-    const ws = new WebSocket(cableUrl())
+    const ws = openCableWebSocket(token)
     wsRef.current = ws
 
     const identifier = JSON.stringify({

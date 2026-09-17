@@ -1,4 +1,5 @@
 import { getAuthToken } from "@/lib/storage";
+import { isUsableJwt, openCableWebSocket } from "@/lib/cable";
 import {
   notifyMenuAvailabilityChange,
   type MenuAvailabilityUpdate,
@@ -13,12 +14,6 @@ export type RestaurantCableEvent = {
 
 type Handler = (event: RestaurantCableEvent) => void;
 type ConnectionListener = (connected: boolean) => void;
-
-function cableUrl() {
-  const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
-  const wsBase = base.replace(/^http/, "ws");
-  return `${wsBase}/cable`;
-}
 
 export function orderStatusColor(status: string) {
   switch (status) {
@@ -94,7 +89,7 @@ function teardownSocket() {
 
 function ensureSocket(businessId: string) {
   const token = getAuthToken();
-  if (!token || !businessId) return;
+  if (!isUsableJwt(token) || !businessId) return;
 
   if (
     sharedSocket &&
@@ -115,7 +110,7 @@ function ensureSocket(businessId: string) {
     business_id: businessId,
   });
 
-  const ws = new WebSocket(cableUrl());
+  const ws = openCableWebSocket(token);
   sharedSocket = ws;
 
   ws.onopen = () => {

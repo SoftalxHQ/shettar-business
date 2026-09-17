@@ -1,4 +1,5 @@
 import { getAuthToken } from "@/lib/storage";
+import { isUsableJwt, openCableWebSocket } from "@/lib/cable";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
@@ -116,11 +117,6 @@ export async function updateNotificationPreferences(
   return next
 }
 
-function cableUrl() {
-  const wsBase = API_URL.replace(/^http/, "ws");
-  return `${wsBase}/cable`;
-}
-
 /** ActionCable ping frames use `message` as a number — must not treat as staff notifications. */
 export function parseStaffNotificationCableFrame(
   raw: unknown
@@ -205,7 +201,7 @@ function teardownSocket() {
 
 function ensureSocket() {
   const token = getAuthToken();
-  if (!token) return;
+  if (!isUsableJwt(token)) return;
 
   if (sharedSocket && socketToken === token) {
     const state = sharedSocket.readyState;
@@ -215,7 +211,7 @@ function ensureSocket() {
   teardownSocket();
   socketToken = token;
 
-  const ws = new WebSocket(cableUrl());
+  const ws = openCableWebSocket(token);
   sharedSocket = ws;
   const identifier = JSON.stringify({ channel: "UserNotificationsChannel" });
 

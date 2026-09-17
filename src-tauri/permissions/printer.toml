@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "allow-printer"
+description = "Allows discovering printers and sending ESC/POS print jobs on desktop."
+commands.allow = [
+  "get_printers",
+  "print_ops",
+  "print_image",
+  "fetch_url_data_url",
+  "test_print",
+  "open_cash_drawer",
+]

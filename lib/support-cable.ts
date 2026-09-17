@@ -1,4 +1,5 @@
 import { getAuthToken } from "@/lib/storage";
+import { isUsableJwt, openCableWebSocket } from "@/lib/cable";
 
 export type SupportCableEvent = {
   type: "new_message" | "status_changed" | "assigned" | "typing" | "ticket_created" | "ticket_updated" | "stats_changed" | string;
@@ -23,11 +24,6 @@ export interface SupportUserFeedSubscription {
   unsubscribe: () => void;
 }
 
-function cableUrl() {
-  const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
-  return `${base.replace(/^http/, "ws")}/cable`;
-}
-
 function openSupportChannel(
   identifierPayload: Record<string, unknown>,
   onEvent: EventHandler
@@ -41,9 +37,9 @@ function openSupportChannel(
   let reconnectTimer: number | null = null;
 
   const connect = () => {
-    if (closed || !token) return;
+    if (closed || !isUsableJwt(token)) return;
 
-    ws = new WebSocket(cableUrl());
+    ws = openCableWebSocket(token);
 
     ws.onopen = () => {
       ws?.send(JSON.stringify({ command: "subscribe", identifier }));
