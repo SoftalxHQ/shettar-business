@@ -35,7 +35,13 @@ import {
 } from "@/lib/notification-access";
 import { cn } from "@/lib/utils";
 
-export function NotificationBell({ businessId }: { businessId: string | null }) {
+export function NotificationBell({
+  businessId,
+  className,
+}: {
+  businessId: string | null
+  className?: string
+}) {
   const { user } = useAuth();
   const userRef = useRef(user);
   userRef.current = user;
@@ -110,7 +116,7 @@ export function NotificationBell({ businessId }: { businessId: string | null }) 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className={cn("relative", className)}>
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
             <Badge

@@ -367,7 +367,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     const renderNav = (opts: { collapsed: boolean; onNavigate?: () => void }) => (
       <nav
         className={cn(
-          "flex-1 min-h-0 overflow-y-auto py-3 space-y-4",
+          "flex-1 min-h-0 overflow-y-auto overscroll-y-contain py-3 space-y-4",
           opts.collapsed ? "px-1.5" : "px-2.5",
         )}
       >
@@ -489,7 +489,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           {opts.showAiPoints && <AiPointsSidebarChip collapsed={opts.collapsed} />}
           {opts.showNotifications && (
             <div className={cn("flex items-center", opts.collapsed ? "justify-center" : "justify-end px-1")}>
-              <TopBarNotifications businessId={businessId} />
+              <TopBarNotifications businessId={businessId} collapsed={opts.collapsed} />
             </div>
           )}
           {renderAccountMenu(opts.collapsed)}
@@ -498,7 +498,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     )
 
     return (
-      <div className="h-dvh overflow-hidden flex flex-col md:flex-row bg-[#f4f5f7] app-safe-shell">
+      <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-[#f4f5f7] app-safe-shell md:flex-row">
         {/* Phone top bar */}
         <header className="md:hidden shrink-0 z-30 h-14 bg-white/95 backdrop-blur border-b border-slate-200/80">
           <div className="h-full px-3 flex items-center justify-between gap-2">
@@ -598,7 +598,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         {/* Desktop / tablet sidebar */}
         <aside
           className={cn(
-            "hidden md:flex shrink-0 h-full border-r border-slate-200/80 bg-white flex-col transition-[width] duration-200 ease-out",
+            "hidden md:flex h-full min-h-0 shrink-0 self-stretch overflow-hidden overscroll-none border-r border-slate-200/80 bg-white flex-col transition-[width] duration-200 ease-out",
             collapsed ? "w-16" : "w-[15.5rem]",
           )}
         >
@@ -610,13 +610,13 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           })}
         </aside>
 
-        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <main className="flex-1 min-h-0 overflow-hidden p-3 flex flex-col gap-2">
             <div className="shrink-0 space-y-2">
               <BusinessVerificationBanner onStatusChange={setVerificationStatus} />
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="flex h-full min-h-0 flex-col overflow-hidden p-3 sm:p-4 md:p-5">{children}</div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-4 md:p-5">{children}</div>
             </div>
           </main>
         </div>

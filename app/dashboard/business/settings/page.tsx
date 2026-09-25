@@ -51,6 +51,7 @@ interface BusinessData {
   check_in: string
   check_out: string
   business_unique_id: string
+  category_name?: string | null
   logo_url?: string
   images_url?: string[]
   images?: { id: number, url: string }[]
@@ -496,7 +497,7 @@ export default function BusinessSettingsPage() {
   if (isLoading) {
     return (
       <DashboardLayout activeTab="settings">
-        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
           <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
           </div>
@@ -508,7 +509,7 @@ export default function BusinessSettingsPage() {
   if (!businessData) {
     return (
       <DashboardLayout activeTab="settings">
-        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
           <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <p className="text-sm text-slate-500">Business data not found</p>
           </div>
@@ -525,7 +526,7 @@ export default function BusinessSettingsPage() {
 
   return (
     <DashboardLayout activeTab="settings">
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
         {/* Header */}
         <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -570,7 +571,7 @@ export default function BusinessSettingsPage() {
               {editAmenities && <TabsTrigger value="amenities" className="text-xs">Amenities</TabsTrigger>}
             </TabsList>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {/* General Information Tab — plain panels (not TabsContent) to avoid default flex-1 stretch */}
             {settingsTab === "general" && (
             <div className="space-y-3">
@@ -600,8 +601,9 @@ export default function BusinessSettingsPage() {
                       <Label htmlFor="category" className="text-xs text-slate-600">Category</Label>
                       <Input
                         id="category"
-                        value="Hotel"
+                        value={businessData.category_name || ""}
                         disabled
+                        placeholder="Not set"
                         className="h-9 rounded-lg border-slate-200 bg-slate-50"
                       />
                     </div>

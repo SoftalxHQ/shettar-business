@@ -13,20 +13,21 @@ import { cn } from "@/lib/utils";
 type Props = {
   businessId: string | null;
   className?: string;
+  collapsed?: boolean;
 };
 
 /** Sound toggle + printer shortcut + notification bell for staff top bars. */
-export function TopBarNotifications({ businessId, className }: Props) {
+export function TopBarNotifications({ businessId, className, collapsed = false }: Props) {
   const { user } = useAuth();
   const pathname = usePathname();
   const showPrinter = canConfigurePrinter(user);
   const printerActive = pathname?.startsWith("/dashboard/business/settings/printer");
 
   return (
-    <div className={className ?? "flex items-center gap-1 shrink-0"}>
-      <NotificationSoundToggle businessId={businessId} />
+    <div className={cn("flex shrink-0 items-center gap-1", collapsed && "flex-col gap-0", className)}>
+      <NotificationSoundToggle businessId={businessId} className={collapsed ? "h-8 w-8" : undefined} />
       {showPrinter && (
-        <Button variant="ghost" size="icon" asChild className="relative">
+        <Button variant="ghost" size="icon" asChild className={cn("relative", collapsed && "h-8 w-8")}>
           <Link
             href="/dashboard/business/settings/printer"
             title="Printer"
@@ -41,7 +42,7 @@ export function TopBarNotifications({ businessId, className }: Props) {
           </Link>
         </Button>
       )}
-      <NotificationBell businessId={businessId} />
+      <NotificationBell businessId={businessId} className={collapsed ? "h-8 w-8" : undefined} />
     </div>
   );
 }
