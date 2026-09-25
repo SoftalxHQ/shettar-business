@@ -116,6 +116,16 @@ function isWithinReferrerWindow(createdAt: string | undefined): boolean {
   return Date.now() <= deadline.getTime()
 }
 
+function appendClearedStringList(formData: FormData, key: string, values: string[]) {
+  const cleaned = values.map((value) => value.trim()).filter(Boolean)
+  if (cleaned.length === 0) {
+    // A blank entry tells Rails to replace the list. Omitting the key keeps the previous value.
+    formData.append(`business[${key}][]`, "")
+    return
+  }
+  cleaned.forEach((value) => formData.append(`business[${key}][]`, value))
+}
+
 function normalizeBusinessData(data: Record<string, unknown>): BusinessData {
   const asString = (value: unknown) => (value == null ? "" : String(value))
   const highlights = Array.isArray(data.policy_highlights) ? data.policy_highlights : []
@@ -368,21 +378,21 @@ export default function BusinessSettingsPage() {
         }
 
         if (writeGuestPolicies) {
-          ;(businessData.guest_notices || []).forEach((notice) => {
-            if (notice.trim()) formData.append("business[guest_notices][]", notice.trim())
-          })
-          ;(businessData.policy_highlights || []).forEach((h) => {
-            if (h.text.trim()) {
-              formData.append("business[policy_highlights][][kind]", h.kind)
-              formData.append("business[policy_highlights][][text]", h.text.trim())
-            }
-          })
-          ;(businessData.policy_bullets || []).forEach((bullet) => {
-            if (bullet.trim()) formData.append("business[policy_bullets][]", bullet.trim())
-          })
-          if (businessData.policy_footer?.trim()) {
-            formData.append("business[policy_footer]", businessData.policy_footer.trim())
+          appendClearedStringList(formData, "guest_notices", businessData.guest_notices || [])
+          const highlights = (businessData.policy_highlights || []).filter(
+            (highlight) => highlight.text.trim() && (highlight.kind === "allow" || highlight.kind === "deny")
+          )
+          if (highlights.length === 0) {
+            formData.append("business[policy_highlights][][kind]", "allow")
+            formData.append("business[policy_highlights][][text]", "")
+          } else {
+            highlights.forEach((highlight) => {
+              formData.append("business[policy_highlights][][kind]", highlight.kind)
+              formData.append("business[policy_highlights][][text]", highlight.text.trim())
+            })
           }
+          appendClearedStringList(formData, "policy_bullets", businessData.policy_bullets || [])
+          formData.append("business[policy_footer]", businessData.policy_footer?.trim() || "")
         }
       }
 
