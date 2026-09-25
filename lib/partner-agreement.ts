@@ -11,6 +11,7 @@ export type PartnerAgreement = {
   needs_signer_details?: boolean
   commission_rate?: number | null
   commission_rate_custom?: boolean
+  commission_collection_mode?: "on_withdrawal" | "on_booking" | null
   maximum_withdrawal_commission?: number | null
   primary_contact_name?: string | null
   primary_contact_title?: string | null

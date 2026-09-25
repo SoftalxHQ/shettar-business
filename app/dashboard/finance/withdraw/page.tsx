@@ -28,6 +28,7 @@ interface BankAccount {
 interface CommissionPreview {
   amount: number
   commission_rate: number
+  commissionable_amount?: number
   platform_commission?: number
   platform_commission_capped?: boolean
   maximum_withdrawal_commission?: number | null
@@ -203,6 +204,18 @@ export default function WithdrawalPage() {
         <span className="text-slate-500">Platform commission ({p.commission_rate}%)</span>
         <span className="font-medium tabular-nums text-rose-600">− {fmt(platformFee(p))}</span>
       </div>
+      {typeof p.commissionable_amount === "number" && p.commissionable_amount <= 0 && (
+        <p className="text-[11px] text-slate-500 -mt-0.5">
+          Platform commission was already collected when the guest paid. This withdrawal pays the transfer fee only.
+        </p>
+      )}
+      {typeof p.commissionable_amount === "number" &&
+        p.commissionable_amount > 0 &&
+        p.commissionable_amount < p.amount && (
+        <p className="text-[11px] text-slate-500 -mt-0.5">
+          Platform commission applies to {fmt(p.commissionable_amount)} of this withdrawal. The rest was already collected when the guest paid.
+        </p>
+      )}
       {p.platform_commission_capped && p.maximum_withdrawal_commission != null && (
         <p className="text-[11px] text-slate-500 -mt-0.5">
           Capped at {fmt(Number(p.maximum_withdrawal_commission))}

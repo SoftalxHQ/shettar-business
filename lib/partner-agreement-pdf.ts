@@ -15,6 +15,7 @@ export type PartnerAgreementPdfInput = {
   signedByName?: string | null
   signedByRole?: string | null
   commissionRate?: number | null
+  commissionCollectionMode?: "on_withdrawal" | "on_booking" | null
   maximumWithdrawalCommission?: number | null
   primaryContactName?: string | null
   primaryContactTitle?: string | null
@@ -56,6 +57,10 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
     input.commissionRate != null && !Number.isNaN(Number(input.commissionRate))
       ? `${Number(input.commissionRate)}%`
       : "[X%]"
+  const commissionBasis =
+    input.commissionCollectionMode === "on_booking"
+      ? `${commissionLabel} added to the guest price and collected when the guest pays. Withdrawals of that amount pay the transfer fee only`
+      : `${commissionLabel} of eligible withdrawal amounts`
   const maxCommissionLabel =
     input.maximumWithdrawalCommission != null &&
     !Number.isNaN(Number(input.maximumWithdrawalCommission))
@@ -347,7 +352,7 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
       The Partner agrees to pay Shettar the Fees set out in Schedule B (or the fee schedule then
       published in the Business portal), including:
       <ul>
-        <li>Platform / payout commission of <strong>${escapeHtml(commissionLabel)}</strong> of eligible withdrawal amounts (or as otherwise agreed in writing); and</li>
+        <li>Platform commission of <strong>${escapeHtml(commissionBasis)}</strong> (or as otherwise agreed in writing); and</li>
         <li>any applicable payment-processing or payout fees charged by payment partners, as disclosed.</li>
       </ul>
     </li>
@@ -437,7 +442,7 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
     <h2>Schedule B — Fees</h2>
     <div class="meta">
       <table>
-        ${metaRow("Platform commission", `${commissionLabel} of eligible withdrawal amounts`)}
+        ${metaRow("Platform commission", commissionBasis)}
         ${metaRow("Payment processing", "As charged by Paystack / payment partner and disclosed in portal")}
         ${metaRow("Commission cap", maxCommissionLabel || "As configured on the platform")}
         ${metaRow("Other fees", "Ads, AI points, and other portal products as disclosed")}

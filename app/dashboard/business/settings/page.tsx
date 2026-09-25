@@ -95,6 +95,11 @@ interface BusinessData {
   policy_highlights?: { kind: "allow" | "deny"; text: string }[]
   policy_bullets?: string[]
   policy_footer?: string | null
+  commission_collection_mode?: "on_withdrawal" | "on_booking"
+  partner_agreement?: {
+    commission_rate?: number | null
+    commission_collection_mode?: "on_withdrawal" | "on_booking"
+  }
 }
 
 type PolicyHighlight = { kind: "allow" | "deny"; text: string }
@@ -341,6 +346,10 @@ export default function BusinessSettingsPage() {
           }
 
           formData.append("business[restaurant_enabled]", String(!!businessData.restaurant_enabled))
+          formData.append(
+            "business[commission_collection_mode]",
+            businessData.commission_collection_mode || "on_withdrawal"
+          )
         }
 
         if (editAmenities) {
@@ -610,6 +619,57 @@ export default function BusinessSettingsPage() {
                       className="rounded-lg border-slate-200"
                     />
                   </div>
+                </div>
+              </div>
+              )}
+
+              {editDetails && (
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-2.5">
+                  <h2 className="text-sm font-semibold text-slate-900">Platform commission</h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Choose how Shettar collects its
+                    {businessData.partner_agreement?.commission_rate != null
+                      ? ` ${businessData.partner_agreement.commission_rate}%`
+                      : ""}{" "}
+                    commission. This applies to new bookings only. Money already in your wallet still pays withdrawal commission.
+                  </p>
+                </div>
+                <div className="space-y-2 p-4">
+                  <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-3">
+                    <input
+                      type="radio"
+                      name="commission_collection_mode"
+                      className="mt-1"
+                      checked={(businessData.commission_collection_mode || "on_withdrawal") === "on_withdrawal"}
+                      onChange={() =>
+                        setBusinessData({ ...businessData, commission_collection_mode: "on_withdrawal" })
+                      }
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-slate-900">On withdrawal</span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Guests pay your room price. Shettar’s commission is deducted when you withdraw, plus the transfer fee.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 p-3">
+                    <input
+                      type="radio"
+                      name="commission_collection_mode"
+                      className="mt-1"
+                      checked={businessData.commission_collection_mode === "on_booking"}
+                      onChange={() =>
+                        setBusinessData({ ...businessData, commission_collection_mode: "on_booking" })
+                      }
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-slate-900">On booking</span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Guests pay your room price plus commission. You withdraw your set amount and still pay the transfer fee.
+                      </span>
+                    </span>
+                  </label>
                 </div>
               </div>
               )}

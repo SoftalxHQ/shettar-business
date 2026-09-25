@@ -148,6 +148,7 @@ export default function CompliancePage() {
         signedByName: agreement?.signed_by_name,
         signedByRole: agreement?.signed_by_role,
         commissionRate: agreement?.commission_rate,
+        commissionCollectionMode: agreement?.commission_collection_mode,
         maximumWithdrawalCommission: agreement?.maximum_withdrawal_commission,
         primaryContactName: agreement?.primary_contact_name,
         primaryContactTitle: agreement?.primary_contact_title,
@@ -234,6 +235,7 @@ export default function CompliancePage() {
                 onDraftFullNameChange={setDraftFullName}
                 onDraftRoleChange={setDraftRole}
                 commissionRate={agreement?.commission_rate}
+                commissionCollectionMode={agreement?.commission_collection_mode}
                 maximumWithdrawalCommission={agreement?.maximum_withdrawal_commission}
                 primaryContactName={agreement?.primary_contact_name}
                 primaryContactTitle={agreement?.primary_contact_title}
