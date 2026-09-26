@@ -101,12 +101,6 @@ export default function DashboardPage() {
     router.push(`/dashboard/scan?code=${encodeURIComponent(searchQuery.trim().toUpperCase())}`)
   }
 
-  useEffect(() => {
-    if (user?.role === "admin" || user?.role === "manager") {
-      router.push("/dashboard/business")
-    }
-  }, [user, router])
-
   // logout from useAuth is not referentially stable — keep it in a ref so it
   // does not recreate fetchRoomAvailability every render (infinite fetch loop).
   const logoutRef = useRef(logout)
@@ -252,17 +246,6 @@ export default function DashboardPage() {
     dateFormat: "Y-m-d",
     minDate: "today",
   }), [])
-
-  // Show loading state while redirecting admin users
-  if (user?.role === "admin") {
-    return (
-      <DashboardLayout activeTab="staffdashboard">
-        <div className="h-full flex items-center justify-center">
-          <LoadingSpinner size={32} />
-        </div>
-      </DashboardLayout>
-    )
-  }
 
   return (
     <DashboardLayout activeTab="staffdashboard">

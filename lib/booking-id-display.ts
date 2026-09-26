@@ -11,6 +11,7 @@ export type BookingIdDisplayInput = {
   booking_id_revealed?: boolean;
   checked_in_at?: string | null;
   checked_out_at?: string | null;
+  cancelled?: boolean;
 };
 
 /** Prefer API `booking_id` (already masked when needed). Fallback for legacy payloads. */
@@ -21,7 +22,12 @@ export function displayBookingId(
   if (reservation.booking_id) return reservation.booking_id;
   const full = fullBookingId ?? reservation.booking_id;
   if (!full) return "—";
-  if (reservation.booking_id_revealed || reservation.checked_in_at || reservation.checked_out_at) {
+  if (
+    reservation.booking_id_revealed ||
+    reservation.checked_in_at ||
+    reservation.checked_out_at ||
+    reservation.cancelled
+  ) {
     return full;
   }
   return maskBookingId(full);
@@ -31,6 +37,7 @@ export function isBookingIdRevealed(reservation: BookingIdDisplayInput): boolean
   return !!(
     reservation.booking_id_revealed ||
     reservation.checked_in_at ||
-    reservation.checked_out_at
+    reservation.checked_out_at ||
+    reservation.cancelled
   );
 }

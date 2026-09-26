@@ -35,6 +35,7 @@ export function usesRestaurantPortal(user: User | null): boolean {
 
 export function getDefaultDashboardPath(user: User | null): string {
   if (usesRestaurantPortal(user)) return "/dashboard/restaurant";
+  if (user?.role === "admin" || user?.role === "manager") return "/dashboard/business";
   return "/dashboard";
 }
 

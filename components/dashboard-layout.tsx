@@ -80,12 +80,15 @@ type AdminNavItem = {
   icon: React.ComponentType<{ className?: string }>
   section: "overview" | "operations" | "commerce" | "people" | "system"
   restaurantNav?: "menu" | "orders" | "kitchen"
+  tab?: string
 }
 
 const adminNavigation: AdminNavItem[] = [
   { name: "Dashboard", href: "/dashboard/business", icon: Building2, section: "overview" },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, section: "overview" },
   { name: "Compliance", href: "/dashboard/business/settings/compliance", icon: FileText, section: "overview" },
+  { name: "Front desk", href: "/dashboard", icon: LayoutDashboard, section: "operations", tab: "staffdashboard" },
+  { name: "Scan", href: "/dashboard/scan", icon: QrCode, section: "operations", tab: "scancode" },
   { name: "Bookings", href: "/dashboard/bookings", icon: CalendarCheck, section: "operations" },
   { name: "Rooms", href: "/dashboard/rooms", icon: Hotel, section: "operations" },
   { name: "Restaurant Menu", href: "/dashboard/restaurant/menu", icon: UtensilsCrossed, section: "operations", restaurantNav: "menu" },
@@ -382,9 +385,11 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
               {visibleAdminNav
                 .filter((item) => item.section === section)
                 .map((item) => {
-                  let isActive = item.restaurantNav
-                    ? activeTab === item.restaurantNav
-                    : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
+                  let isActive = item.tab
+                    ? activeTab === item.tab
+                    : item.restaurantNav
+                      ? activeTab === item.restaurantNav
+                      : activeTab === item.name.toLowerCase().replace(/[^a-z]/g, "")
 
                   if (item.name === "Dashboard" && (activeTab === "business" || activeTab === "dashboard")) {
                     isActive = true
