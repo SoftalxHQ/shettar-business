@@ -100,6 +100,9 @@ export default function CompliancePage() {
     ? formatAgreementDate(agreement.signed_at)
     : null
 
+  const commissionMethodLabel =
+    agreement?.commission_collection_mode === "on_booking" ? "On booking" : "On withdrawal"
+
   const showSignInputs = canAccept && (!signed || needsSignerDetails || !signatureComplete)
 
   const canSubmit =
@@ -196,6 +199,17 @@ export default function CompliancePage() {
                   {businessLabel || user?.hotelName || "your property"}
                 </span>
                 . Accepting locks the effective date to the day you sign.
+                {!isLoading && (
+                  <>
+                    {" "}
+                    Commission method:{" "}
+                    <span className="font-medium text-slate-700">{commissionMethodLabel}</span>
+                    {agreement?.commission_rate != null && (
+                      <> ({Number(agreement.commission_rate)}%)</>
+                    )}
+                    .
+                  </>
+                )}
               </p>
             </div>
 

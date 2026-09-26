@@ -101,10 +101,11 @@ export const PartnerAgreementDocument = forwardRef<HTMLElement, PartnerAgreement
     commissionRate != null && !Number.isNaN(Number(commissionRate))
       ? `${Number(commissionRate)}%`
       : "[X%]"
-  const commissionBasis =
-    commissionCollectionMode === "on_booking"
-      ? `${commissionLabel} added to the guest price and collected when the guest pays. Withdrawals of that amount pay the transfer fee only`
-      : `${commissionLabel} of eligible withdrawal amounts`
+  const collectsOnBooking = commissionCollectionMode === "on_booking"
+  const commissionMethodLabel = collectsOnBooking ? "On booking" : "On withdrawal"
+  const commissionBasis = collectsOnBooking
+    ? `${commissionLabel} added to the guest price and collected when the guest pays. Withdrawals of that amount pay the transfer fee only`
+    : `${commissionLabel} of eligible withdrawal amounts`
   const maxCommissionLabel =
     maximumWithdrawalCommission != null && !Number.isNaN(Number(maximumWithdrawalCommission))
       ? `₦${Number(maximumWithdrawalCommission).toLocaleString("en-NG")}`
@@ -351,8 +352,8 @@ export const PartnerAgreementDocument = forwardRef<HTMLElement, PartnerAgreement
             published in the Business portal), including:
             <ul className="mt-1 list-disc space-y-1 pl-[18px]">
               <li>
-                Platform commission of <strong>{commissionBasis}</strong> (or as otherwise agreed in
-                writing); and
+                Commission method: <strong>{commissionMethodLabel}</strong>. Platform commission of{" "}
+                <strong>{commissionBasis}</strong> (or as otherwise agreed in writing); and
               </li>
               <li>
                 any applicable payment-processing or payout fees charged by payment partners, as
@@ -549,6 +550,7 @@ export const PartnerAgreementDocument = forwardRef<HTMLElement, PartnerAgreement
         <Section title="Schedule B — Fees">
           <table className="mb-3 w-full border-collapse">
             <tbody>
+              <MetaRow label="Commission method" value={commissionMethodLabel} />
               <MetaRow
                 label="Platform commission"
                 value={commissionBasis}
