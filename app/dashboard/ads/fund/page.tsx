@@ -275,7 +275,7 @@ export default function AdsFundPage() {
 
                 {feeBreakdown && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2 text-xs">
-                    <p className="font-medium text-amber-900 dark:text-amber-100">Card payment breakdown</p>
+                    <p className="font-medium text-amber-900 dark:text-amber-100">Paystack payment breakdown</p>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Ads wallet credit</span>
                       <span>₦{feeBreakdown.target_amount.toLocaleString()}</span>
@@ -297,7 +297,7 @@ export default function AdsFundPage() {
                   className="w-full h-9 gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm"
                 >
                   <CreditCard className="h-4 w-4" />
-                  {cardLoading ? "Processing…" : "Pay with card (Paystack)"}
+                  {cardLoading ? "Processing…" : "Pay with Paystack"}
                 </Button>
 
                 <div className="relative">
@@ -320,8 +320,8 @@ export default function AdsFundPage() {
                 </Button>
 
                 <p className="text-[11px] text-slate-500">
-                  Wallet transfers require an email verification code. Card payments open Paystack
-                  securely in a popup.
+                  Wallet transfers require an email verification code. Paystack opens card, bank, USSD,
+                  and transfer in a popup.
                 </p>
               </>
             )}

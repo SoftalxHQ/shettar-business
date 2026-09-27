@@ -302,11 +302,11 @@ export default function BuyAiPointsPage() {
                       <span className="tabular-nums">₦{feeBreakdown.target_amount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Paystack fee (card only)</span>
+                      <span>Paystack fee</span>
                       <span className="tabular-nums text-rose-600">+₦{feeBreakdown.paystack_fee.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-slate-900 pt-1 border-t border-slate-200">
-                      <span>Card charge</span>
+                      <span>You will be charged</span>
                       <span className="tabular-nums">₦{feeBreakdown.charge_amount.toLocaleString()}</span>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export default function BuyAiPointsPage() {
                   className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {cardLoading ? "Processing…" : "Pay with card"}
+                  {cardLoading ? "Processing…" : "Pay with Paystack"}
                 </Button>
 
                 <div className="relative">
