@@ -1,5 +1,11 @@
 # Shettar Business release notes
 
+## 0.1.70
+
+### Highlights
+
+- Ads and AI points funding through Paystack now offers card, bank, USSD, and transfer, not card alone
+
 ## 0.1.69
 
 ### Highlights
