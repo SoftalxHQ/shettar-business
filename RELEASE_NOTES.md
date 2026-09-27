@@ -1,5 +1,14 @@
 # Shettar Business release notes
 
+## 0.1.69
+
+### Highlights
+
+- Business settings can collect commission on withdrawal or on booking
+- Compliance and the partner agreement, including the PDF, show which commission method is in use
+- Guest notices and policy bullets are cleaned before they are saved
+- Dashboard navigation includes Front desk and Scan, and cancelled bookings show the right booking code
+
 ## 0.1.68
 
 ### Highlights
