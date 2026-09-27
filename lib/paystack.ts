@@ -69,7 +69,7 @@ export function openPaystackCardCheckout(
     amount: Math.round(chargeAmount * 100),
     ref: init.reference,
     metadata: init.metadata,
-    channels: ["card", "bank", "ussd", "qr", "mobile_money", "bank_transfer"],
+    channels: ["card", "bank", "ussd", "bank_transfer"],
     onClose: options.onClose,
     callback: (response) => {
       void options.onSuccess(response.reference)
