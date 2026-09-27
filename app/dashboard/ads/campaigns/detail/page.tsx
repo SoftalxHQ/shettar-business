@@ -110,6 +110,11 @@ function AdCampaignDetailContent() {
             <DetailRow label="Max bid" value={`₦${campaign.max_bid.toLocaleString()}`} />
             <DetailRow label="Geo targeting" value={formatGeoTargets(campaign.target_geo)} />
             <DetailRow label="Placements" value={campaign.placements.join(", ")} />
+            {campaign.complimentary && campaign.status !== "active" && (
+              <p className="text-xs text-slate-500 py-2">
+                This complimentary campaign is closed. Create a new campaign and set a price.
+              </p>
+            )}
             {campaign.rejection_reason && (
               <DetailRow label="Rejection" value={<span className="text-rose-600">{campaign.rejection_reason}</span>} />
             )}
@@ -118,7 +123,7 @@ function AdCampaignDetailContent() {
 
         {canManage && (
           <div className="shrink-0 flex flex-wrap gap-2">
-            {campaign.status !== "active" && (
+            {campaign.status !== "active" && !campaign.complimentary && (
               <Button size="sm" className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs" onClick={() => updateStatus("active")}>
                 Activate
               </Button>
