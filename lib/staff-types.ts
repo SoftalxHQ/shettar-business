@@ -41,6 +41,12 @@ export interface Permissions {
   ai_analyzer?: AiAnalyzerPermissions
   restaurant?: RestaurantPermissions
   guest_policies?: GuestPoliciesPermissions
+  subscription?: SubscriptionPermissions
+}
+
+export interface SubscriptionPermissions {
+  view?: boolean
+  manage?: boolean
 }
 
 export interface GuestPoliciesPermissions {
@@ -137,7 +143,8 @@ export const PERMISSION_PRESETS = {
       ads: { view: true, manage: true },
       ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
-      guest_policies: { view: true, create: true, edit: true, delete: true }
+      guest_policies: { view: true, create: true, edit: true, delete: true },
+      subscription: { view: true, manage: true }
     }
   },
   general_manager: {
@@ -154,7 +161,8 @@ export const PERMISSION_PRESETS = {
       ads: { view: true, manage: true },
       ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
-      guest_policies: { view: true, create: true, edit: true, delete: true }
+      guest_policies: { view: true, create: true, edit: true, delete: true },
+      subscription: { view: true, manage: true }
     }
   },
   human_resource: {
@@ -171,7 +179,8 @@ export const PERMISSION_PRESETS = {
       ads: { view: true, manage: true },
       ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: true, cancel_orders: true, mark_paid: true, refund: true },
-      guest_policies: { view: true, create: true, edit: true, delete: true }
+      guest_policies: { view: true, create: true, edit: true, delete: true },
+      subscription: { view: true, manage: true }
     }
   },
   manager: {
@@ -188,7 +197,8 @@ export const PERMISSION_PRESETS = {
       ads: { view: true, manage: false },
       ai_analyzer: { view: true, run: true },
       restaurant: { view: true, manage_menu: true, create_orders: true, kitchen: false, cancel_orders: true, mark_paid: true, refund: false },
-      guest_policies: { view: true, create: false, edit: false, delete: false }
+      guest_policies: { view: true, create: false, edit: false, delete: false },
+      subscription: { view: true, manage: true }
     }
   },
   kitchen: {
@@ -325,6 +335,13 @@ export const PERMISSION_LABELS = {
       create: "Add Notices & Policy Lines",
       edit: "Edit Notices & Policies",
       delete: "Remove Notices & Policy Lines"
+    }
+  },
+  subscription: {
+    title: "Subscription",
+    permissions: {
+      view: "View Subscription",
+      manage: "Pay and manage automatic renewal"
     }
   }
 } as const

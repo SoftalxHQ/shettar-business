@@ -96,6 +96,7 @@ const adminNavigation: AdminNavItem[] = [
   { name: "Restaurant Orders", href: "/dashboard/restaurant/orders", icon: ClipboardList, section: "operations", restaurantNav: "orders" },
   { name: "Restaurant Kitchen", href: "/dashboard/restaurant/kitchen", icon: ChefHat, section: "operations", restaurantNav: "kitchen" },
   { name: "Finance", href: "/dashboard/finance", icon: CreditCard, section: "commerce" },
+  { name: "Subscription", href: "/dashboard/subscription", icon: CreditCard, section: "commerce" },
   { name: "Ads", href: "/dashboard/ads", icon: Megaphone, section: "commerce" },
   { name: "Promos", href: "/dashboard/promos", icon: Tag, section: "commerce" },
   { name: "Staffs", href: "/dashboard/staff", icon: Users, section: "people" },
@@ -277,6 +278,8 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
         return user.permissions.dashboard?.view_analytics
       case "Finance":
         return user.permissions.finance?.view
+      case "Subscription":
+        return !!user.permissions.subscription?.view || !!user.permissions.subscription?.manage
       case "Ads":
         return user.permissions.ads?.view || user.permissions.ads?.manage
       case "Bookings":

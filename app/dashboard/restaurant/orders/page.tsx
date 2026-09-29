@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RestaurantLayoutWrapper } from "@/components/restaurant-layout-wrapper";
 import { RestaurantOrderItemLine, RestaurantOrderNotes } from "@/components/restaurant-order-notes";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth-context";
+import { getAuthToken } from "@/lib/storage";
 import {
   canCancelRestaurantOrder,
   canCancelRestaurantOrderStatus,
@@ -214,6 +216,7 @@ export default function RestaurantOrdersPage() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [menuLoading, setMenuLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [ordersLocked, setOrdersLocked] = useState(false);
   const [orderMode, setOrderMode] = useState<OrderMode>("table");
   const [tableLabel, setTableLabel] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState<string>("");
@@ -260,6 +263,25 @@ export default function RestaurantOrdersPage() {
   useEffect(() => {
     if (!bid) return;
     void fetchBusinessReceiptDetails(bid).then(setBusinessDetails);
+  }, [bid]);
+
+  useEffect(() => {
+    if (!bid) return;
+    let cancelled = false;
+    const token = getAuthToken();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    fetch(`${API_URL}/api/v1/user_businesses/${bid}/subscription`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setOrdersLocked(data.subscription?.walk_in_open === false);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [bid]);
 
   const loadOrders = useCallback(async () => {
@@ -451,6 +473,10 @@ export default function RestaurantOrdersPage() {
   const submitOrder = async () => {
     if (!bid || cart.length === 0) {
       toast.error("Add at least one item");
+      return;
+    }
+    if (ordersLocked) {
+      toast.error("Restaurant orders are locked until this business subscribes.");
       return;
     }
     if (orderMode === "room" && !selectedTarget) {
@@ -717,6 +743,14 @@ export default function RestaurantOrdersPage() {
             <p className="text-xs text-slate-500 mt-0.5">
               Search and filter orders, or build a new order
             </p>
+            {ordersLocked && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                <p>Restaurant orders are locked until this business subscribes.</p>
+                <Link href="/dashboard/subscription" className="mt-1 inline-block font-medium text-indigo-700 hover:text-indigo-800">
+                  Open subscription
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1061,7 +1095,7 @@ export default function RestaurantOrdersPage() {
                       <Button
                         className="w-full"
                         onClick={submitOrder}
-                        disabled={saving || cart.length === 0}
+                        disabled={saving || cart.length === 0 || ordersLocked}
                       >
                         {saving ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

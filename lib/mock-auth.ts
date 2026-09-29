@@ -48,6 +48,7 @@ export interface User {
       edit?: boolean
       delete?: boolean
     }
+    subscription?: { view?: boolean; manage?: boolean }
   }
   restaurantEnabled?: boolean
 }

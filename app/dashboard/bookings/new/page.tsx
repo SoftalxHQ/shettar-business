@@ -30,6 +30,7 @@ export default function NewBookingPage() {
   const router = useRouter()
   const { businessId, logout } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [walkInLocked, setWalkInLocked] = useState(false)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
   const [loadingRoomTypes, setLoadingRoomTypes] = useState(false)
 
@@ -49,6 +50,25 @@ export default function NewBookingPage() {
     number_of_rooms: "1",
     payment_method: "2", // POS
   })
+
+  useEffect(() => {
+    if (!businessId) return
+    let cancelled = false
+    const token = getAuthToken()
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    fetch(`${API_URL}/api/v1/user_businesses/${businessId}/subscription`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    })
+      .then(async (response) => {
+        if (!response.ok) return
+        const data = await response.json()
+        if (!cancelled) setWalkInLocked(data.subscription?.walk_in_open === false)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [businessId])
 
   // Fetch available room types when dates change
   useEffect(() => {
@@ -110,6 +130,11 @@ export default function NewBookingPage() {
 
     if (!businessId) {
       toast.error("Business information not found. Please try logging in again.")
+      return
+    }
+
+    if (walkInLocked) {
+      toast.error("Walk-in reservations are locked until this business subscribes.")
       return
     }
 
@@ -249,6 +274,14 @@ export default function NewBookingPage() {
           <h1 className="text-xl font-semibold tracking-tight text-slate-900">
             New Reservation
           </h1>
+          {walkInLocked && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p>Walk-in reservations are locked until this business subscribes.</p>
+              <Link href="/dashboard/subscription" className="mt-1 inline-block font-medium text-indigo-700 hover:text-indigo-800">
+                Open subscription
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 overflow-hidden">
@@ -569,7 +602,7 @@ export default function NewBookingPage() {
 
               <Button
                 type="button"
-                disabled={isLoading}
+                disabled={isLoading || walkInLocked}
                 className="w-full h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
                 onClick={() => {
                   const form = document.getElementById("new-booking-form") as HTMLFormElement | null
