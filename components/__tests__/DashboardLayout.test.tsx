@@ -58,6 +58,12 @@ function renderWithStore(
 describe("DashboardLayout", () => {
   beforeEach(() => {
     mockPush.mockClear();
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
   });
 
   it("redirects to /login when user is null and isLoading is false", () => {
@@ -83,5 +89,65 @@ describe("DashboardLayout", () => {
       store
     );
     expect(screen.getByTestId("child")).toBeInTheDocument();
+  });
+
+  it("shows restaurant orders to front desk staff with restaurant access", () => {
+    const staff: User = {
+      ...mockUser,
+      role: "staff",
+      name: "Front Desk",
+      restaurantEnabled: true,
+      permissions: {
+        bookings: {
+          view: true,
+          edit: false,
+          cancel: false,
+          create: false,
+          view_payments: false,
+          checkin_checkout: true,
+        },
+        restaurant: { view: true, create_orders: true },
+      },
+    };
+    const store = makeStore({ user: staff });
+    renderWithStore(
+      <DashboardLayout>
+        <div>content</div>
+      </DashboardLayout>,
+      store
+    );
+
+    expect(screen.getAllByRole("link", { name: /Restaurant Orders/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /^Reviews$/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps a default receptionist on the top bar without restaurant links", () => {
+    const staff: User = {
+      ...mockUser,
+      role: "staff",
+      name: "Front Desk",
+      restaurantEnabled: true,
+      permissions: {
+        rooms: { view: true, create: false, edit: false, delete: false },
+        bookings: {
+          view: true,
+          edit: true,
+          cancel: false,
+          create: true,
+          view_payments: false,
+          checkin_checkout: true,
+        },
+      },
+    };
+    const store = makeStore({ user: staff });
+    renderWithStore(
+      <DashboardLayout>
+        <div>content</div>
+      </DashboardLayout>,
+      store
+    );
+
+    expect(screen.queryByRole("link", { name: /Restaurant Orders/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Front desk/i })).toBeInTheDocument();
   });
 });

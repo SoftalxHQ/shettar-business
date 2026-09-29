@@ -31,6 +31,17 @@ describe("isDeviseJwtFailure", () => {
     ).toBe(true)
   })
 
+  it("matches a revoked token", async () => {
+    expect(
+      await isDeviseJwtFailure(
+        jsonResponse(401, {
+          status: { code: 401, message: "revoked token" },
+          errors: [{ id: "unauthorized", status: 401, message: "revoked token" }],
+        }),
+      ),
+    ).toBe(true)
+  })
+
   it("does not treat invalid_business_id as session expiry", async () => {
     expect(
       await isDeviseJwtFailure(

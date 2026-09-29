@@ -24,6 +24,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { usesRestaurantPortal } from "@/lib/portal-access"
 import { getAuthToken } from "@/lib/storage"
 import api from "@/lib/api-client"
+import { isSessionAuthMessage } from "@/lib/devise-jwt-failure"
 import {
   subscribeUserNotifications,
   type StaffNotificationCablePayload,
@@ -146,11 +147,10 @@ export default function DashboardPage() {
         setRoomAvailability(data)
       } else if (response.status === 401) {
         const errorData = await response.json()
-        if (
-          errorData.errors?.[0]?.id === 'expiration' ||
-          errorData.errors?.[0]?.message === 'Token has expired' ||
-          errorData.message === 'Signature has expired'
-        ) {
+        const messages = [errorData?.status?.message, errorData?.message, errorData?.errors?.[0]?.message].filter(
+          (value): value is string => typeof value === "string",
+        )
+        if (errorData.errors?.[0]?.id === "expiration" || messages.some((message) => isSessionAuthMessage(message))) {
           void logoutRef.current(true)
           return
         }
@@ -234,6 +234,11 @@ export default function DashboardPage() {
         const data = await api.getBusinessData<any>(`/api/v1/user_businesses/${businessId}`)
         setBusinessInfo(data)
       } catch (error) {
+        const message = error instanceof Error ? error.message : ""
+        if (isSessionAuthMessage(message)) {
+          void logoutRef.current(true)
+          return
+        }
         console.error("Failed to fetch business info:", error)
       }
     }

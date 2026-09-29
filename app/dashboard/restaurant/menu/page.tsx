@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
 import { canManageRestaurantMenu, canViewRestaurant, isRestaurantModuleEnabled } from "@/lib/restaurant-access";
+import { restaurantAccessDeniedPath } from "@/lib/portal-access";
 import {
   createMenuCategory,
   createMenuItem,
@@ -85,10 +86,10 @@ export default function RestaurantMenuPage() {
       router.push("/dashboard/business/settings");
       return;
     }
-    if (!canView) {
-      router.push("/dashboard/business");
+    if (!canView && !canEdit) {
+      router.push(restaurantAccessDeniedPath(user));
     }
-  }, [user, router, canView]);
+  }, [user, router, canView, canEdit]);
 
   const load = useCallback(async () => {
     if (!bid) return;
@@ -153,7 +154,10 @@ export default function RestaurantMenuPage() {
   );
 
   useEffect(() => {
-    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    const unsubscribe = subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    return () => {
+      unsubscribe();
+    };
   }, [applyMenuAvailabilityUpdate]);
 
   useEffect(() => {

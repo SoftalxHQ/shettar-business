@@ -269,6 +269,7 @@ export default function RoomsPage() {
 
       {showCreateDialog && (
         <RoomTypeDialog
+          key={selectedRoomType?.id ?? "new"}
           roomType={selectedRoomType}
           onSave={handleSaveRoomType}
           onCancel={() => {

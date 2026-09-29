@@ -66,6 +66,7 @@ import { TopBarNotifications } from "@/components/top-bar-notifications"
 import { SupportUnreadBadge } from "@/components/support-unread-badge"
 import { ComplianceAttentionBadge } from "@/components/compliance-attention-badge"
 import { AiPointsSidebarChip } from "@/components/ai-points-sidebar-chip"
+import { getRestaurantNavItems, hasAccessBeyondFrontDesk } from "@/lib/portal-access"
 
 const SIDEBAR_COLLAPSED_KEY = "shettar_biz_sidebar_collapsed"
 
@@ -253,30 +254,24 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     .join("")
     .toUpperCase()
 
-  const isAdmin = user.role === "admin" || user.role === "manager"
+  const usesSidebar =
+    user.role === "admin" || user.role === "manager" || hasAccessBeyondFrontDesk(user)
 
   const visibleAdminNav = adminNavigation.filter((item) => {
     if (item.restaurantNav) {
       if (!user.restaurantEnabled) return false
       if (user.role === "admin") return true
-      if (!user.permissions?.restaurant?.view) return false
-      if (item.restaurantNav === "menu") {
-        return user.permissions.restaurant?.manage_menu || user.permissions.restaurant?.view
-      }
-      if (item.restaurantNav === "orders") {
-        return user.permissions.restaurant?.create_orders || user.permissions.restaurant?.view
-      }
-      if (item.restaurantNav === "kitchen") {
-        return user.permissions.restaurant?.kitchen
-      }
-      return false
+      return getRestaurantNavItems(user).some((entry) => entry.tab === item.restaurantNav)
     }
 
     if (user.role === "admin") return true
-    if (!user.permissions) return true
+    if (!user.permissions) return user.role !== "staff"
 
     switch (item.name) {
       case "Dashboard":
+        return user.role !== "staff"
+      case "Front desk":
+      case "Scan":
         return true
       case "Analytics":
         return user.permissions.dashboard?.view_analytics
@@ -303,7 +298,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
       case "AI History":
         return !!user.permissions?.ai_analyzer?.view || !!user.permissions?.ai_analyzer?.run
       default:
-        return true
+        return user.role !== "staff"
     }
   })
 
@@ -311,7 +306,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     visibleAdminNav.some((item) => item.section === section),
   )
 
-  if (isAdmin) {
+  if (usesSidebar) {
     const renderAccountMenu = (menuCollapsed: boolean) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -355,10 +350,6 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleChangeBusiness} className="text-orange-600">
-            <Building2 className="mr-2 h-4 w-4" />
-            <span>Change Business</span>
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout} className="text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
@@ -639,6 +630,27 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
     )
   }
 
+  const restaurantNavIcons = {
+    Orders: ClipboardList,
+    Kitchen: ChefHat,
+    Menu: UtensilsCrossed,
+  } as const
+
+  const staffNavItems = [
+    ...staffNavigation,
+    ...getRestaurantNavItems(user).map((item) => ({
+      name:
+        item.name === "Orders"
+          ? "Restaurant Orders"
+          : item.name === "Kitchen"
+            ? "Restaurant Kitchen"
+            : "Restaurant Menu",
+      href: item.href,
+      tab: item.tab,
+      icon: restaurantNavIcons[item.name as keyof typeof restaurantNavIcons],
+    })),
+  ]
+
   return (
     <div className="h-dvh overflow-hidden flex flex-col bg-[#f4f5f7] app-safe-shell">
       <header className="shrink-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-slate-200/80">
@@ -659,7 +671,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-            {staffNavigation.map((item) => {
+            {staffNavItems.map((item) => {
               const isActive = activeTab === item.tab
               return (
                 <Link
@@ -733,7 +745,7 @@ export function DashboardLayout({ children, activeTab }: DashboardLayoutProps) {
                 )}
                 <div className="md:hidden px-1 py-1">
                   <DropdownMenuSeparator />
-                  {staffNavigation.map((item) => (
+                  {staffNavItems.map((item) => (
                     <DropdownMenuItem key={item.href} asChild>
                       <Link href={item.href} className="cursor-pointer w-full">
                         <item.icon className="mr-2 h-4 w-4" />

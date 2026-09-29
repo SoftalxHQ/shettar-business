@@ -22,9 +22,11 @@ export function notifyMenuAvailabilityChange(update: MenuAvailabilityUpdate) {
 
 export function subscribeMenuAvailabilityChange(
   handler: (update: MenuAvailabilityUpdate) => void
-) {
+): () => void {
   listeners.add(handler);
-  return () => listeners.delete(handler);
+  return () => {
+    listeners.delete(handler);
+  };
 }
 
 export function resolveAvailability(update: MenuAvailabilityUpdate): boolean | undefined {

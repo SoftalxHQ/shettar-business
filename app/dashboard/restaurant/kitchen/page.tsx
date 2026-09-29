@@ -10,6 +10,7 @@ import {
   canUseKitchenDisplay,
   isRestaurantModuleEnabled,
 } from "@/lib/restaurant-access";
+import { restaurantAccessDeniedPath } from "@/lib/portal-access";
 import {
   fetchKitchenQueue,
   fetchMenuItems,
@@ -64,7 +65,7 @@ export default function RestaurantKitchenPage() {
       router.push("/dashboard/business/settings");
       return;
     }
-    if (!canKitchen) router.push("/dashboard/business");
+    if (!canKitchen) router.push(restaurantAccessDeniedPath(user));
   }, [user, router, canKitchen]);
 
   useEffect(() => {
@@ -123,7 +124,10 @@ export default function RestaurantKitchenPage() {
   );
 
   useEffect(() => {
-    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    const unsubscribe = subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    return () => {
+      unsubscribe();
+    };
   }, [applyMenuAvailabilityUpdate]);
 
   useEffect(() => {

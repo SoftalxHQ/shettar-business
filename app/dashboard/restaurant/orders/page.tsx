@@ -29,6 +29,7 @@ import {
   canViewRestaurant,
   isRestaurantModuleEnabled,
 } from "@/lib/restaurant-access";
+import { restaurantAccessDeniedPath } from "@/lib/portal-access";
 import {
   createOrder,
   fetchMenuCategories,
@@ -253,8 +254,8 @@ export default function RestaurantOrdersPage() {
       router.push("/dashboard/business/settings");
       return;
     }
-    if (!canView) router.push("/dashboard/business");
-  }, [user, router, canView]);
+    if (!canView && !canCreate) router.push(restaurantAccessDeniedPath(user));
+  }, [user, router, canView, canCreate]);
 
   useEffect(() => {
     if (!bid) return;
@@ -331,7 +332,10 @@ export default function RestaurantOrdersPage() {
   }, [loadOrders]);
 
   useEffect(() => {
-    return subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    const unsubscribe = subscribeMenuAvailabilityChange(applyMenuAvailabilityUpdate);
+    return () => {
+      unsubscribe();
+    };
   }, [applyMenuAvailabilityUpdate]);
 
   useEffect(() => {

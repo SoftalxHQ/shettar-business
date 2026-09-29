@@ -41,8 +41,11 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
     }
   }
 
-  const discountPercent = roomType.old_price
-    ? Math.round(((roomType.old_price - roomType.price) / roomType.old_price) * 100)
+  const currentPrice = Number(roomType.price)
+  const previousPrice = Number(roomType.old_price)
+  const showPreviousPrice = previousPrice > currentPrice && currentPrice > 0
+  const discountPercent = showPreviousPrice
+    ? Math.round(((previousPrice - currentPrice) / previousPrice) * 100)
     : 0
 
   return (
@@ -112,7 +115,7 @@ export function RoomTypeCard({ roomType, onEdit, onDelete, onManageRooms }: Room
             <div className="text-sm font-semibold tabular-nums text-slate-900 truncate">
               ₦{Number(roomType.price).toLocaleString()}
             </div>
-            {roomType.old_price && (
+            {showPreviousPrice && (
               <div className="text-[10px] text-slate-400 line-through tabular-nums truncate">
                 ₦{Number(roomType.old_price).toLocaleString()}
               </div>

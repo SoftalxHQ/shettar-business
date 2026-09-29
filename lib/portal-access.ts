@@ -19,6 +19,29 @@ function hasRestaurantAccess(user: User | null): boolean {
   );
 }
 
+/** Permissions included in the Front Desk preset. Anything else is extra access. */
+const FRONT_DESK_PERMISSIONS = new Set([
+  "rooms.view",
+  "bookings.view",
+  "bookings.create",
+  "bookings.edit",
+  "bookings.checkin_checkout",
+]);
+
+export function hasAccessBeyondFrontDesk(user: User | null): boolean {
+  if (!user || user.role !== "staff" || !user.permissions) return false;
+
+  for (const [category, actions] of Object.entries(user.permissions)) {
+    if (!actions || typeof actions !== "object") continue;
+    for (const [action, enabled] of Object.entries(actions)) {
+      if (enabled === true && !FRONT_DESK_PERMISSIONS.has(`${category}.${action}`)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function hasFrontDeskAccess(user: User | null): boolean {
   if (!user) return false;
   if (user.role === "admin" || user.role === "manager") return true;
@@ -53,6 +76,12 @@ export function canConfigurePrinter(user: User | null): boolean {
 export function usesFullPrinterSettings(user: User | null): boolean {
   if (!user) return false;
   return user.role === "admin" || !!user.permissions?.settings?.view;
+}
+
+/** Where to send someone who opened a restaurant screen they cannot use. */
+export function restaurantAccessDeniedPath(user: User | null): string {
+  if (user?.role === "admin" || user?.role === "manager") return "/dashboard/business";
+  return "/dashboard";
 }
 
 export function getRestaurantNavItems(user: User | null) {

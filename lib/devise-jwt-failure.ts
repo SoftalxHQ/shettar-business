@@ -1,5 +1,9 @@
 const JWT_FAILURE_IDS = new Set(["expiration", "invalid_token"])
-const JWT_FAILURE_MESSAGES = ["Token has expired", "Signature has expired"]
+const JWT_FAILURE_MESSAGES = ["Token has expired", "Signature has expired", "revoked token"]
+
+export function isSessionAuthMessage(message: string): boolean {
+  return JWT_FAILURE_MESSAGES.some((needle) => message.includes(needle))
+}
 
 type FailureBody = {
   status?: { message?: unknown }
@@ -7,7 +11,7 @@ type FailureBody = {
   errors?: Array<{ id?: unknown; message?: unknown }>
 }
 
-/** Devise JWT expiry/invalid token only — not invalid_business_id or other 401s. */
+/** Devise JWT expiry, invalid, or revoked token — not invalid_business_id or other 401s. */
 export async function isDeviseJwtFailure(response: Response): Promise<boolean> {
   try {
     const body = (await response.clone().json()) as FailureBody
@@ -20,9 +24,7 @@ export async function isDeviseJwtFailure(response: Response): Promise<boolean> {
       (message): message is string => typeof message === "string",
     )
 
-    return messages.some((message) =>
-      JWT_FAILURE_MESSAGES.some((needle) => message.includes(needle)),
-    )
+    return messages.some((message) => isSessionAuthMessage(message))
   } catch {
     return false
   }

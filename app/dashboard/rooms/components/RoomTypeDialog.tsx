@@ -89,6 +89,11 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
       setCurrentTab("basic")
       return
     }
+    if (oldPrice.trim() && Number(oldPrice) <= Number(price)) {
+      toast.error("Old price must be greater than the current price")
+      setCurrentTab("basic")
+      return
+    }
 
     setIsSaving(true)
 
@@ -100,9 +105,7 @@ export function RoomTypeDialog({ roomType, onSave, onCancel }: RoomTypeDialogPro
       formData.append("room_type[name]", name)
       formData.append("room_type[description]", description)
       formData.append("room_type[price]", price)
-      if (oldPrice) {
-        formData.append("room_type[old_price]", oldPrice)
-      }
+      formData.append("room_type[old_price]", oldPrice.trim())
 
       // Append all amenities
       AMENITY_KEYS.forEach(key => {
