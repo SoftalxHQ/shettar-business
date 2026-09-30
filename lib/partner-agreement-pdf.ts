@@ -91,7 +91,7 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
         <div class="header-meta">
           <strong>Shettar Ltd</strong><br />
           ${escapeHtml(subtitle)}<br />
-          Document v1.0 · legal@shettar.com
+          Document v1.1 · legal@shettar.com
         </div>
       </div>
     </div>`
@@ -288,7 +288,8 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
     <li><strong>Listing</strong> means a property, room type, rate, photo, amenity, policy, or other content published for guests.</li>
     <li><strong>Booking</strong> means a confirmed reservation of accommodation facilitated through the Platform.</li>
     <li><strong>Guest</strong> means an end user who discovers, books, or stays at the Partner’s property via Shettar.</li>
-    <li><strong>Fees</strong> means commissions, service fees, payment processing charges, and any other amounts payable under this Agreement or the then-current fee schedule.</li>
+    <li><strong>Fees</strong> means commissions, service fees, payment processing charges, the business subscription, and any other amounts payable under this Agreement or the then-current fee schedule.</li>
+    <li><strong>Business subscription</strong> means the fee for staff reservations and restaurant orders in the Business portal, on the terms in Section 8.</li>
     <li><strong>Confidential Information</strong> means non-public commercial, technical, or personal information disclosed by either Party.</li>
   </ul>
 
@@ -365,6 +366,10 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
     <li>The Partner must maintain a verified company bank account in the portal. Shettar is not liable for payouts sent to incorrect details supplied by the Partner.</li>
     <li>Chargebacks, payment disputes, and fraud losses attributable to the Partner’s acts or Listing may be deducted from future payouts or invoiced to the Partner.</li>
     <li>Unless otherwise stated, amounts are in Nigerian Naira (₦). The Partner is responsible for its own taxes.</li>
+    <li><strong>Business subscription.</strong> Staff reservations and restaurant orders in the Business portal are available for one month from the Partner’s signup, and after that for a paid period the Partner buys. Plans are quarterly (3 months), bi-annual (6 months), and annual (12 months), at the prices published in the Business portal. A plan priced at zero cannot be purchased. The Partner pays the published price plus the payment-processing fee shown at checkout. That payment is due to Shettar and is not added to the Partner’s withdrawable balance.</li>
+    <li>While a paid period is still running, the Partner may change to a longer plan by paying that plan’s price. Unused value on the current plan is added to the new end date. The current plan, and any shorter plan, cannot be purchased until the paid period has ended.</li>
+    <li>Automatic renewal stays off until the Partner turns it on after a card has been saved. When it is on, Shettar charges that card on the date the paid period ends, for the plan then in force. The Partner may turn it off before that date. A charge that fails does not extend the period.</li>
+    <li>When the trial and any paid period have both ended, the Partner cannot create new staff reservations or new staff restaurant orders until it pays again or Shettar extends access. Reservations and restaurant orders already placed can still be completed. Shettar may extend a trial or, where a paid period is still running, extend that period’s end date.</li>
   </ol>
 
   <h2>9. Intellectual property and marketing</h2>
@@ -447,6 +452,7 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
         ${metaRow("Platform commission", commissionBasis)}
         ${metaRow("Payment processing", "As charged by Paystack / payment partner and disclosed in portal")}
         ${metaRow("Commission cap", maxCommissionLabel || "As configured on the platform")}
+        ${metaRow("Business subscription", "Quarterly, bi-annual, and annual prices published in the Business portal. One month from signup is included. Staff reservations and restaurant orders need an active trial or paid period.")}
         ${metaRow("Other fees", "Ads, AI points, and other portal products as disclosed")}
       </table>
     </div>
@@ -473,7 +479,7 @@ function buildAgreementHtml(input: PartnerAgreementPdfInput, logoUrl: string): s
     </div>
 
     <p class="small" style="margin-top:22px">
-      © Shettar Ltd. Official Business Partner Agreement — Document version 1.0.
+      © Shettar Ltd. Official Business Partner Agreement — Document version 1.1.
       Questions: legal@shettar.com
     </p>
   </div>

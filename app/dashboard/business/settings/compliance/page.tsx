@@ -52,7 +52,7 @@ export default function CompliancePage() {
       setUniqueId(business.business_unique_id || String(businessId))
       setAgreement(
         business.partner_agreement || {
-          version: "1.0",
+          version: "1.1",
           signed_at: null,
           signed_by_name: null,
           signed_by_role: null,
@@ -65,7 +65,7 @@ export default function CompliancePage() {
       setBusinessLabel(businessName || user?.hotelName || "")
       setUniqueId(String(businessId))
       setAgreement({
-        version: "1.0",
+        version: "1.1",
         signed_at: null,
         signed_by_name: null,
         signed_by_role: null,
