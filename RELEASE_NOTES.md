@@ -1,5 +1,14 @@
 # Shettar Business release notes
 
+## 0.1.71
+
+### Highlights
+
+- Business subscription keeps staff reservations and restaurant orders open on a quarterly, bi-annual, or annual plan, after a one-month trial
+- Those screens lock when the trial and paid period end, and a longer plan adds unused time to the new end date
+- Automatic renewal asks for confirmation before the saved card is charged
+- The partner agreement is version 1.1 and includes the subscription terms
+
 ## 0.1.70
 
 ### Highlights
