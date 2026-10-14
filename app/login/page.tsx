@@ -24,6 +24,7 @@ import { AlertCircle, Info, Eye, EyeOff } from "lucide-react"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
 import { getDefaultDashboardPath } from "@/lib/portal-access"
+import { DesktopDownloadPromoHost } from "@/components/desktop-download-promo-host"
 
 const fieldClass =
   "form-input w-full shadow-none border border-slate-300 focus:border-indigo-600 focus:border-1x"
@@ -332,6 +333,7 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      <DesktopDownloadPromoHost />
     </div>
   )
 }

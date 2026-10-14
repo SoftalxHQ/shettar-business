@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api-client"
 import { LocationFields } from "@/components/location-fields"
+import { DesktopDownloadPromoHost } from "@/components/desktop-download-promo-host"
 
 const STEP_COPY = [
   "Tell us about your hotel or property",
@@ -761,6 +762,7 @@ export default function SignupPage() {
           </p>
         </div>
       </div>
+      <DesktopDownloadPromoHost />
     </div>
   )
 }
