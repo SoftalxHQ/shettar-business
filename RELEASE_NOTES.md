@@ -1,5 +1,12 @@
 # Shettar Business release notes
 
+## 0.1.72
+
+### Highlights
+
+- Per-room visibility toggle next to Available/Unavailable — hide a room from guest web/mobile while staff can still book it as a walk-in
+- Desktop download promo on login and signup for browser users
+
 ## 0.1.71
 
 ### Highlights
