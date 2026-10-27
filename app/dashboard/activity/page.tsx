@@ -24,7 +24,7 @@ import {
   ArrowLeftRight, Banknote, CheckCircle2, Building2,
   Circle, RefreshCw, ChevronLeft, ChevronRight, Activity,
   ChevronDown, X, Tag, CreditCard, Send, Download, Megaphone,
-  Sparkles, FileText,
+  Sparkles, FileText, Eye,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -62,6 +62,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   "room_created": BedDouble,
   "room_updated": Wrench,
   "room_status_changed": ArrowLeftRight,
+  "room_visibility_changed": Eye,
   "withdrawal_requested": Banknote,
   "withdrawal_completed": CheckCircle2,
   "ads_wallet_funded": Banknote,
@@ -102,6 +103,7 @@ const ACTION_LABELS: Record<string, string> = {
   "room_created": "Rooms Created",
   "room_updated": "Rooms Updated",
   "room_status_changed": "Room Status",
+  "room_visibility_changed": "Room Visibility",
   "withdrawal_requested": "Withdrawals",
   "withdrawal_completed": "Withdrawal Completed",
   "ads_wallet_funded": "Ads Wallet Funded",

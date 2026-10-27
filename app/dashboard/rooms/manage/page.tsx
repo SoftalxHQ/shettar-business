@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft, Plus, Hotel, CheckCircle, XCircle, Trash,
   Activity, RefreshCw, AlertTriangle, CheckCircle2,
+  Eye, EyeOff,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { RoomType, Room } from "@/lib/room-types"
@@ -43,6 +44,11 @@ interface StatusModalState {
   targetStatus: "available" | "unavailable"
 }
 
+interface VisibilityModalState {
+  room: Room | null
+  targetVisible: boolean
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function RoomManagementContent() {
@@ -58,9 +64,12 @@ function RoomManagementContent() {
 
   // Status change modal
   const [statusModal, setStatusModal] = useState<StatusModalState>({ room: null, targetStatus: "unavailable" })
+  const [visibilityModal, setVisibilityModal] = useState<VisibilityModalState>({ room: null, targetVisible: true })
   const [reason, setReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const reasonRequired = statusModal.targetStatus === "unavailable"
+  const reasonRequired =
+    (!!statusModal.room && statusModal.targetStatus === "unavailable") ||
+    (!!visibilityModal.room && !visibilityModal.targetVisible)
 
   // Activity panel
   const [activities, setActivities] = useState<ActivityItem[]>([])
@@ -121,7 +130,7 @@ function RoomManagementContent() {
       )
       if (res2.ok) {
         const data = await res2.json()
-        const ROOM_TYPES = ["room_created", "room_updated", "room_status_changed"]
+        const ROOM_TYPES = ["room_created", "room_updated", "room_status_changed", "room_visibility_changed"]
         setActivities((data.activities || []).filter((a: ActivityItem) => ROOM_TYPES.includes(a.action_type)))
       }
     } catch { /* silent */ }
@@ -136,6 +145,7 @@ function RoomManagementContent() {
 
   const openStatusModal = (room: Room) => {
     const target = room.status === "available" ? "unavailable" : "available"
+    setVisibilityModal({ room: null, targetVisible: true })
     setStatusModal({ room, targetStatus: target })
     setReason("")
   }
@@ -146,11 +156,25 @@ function RoomManagementContent() {
     setReason("")
   }
 
+  const openVisibilityModal = (room: Room) => {
+    // Toggle: if currently visible (default), hide; if hidden, show.
+    const targetVisible = room.guest_visible === false
+    setStatusModal({ room: null, targetStatus: "unavailable" })
+    setVisibilityModal({ room, targetVisible })
+    setReason("")
+  }
+
+  const closeVisibilityModal = () => {
+    if (isSubmitting) return
+    setVisibilityModal({ room: null, targetVisible: true })
+    setReason("")
+  }
+
   // ── Status toggle — submit ─────────────────────────────────────────────────
 
   const submitStatusChange = async () => {
     if (!statusModal.room) return
-    if (reasonRequired && !reason.trim()) {
+    if (statusModal.targetStatus === "unavailable" && !reason.trim()) {
       toast.error("Please provide a reason before submitting")
       return
     }
@@ -174,6 +198,46 @@ function RoomManagementContent() {
         fetchActivities()
       } else {
         toast.error("Failed to update room status")
+      }
+    } catch {
+      toast.error("Network error — please try again")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const submitVisibilityChange = async () => {
+    if (!visibilityModal.room) return
+    if (!visibilityModal.targetVisible && !reason.trim()) {
+      toast.error("Please provide a reason before submitting")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(
+        `${API_URL}/api/v1/user_businesses/${businessId}/room_types/${roomTypeId}/rooms/${visibilityModal.room.id}`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: { guest_visible: visibilityModal.targetVisible, reason: reason.trim() || null },
+          }),
+        }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        toast.success(
+          data.message ||
+            (visibilityModal.targetVisible
+              ? "Room is now visible online"
+              : "Room hidden from online booking")
+        )
+        closeVisibilityModal()
+        fetchRoomTypeAndRooms()
+        fetchActivities()
+      } else {
+        toast.error("Failed to update room visibility")
       }
     } catch {
       toast.error("Network error — please try again")
@@ -211,6 +275,7 @@ function RoomManagementContent() {
 
   const availableCount = rooms.filter(r => r.status === "available").length
   const unavailableCount = rooms.filter(r => r.status === "unavailable").length
+  const hiddenCount = rooms.filter(r => r.guest_visible === false).length
 
   // ── Guards ─────────────────────────────────────────────────────────────────
 
@@ -281,7 +346,7 @@ function RoomManagementContent() {
           </div>
         </div>
 
-        <div className="shrink-0 grid gap-2 sm:gap-3 grid-cols-3 min-w-0">
+        <div className="shrink-0 grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-4 min-w-0">
           <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2 py-2 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between gap-1 sm:gap-2 mb-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Total</p>
@@ -302,6 +367,13 @@ function RoomManagementContent() {
               <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
             </div>
             <p className="text-lg sm:text-2xl font-semibold tabular-nums tracking-tight text-rose-700 leading-none truncate">{unavailableCount}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/40 px-2 py-2 sm:px-3.5 sm:py-3 min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 truncate">Hidden</p>
+              <EyeOff className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            </div>
+            <p className="text-lg sm:text-2xl font-semibold tabular-nums tracking-tight text-amber-700 leading-none truncate">{hiddenCount}</p>
           </div>
         </div>
 
@@ -327,34 +399,52 @@ function RoomManagementContent() {
                     <TableRow className="hover:bg-slate-50">
                       <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Room</TableHead>
                       <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</TableHead>
-                      <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 text-center">Toggle</TableHead>
+                      <TableHead className="h-9 px-2 sm:px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 text-center">Avail.</TableHead>
+                      <TableHead className="h-9 px-2 sm:px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 text-center">Visibility</TableHead>
                       <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rooms.map((room) => {
                       const isAvailable = room.status === "available"
+                      const isGuestVisible = room.guest_visible !== false
                       return (
                         <TableRow key={room.id} className="hover:bg-slate-50/80">
                           <TableCell className="px-3 py-2.5 font-mono text-sm font-semibold text-slate-900">
                             Room {room.number}
                           </TableCell>
                           <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5">
-                            {isAvailable ? (
-                              <Badge variant="outline" className="rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
-                                <CheckCircle className="w-3 h-3" /> <span className="hidden sm:inline">Available</span>
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="rounded-md border border-rose-100 bg-rose-50 text-rose-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
-                                <XCircle className="w-3 h-3" /> <span className="hidden sm:inline">Unavailable</span>
-                              </Badge>
-                            )}
+                            <div className="flex flex-wrap gap-1">
+                              {isAvailable ? (
+                                <Badge variant="outline" className="rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
+                                  <CheckCircle className="w-3 h-3" /> <span className="hidden sm:inline">Available</span>
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="rounded-md border border-rose-100 bg-rose-50 text-rose-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
+                                  <XCircle className="w-3 h-3" /> <span className="hidden sm:inline">Unavailable</span>
+                                </Badge>
+                              )}
+                              {!isGuestVisible && (
+                                <Badge variant="outline" className="rounded-md border border-amber-100 bg-amber-50 text-amber-700 text-[10px] font-semibold uppercase tracking-wide gap-1 px-1.5 py-0">
+                                  <EyeOff className="w-3 h-3" /> <span className="hidden sm:inline">Hidden</span>
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5 text-center">
                             <Switch
                               checked={isAvailable}
                               onCheckedChange={() => openStatusModal(room)}
                               className="data-[state=checked]:bg-emerald-500"
+                              aria-label={`Toggle availability for room ${room.number}`}
+                            />
+                          </TableCell>
+                          <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5 text-center">
+                            <Switch
+                              checked={isGuestVisible}
+                              onCheckedChange={() => openVisibilityModal(room)}
+                              className="data-[state=checked]:bg-indigo-500"
+                              aria-label={`Toggle online visibility for room ${room.number}`}
                             />
                           </TableCell>
                           <TableCell className="px-2 sm:px-3 py-2 sm:py-2.5 text-right">
@@ -408,7 +498,9 @@ function RoomManagementContent() {
                   <div className="space-y-0.5">
                     {activities.map((activity) => {
                       const isStatus = activity.action_type === "room_status_changed"
+                      const isVisibility = activity.action_type === "room_visibility_changed"
                       const isAvail = activity.metadata?.new_status === "available"
+                      const isNowVisible = activity.metadata?.new_guest_visible === true
 
                       return (
                         <div key={activity.id} className="relative flex items-start gap-2.5 py-2 pl-1.5 pr-1 rounded-lg hover:bg-slate-50 transition-colors">
@@ -420,6 +512,10 @@ function RoomManagementContent() {
                               isAvail
                                 ? <CheckCircle2 className="w-2.5 h-2.5" style={{ color: activity.color }} />
                                 : <AlertTriangle className="w-2.5 h-2.5" style={{ color: activity.color }} />
+                            ) : isVisibility ? (
+                              isNowVisible
+                                ? <Eye className="w-2.5 h-2.5" style={{ color: activity.color }} />
+                                : <EyeOff className="w-2.5 h-2.5" style={{ color: activity.color }} />
                             ) : (
                               <Activity className="w-2.5 h-2.5" style={{ color: activity.color }} />
                             )}
@@ -506,6 +602,69 @@ function RoomManagementContent() {
             >
               {isSubmitting ? <LoadingSpinner size={16} /> : (
                 statusModal.targetStatus === "unavailable" ? "Confirm Disable" : "Confirm Enable"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Visibility Change Reason Modal ── */}
+      <Dialog open={!!visibilityModal.room} onOpenChange={(open) => !open && closeVisibilityModal()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {!visibilityModal.targetVisible ? (
+                <><EyeOff className="w-5 h-5 text-amber-500" /> Hide Room Online</>
+              ) : (
+                <><Eye className="w-5 h-5 text-indigo-500" /> Show Room Online</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {!visibilityModal.targetVisible
+                ? `You are about to hide Room ${visibilityModal.room?.number} from Shettar web and mobile. Guests will not be able to book it online; walk-in staff can still book it if available.`
+                : `You are about to make Room ${visibilityModal.room?.number} visible for online guest booking again. Optionally add a note.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-1">
+            <div>
+              <Label htmlFor="visibility-reason" className="text-sm font-medium">
+                Reason {!visibilityModal.targetVisible && <span className="text-red-500">*</span>}
+              </Label>
+              <Textarea
+                id="visibility-reason"
+                className="mt-1.5 resize-none"
+                rows={3}
+                placeholder={
+                  !visibilityModal.targetVisible
+                    ? "e.g. Walk-in only, offline sales, renovating soft goods..."
+                    : "e.g. Ready for online bookings again..."
+                }
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                disabled={isSubmitting}
+              />
+              {!visibilityModal.targetVisible && !reason.trim() && (
+                <p className="text-xs text-red-500 mt-1">Reason is required to hide a room online</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={closeVisibilityModal} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitVisibilityChange}
+              disabled={isSubmitting || (!visibilityModal.targetVisible && !reason.trim())}
+              className={
+                !visibilityModal.targetVisible
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
+              }
+            >
+              {isSubmitting ? <LoadingSpinner size={16} /> : (
+                !visibilityModal.targetVisible ? "Confirm Hide" : "Confirm Show"
               )}
             </Button>
           </DialogFooter>

@@ -60,6 +60,7 @@ export interface Room {
   id: number
   number: number
   status: 'available' | 'unavailable'
+  guest_visible: boolean
   room_type_id: number
   booked: boolean
 }
